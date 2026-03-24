@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { HiOutlineSquares2X2 } from "react-icons/hi2";
+import { Filter, Grid3X3, Package, Star, X } from "lucide-react";
 import { BrowseToolbar } from "@/components/browse/browse-toolbar";
 import { ProductOrderSpecs } from "@/components/product-order-specs";
 import { ProductUnitPrice } from "@/components/product-unit-price";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { getCategories, listProducts } from "@/lib/db/catalog";
-import { SectionHeader } from "@/components/ui/section-header";
 
 type Props = {
   searchParams: Promise<{
@@ -125,133 +124,209 @@ export default async function BrowsePage({ searchParams }: Props) {
   const browseHref = (p: number) => `/browse?${browseQuery(p, true)}`;
   const clearRegionHref = `/browse?${browseQuery(1, false)}`;
 
+  const hasActiveFilters = categoryId || regionFilter || minPrice || maxPrice || minRating || stock || minShip;
+
   return (
-    <div className="container mx-auto max-w-6xl flex-1 px-4 py-8 sm:py-10">
-      <SectionHeader
-        eyebrow="Curated for procurement velocity"
-        title="The catalog that keeps pace with your ops"
-        description="Use the sort and category menus to tune the grid—same filters as your global search category narrow."
-        icon={<HiOutlineSquares2X2 className="h-5 w-5" />}
-      />
+    <div className="flex flex-col">
+      {/* Page Header */}
+      <div className="border-b border-border bg-card/30">
+        <div className="lm-container py-8 sm:py-12">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Grid3X3 className="h-6 w-6" />
+            </div>
+            <div>
+              <span className="lm-eyebrow">Product Catalog</span>
+              <h1 className="lm-heading-section mt-1">Browse Products</h1>
+            </div>
+          </div>
+          <p className="mt-4 max-w-2xl text-muted-foreground">
+            Discover quality products from verified suppliers. Use filters to narrow down your search.
+          </p>
+        </div>
+      </div>
 
-      <BrowseToolbar
-        sort={sort}
-        categoryId={categoryId}
-        categories={categories}
-        activeCategory={activeCategory}
-        regions={regionOptions}
-        filters={{
-          minPrice,
-          maxPrice,
-          minRating,
-          stock,
-          minShip,
-          region: regionFilter,
-        }}
-      />
+      <div className="lm-container py-6 sm:py-8">
+        {/* Toolbar */}
+        <BrowseToolbar
+          sort={sort}
+          categoryId={categoryId}
+          categories={categories}
+          activeCategory={activeCategory}
+          regions={regionOptions}
+          filters={{
+            minPrice,
+            maxPrice,
+            minRating,
+            stock,
+            minShip,
+            region: regionFilter,
+          }}
+        />
 
-      {categoryId && !activeCategory && (
-        <p className="alert alert-warning mt-6 text-sm">
-          Unknown category filter — showing all products.{" "}
-          <Link href="/browse" className="link link-hover font-semibold">
-            Clear filter
-          </Link>
-        </p>
-      )}
+        {/* Active Filters */}
+        {hasActiveFilters && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              Active filters:
+            </span>
+            {activeCategory && (
+              <Link
+                href={`/browse?sort=${sort}`}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+              >
+                {activeCategory.name}
+                <X className="h-3 w-3" />
+              </Link>
+            )}
+            {regionFilter && (
+              <Link
+                href={clearRegionHref}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+              >
+                {regionFilter}
+                <X className="h-3 w-3" />
+              </Link>
+            )}
+            {(minPrice || maxPrice) && (
+              <span className="rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
+                Price: {minPrice || '0'} - {maxPrice || 'Any'}
+              </span>
+            )}
+            {minRating && (
+              <span className="rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
+                Min Rating: {minRating}
+              </span>
+            )}
+            {stock === "in_stock" && (
+              <span className="rounded-full bg-success/10 px-3 py-1 text-sm text-success">
+                In Stock Only
+              </span>
+            )}
+          </div>
+        )}
 
-      {activeCategory && (
-        <p className="mt-4 text-sm text-base-content/70">
-          Showing listings in <strong>{activeCategory.name}</strong>.{" "}
-          <Link href={`/browse?sort=${sort}`} className="link link-primary">
-            Clear category
-          </Link>
-        </p>
-      )}
+        {/* Results Count */}
+        <div className="mt-6 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {totalCount === 0
+              ? "No products match your filters"
+              : `Showing ${pageStart + 1}-${Math.min(pageStart + pageSize, totalCount)} of ${totalCount} products`}
+          </p>
+        </div>
 
-      {regionFilter && (
-        <p className="mt-2 text-sm text-base-content/70">
-          Region: <strong>{regionFilter}</strong>.{" "}
-          <Link href={clearRegionHref} className="link link-primary">
-            Clear region
-          </Link>
-        </p>
-      )}
+        {/* Product Grid */}
+        {pageItems.length > 0 ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {pageItems.map((p) => (
+              <Link
+                key={p.id}
+                href={`/products/${p.id}`}
+                className="lm-card lm-card-interactive group flex flex-col overflow-hidden p-0"
+              >
+                {/* Image */}
+                {p.imageUrl && (
+                  <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.imageUrl}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    {p.isFeatured && (
+                      <span className="absolute right-3 top-3 rounded-full bg-warning/90 px-2.5 py-1 text-xs font-semibold text-warning-foreground">
+                        Featured
+                      </span>
+                    )}
+                  </div>
+                )}
+                
+                {/* Content */}
+                <div className="flex flex-1 flex-col p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="line-clamp-2 font-display text-base font-semibold text-foreground transition-colors group-hover:text-primary">
+                      {p.name}
+                    </h2>
+                    {p.isFeatured && !p.imageUrl && (
+                      <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+                        Featured
+                      </span>
+                    )}
+                  </div>
+                  
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                    {p.description}
+                  </p>
 
-      <p className="mt-4 text-sm text-base-content/60">
-        {totalCount === 0
-          ? "No listings match these filters."
-          : `Showing ${pageStart + 1}–${Math.min(pageStart + pageSize, totalCount)} of ${totalCount}`}
-      </p>
-
-      <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {pageItems.map((p) => (
-          <li key={p.id}>
-            <Link
-              href={`/products/${p.id}`}
-              className="card group h-full overflow-hidden border border-base-300 bg-base-100 shadow-md transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
-            >
-              {p.imageUrl ? (
-                <figure className="relative aspect-[16/10] w-full overflow-hidden bg-base-200">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={p.imageUrl}
-                    alt=""
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                  />
-                  {p.isFeatured && (
-                    <span className="badge badge-warning absolute end-2 top-2 gap-0 border-0 text-[10px] uppercase">
-                      Featured
-                    </span>
+                  {/* Rating */}
+                  {p.averageRating > 0 && (
+                    <div className="mt-3 flex items-center gap-1">
+                      <Star className="h-4 w-4 fill-warning text-warning" />
+                      <span className="text-sm font-medium text-foreground">
+                        {p.averageRating.toFixed(1)}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        ({p.totalOrdersCount} orders)
+                      </span>
+                    </div>
                   )}
-                </figure>
-              ) : null}
-              <div className="card-body p-5">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h2 className="card-title line-clamp-2 text-base font-semibold leading-snug group-hover:text-primary">
-                    {p.name}
-                  </h2>
-                  {p.isFeatured && !p.imageUrl && (
-                    <span className="badge badge-warning badge-sm shrink-0 uppercase">
-                      Featured
-                    </span>
-                  )}
-                </div>
-                <p className="line-clamp-2 text-sm text-base-content/65">
-                  {p.description}
-                </p>
-                <div className="card-actions mt-auto flex flex-col gap-2 pt-3">
-                  <p className="text-sm">
+
+                  {/* Specs */}
+                  <div className="mt-3">
+                    <ProductOrderSpecs
+                      size="sm"
+                      product={{
+                        minOrderQuantity: p.minOrderQuantity,
+                        maxDeliveryQuantity: p.maxDeliveryQuantity,
+                        deliveryTime: p.deliveryTime,
+                        availableQuantity: p.availableQuantity,
+                        itemsPerCarton: p.itemsPerCarton,
+                        itemsPerRim: p.itemsPerRim,
+                        itemsPerDozen: p.itemsPerDozen,
+                      }}
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div className="mt-auto pt-4">
                     <ProductUnitPrice
                       price={p.price}
                       compareAtPrice={p.compareAtPrice}
-                      saleClassName="font-bold text-primary"
+                      saleClassName="text-lg font-bold text-primary"
+                      strikeClassName="text-sm text-muted-foreground line-through"
                     />
-                  </p>
-                  <ProductOrderSpecs
-                    size="sm"
-                    product={{
-                      minOrderQuantity: p.minOrderQuantity,
-                      maxDeliveryQuantity: p.maxDeliveryQuantity,
-                      deliveryTime: p.deliveryTime,
-                      availableQuantity: p.availableQuantity,
-                      itemsPerCarton: p.itemsPerCarton,
-                      itemsPerRim: p.itemsPerRim,
-                      itemsPerDozen: p.itemsPerDozen,
-                    }}
-                  />
+                  </div>
                 </div>
-              </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-12 flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
+            <Package className="h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-4 font-display text-lg font-semibold text-foreground">
+              No products found
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Try adjusting your filters or search criteria
+            </p>
+            <Link
+              href="/browse"
+              className="mt-6 inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Clear all filters
             </Link>
-          </li>
-        ))}
-      </ul>
+          </div>
+        )}
 
-      <PaginationBar
-        page={safePage}
-        pageSize={pageSize}
-        total={totalCount}
-        buildHref={browseHref}
-      />
+        {/* Pagination */}
+        <PaginationBar
+          page={safePage}
+          pageSize={pageSize}
+          total={totalCount}
+          buildHref={browseHref}
+        />
+      </div>
     </div>
   );
 }

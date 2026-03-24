@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   AnimatePresence,
-  LayoutGroup,
   motion,
   useReducedMotion,
 } from "framer-motion";
@@ -14,7 +13,6 @@ import {
   Building2,
   ChevronDown,
   ClipboardList,
-  FolderTree,
   LayoutDashboard,
   LayoutGrid,
   LogIn,
@@ -23,6 +21,7 @@ import {
   ShoppingCart,
   UserPlus,
   X,
+  Sparkles,
 } from "lucide-react";
 import {
   Suspense,
@@ -77,6 +76,7 @@ export function SiteHeaderClient({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCatsOpen, setMobileCatsOpen] = useState(false);
   const [mobileCatQuery, setMobileCatQuery] = useState("");
+  const [scrolled, setScrolled] = useState(false);
 
   const filteredMobileCategories = useMemo(() => {
     const s = mobileCatQuery.trim().toLowerCase();
@@ -89,6 +89,14 @@ export function SiteHeaderClient({
   useEffect(() => {
     closeMobile();
   }, [pathname, closeMobile]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     if (!mobileOpen) {
@@ -113,116 +121,41 @@ export function SiteHeaderClient({
   const navSpring = useMemo(
     () =>
       reduceMotion
-        ? { duration: 0.2 }
-        : { type: "spring" as const, stiffness: 420, damping: 34 },
+        ? { duration: 0.15 }
+        : { type: "spring" as const, stiffness: 500, damping: 30 },
     [reduceMotion],
   );
 
-  const headerMotion = reduceMotion
-    ? { initial: false, animate: {} }
-    : {
-        initial: { y: -12, opacity: 0 },
-        animate: { y: 0, opacity: 1 },
-        transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
-      };
-
-  function DesktopNavLink({
-    href,
-    label,
-    icon: Icon,
-    active,
-  }: {
-    href: string;
-    label: string;
-    icon: typeof LayoutGrid;
-    active: boolean;
-  }) {
-    return (
-      <Link
-        href={href}
-        className={clsx(
-          "relative flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium outline-none transition-[color,transform] duration-200",
-          "focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100",
-          active
-            ? "text-primary"
-            : "text-base-content/65 hover:bg-base-200/70 hover:text-base-content",
-        )}
-      >
-        <Icon
-          className={clsx(
-            "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
-            active && !reduceMotion && "scale-110",
-          )}
-          aria-hidden
-        />
-        <span>{label}</span>
-        {active && (
-          <motion.span
-            layoutId="navbar-active-pill"
-            className="absolute inset-0 -z-10 rounded-xl bg-primary/10 shadow-[inset_0_0_0_1px] shadow-primary/20"
-            transition={navSpring}
-          />
-        )}
-        {active && (
-          <motion.span
-            layoutId="navbar-active-bar"
-            className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
-            transition={navSpring}
-          />
-        )}
-      </Link>
-    );
-  }
-
-  function MobileRow({
-    href,
-    label,
-    icon: Icon,
-    active,
-    onNavigate,
-  }: {
-    href: string;
-    label: string;
-    icon: typeof LayoutGrid;
-    active: boolean;
-    onNavigate?: () => void;
-  }) {
-    return (
-      <Link
-        href={href}
-        onClick={onNavigate}
-        className={clsx(
-          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-          active
-            ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px] shadow-primary/25"
-            : "text-base-content/80 hover:bg-base-200/80",
-        )}
-      >
-        <Icon className="h-5 w-5 shrink-0 opacity-90" aria-hidden />
-        {label}
-      </Link>
-    );
-  }
-
   const avatarInitials = user ? initialsFromName(user.name) : "";
+
+  const navLinks = [
+    { href: "/browse", label: "Browse", icon: LayoutGrid },
+    { href: "/companies", label: "Suppliers", icon: Building2 },
+  ];
 
   return (
     <>
-    <motion.header
-      {...headerMotion}
-      className="sticky top-0 z-50 border-b border-base-300/70 bg-base-100/80 shadow-[0_1px_0_0] shadow-base-300/40 backdrop-blur-xl backdrop-saturate-150"
-    >
-      <div className="mx-auto max-w-7xl px-3 sm:px-4">
-        <div className="flex min-h-0 items-center gap-2 py-1.5 sm:gap-2.5 sm:py-2">
-          {/* Left: menu + brand */}
-          <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+      <motion.header
+        initial={reduceMotion ? false : { y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className={clsx(
+          "sticky top-0 z-50 transition-all duration-300",
+          scrolled
+            ? "border-b border-border/50 bg-background/80 shadow-lg shadow-background/20 backdrop-blur-xl"
+            : "border-b border-transparent bg-transparent"
+        )}
+      >
+        <div className="lm-container">
+          <div className="flex h-16 items-center gap-4">
+            {/* Mobile Menu Button */}
             <motion.button
               type="button"
-              className="btn btn-ghost btn-square btn-xs h-8 min-h-8 w-8 rounded-lg border border-transparent hover:border-base-300/80 sm:btn-sm sm:h-9 sm:min-h-9 sm:w-9 lg:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 bg-card/50 text-foreground transition-colors hover:bg-card lg:hidden"
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
               onClick={() => setMobileOpen((o) => !o)}
-              whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.95 }}
             >
               <AnimatePresence mode="wait" initial={false}>
                 {mobileOpen ? (
@@ -231,10 +164,9 @@ export function SiteHeaderClient({
                     initial={reduceMotion ? false : { rotate: -90, opacity: 0 }}
                     animate={{ rotate: 0, opacity: 1 }}
                     exit={reduceMotion ? undefined : { rotate: 90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="inline-flex"
+                    transition={{ duration: 0.15 }}
                   >
-                    <X className="h-[1.125rem] w-[1.125rem] sm:h-5 sm:w-5" strokeWidth={2.25} />
+                    <X className="h-5 w-5" />
                   </motion.span>
                 ) : (
                   <motion.span
@@ -242,323 +174,284 @@ export function SiteHeaderClient({
                     initial={reduceMotion ? false : { rotate: 90, opacity: 0 }}
                     animate={{ rotate: 0, opacity: 1 }}
                     exit={reduceMotion ? undefined : { rotate: -90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="inline-flex"
+                    transition={{ duration: 0.15 }}
                   >
-                    <Menu className="h-[1.125rem] w-[1.125rem] sm:h-5 sm:w-5" strokeWidth={2.25} />
+                    <Menu className="h-5 w-5" />
                   </motion.span>
                 )}
               </AnimatePresence>
             </motion.button>
 
-            <Link
-              href="/"
-              className="group flex min-w-0 flex-col rounded-lg px-1.5 py-0.5 transition-[transform,opacity] duration-200 hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 sm:px-2 sm:py-1"
-            >
-              <motion.span
-                className="font-display truncate bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-[0.9375rem] font-bold leading-tight tracking-tight text-transparent sm:text-base"
-                whileHover={reduceMotion ? undefined : { scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              >
-                {brandCopy.name}
-              </motion.span>
-              <span className="font-display hidden max-w-[11rem] truncate text-[0.58rem] font-semibold uppercase leading-tight tracking-[0.14em] text-base-content/42 sm:block">
-                {brandCopy.tagline}
-              </span>
+            {/* Logo */}
+            <Link href="/" className="group flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70 shadow-lg shadow-primary/20">
+                <Sparkles className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="hidden flex-col sm:flex">
+                <span className="font-display text-lg font-bold tracking-tight text-foreground">
+                  {brandCopy.name}
+                </span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  B2B Marketplace
+                </span>
+              </div>
             </Link>
-          </div>
 
-          {/* Desktop primary nav — Browse & Suppliers + categories; account links in avatar menu */}
-          <LayoutGroup id="main-nav">
-            <nav
-              className="hidden items-center gap-0.5 lg:flex"
-              aria-label="Primary"
-            >
-              <DesktopNavLink
-                href="/browse"
-                label="Browse"
-                icon={LayoutGrid}
-                active={isPathActive(pathname, "/browse")}
-              />
-              <DesktopNavLink
-                href="/companies"
-                label="Suppliers"
-                icon={Building2}
-                active={isPathActive(pathname, "/companies")}
-              />
+            {/* Desktop Navigation */}
+            <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
+              {navLinks.map((link) => {
+                const active = isPathActive(pathname, link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={clsx(
+                      "relative flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
+                      active
+                        ? "text-primary"
+                        : "text-muted-foreground hover:bg-card hover:text-foreground"
+                    )}
+                  >
+                    <link.icon className="h-4 w-4" />
+                    <span>{link.label}</span>
+                    {active && (
+                      <motion.div
+                        layoutId="nav-indicator"
+                        className="absolute inset-0 rounded-lg bg-primary/10 ring-1 ring-primary/20"
+                        transition={navSpring}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
               <Suspense
                 fallback={
-                  <div
-                    className="h-8 w-[5rem] animate-pulse rounded-lg bg-base-200/80"
-                    aria-hidden
-                  />
+                  <div className="h-9 w-24 animate-pulse rounded-lg bg-muted" />
                 }
               >
                 <NavCategoryDropdown categories={categories} />
               </Suspense>
             </nav>
-          </LayoutGroup>
 
-          {/* Search (tablet+) */}
-          <div className="mx-auto hidden min-w-0 max-w-xl flex-1 px-2 md:block lg:max-w-2xl xl:max-w-3xl">
-            <SearchBox />
-          </div>
+            {/* Search */}
+            <div className="mx-4 hidden flex-1 md:block lg:max-w-xl">
+              <SearchBox />
+            </div>
 
-          {/* Right tools */}
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
-            <div
-              className="hidden h-5 w-px bg-gradient-to-b from-transparent via-base-300 to-transparent sm:block"
-              aria-hidden
-            />
-            <ThemeToggle />
-            {user ? (
-              <>
-                <div className="hidden sm:block">
-                  <NotificationBell compact />
-                </div>
-                <div className="dropdown dropdown-end">
-                  <motion.div
-                    tabIndex={0}
-                    role="button"
-                    className="btn btn-ghost h-9 min-h-0 gap-1.5 rounded-full border border-base-300/60 bg-base-200/25 pl-0.5 pr-1.5 hover:border-primary/35 hover:bg-base-200/55 sm:h-9"
-                    aria-label="Account menu"
-                    whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-                  >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary/35 via-secondary/25 to-accent/30 text-[10px] font-bold text-primary shadow-inner sm:h-8 sm:w-8 sm:text-xs">
-                      {avatarInitials}
-                    </span>
-                    <ChevronDown
-                      className="hidden h-3.5 w-3.5 opacity-55 sm:block"
-                      strokeWidth={2.25}
-                      aria-hidden
-                    />
-                  </motion.div>
-                  <ul
-                    tabIndex={0}
-                    className="menu dropdown-content z-[100] mt-2 w-64 rounded-2xl border border-base-300/80 bg-base-100/95 p-2 shadow-2xl backdrop-blur-md"
-                  >
-                    <li className="menu-disabled px-3 py-2 opacity-100">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="truncate text-sm font-semibold text-base-content">
+            {/* Right Actions */}
+            <div className="ml-auto flex items-center gap-2">
+              <ThemeToggle />
+              
+              {user ? (
+                <>
+                  <div className="hidden sm:block">
+                    <NotificationBell compact />
+                  </div>
+                  
+                  {/* User Menu */}
+                  <div className="dropdown dropdown-end">
+                    <motion.button
+                      tabIndex={0}
+                      className="flex h-10 items-center gap-2 rounded-full border border-border/50 bg-card/50 pl-1 pr-3 transition-all hover:border-primary/30 hover:bg-card"
+                      aria-label="Account menu"
+                      whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-xs font-bold text-primary-foreground">
+                        {avatarInitials}
+                      </span>
+                      <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
+                    </motion.button>
+                    <div
+                      tabIndex={0}
+                      className="dropdown-content z-[100] mt-2 w-72 rounded-xl border border-border bg-card p-2 shadow-2xl"
+                    >
+                      {/* User Info */}
+                      <div className="border-b border-border px-3 py-3">
+                        <p className="truncate font-semibold text-foreground">
                           {user.name}
-                        </span>
-                        <span className="truncate text-xs text-base-content/55">
+                        </p>
+                        <p className="truncate text-sm text-muted-foreground">
                           {user.email}
-                        </span>
-                        <span className="mt-1 inline-flex w-fit rounded-full bg-base-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-base-content/60">
+                        </p>
+                        <span className="mt-2 inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium capitalize text-primary">
                           {user.role}
                         </span>
                       </div>
-                    </li>
-                    <div className="divider my-1 before:bg-base-300/60 after:bg-base-300/60" />
-                    <li>
-                      <Link
-                        href={dashHref}
-                        className="rounded-xl !flex-row gap-2"
-                      >
-                        <LayoutDashboard className="h-4 w-4" />
-                        Dashboard
-                      </Link>
-                    </li>
-                    <li className="sm:hidden">
-                      <Link
-                        href="/notifications"
-                        className="rounded-xl !flex-row gap-2"
-                      >
-                        <Bell className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-                        Notifications
-                      </Link>
-                    </li>
-                    {user.role === "merchant" && (
-                      <>
-                        <li>
-                          <Link
-                            href="/merchant/cart"
-                            className="rounded-xl !flex-row gap-2"
-                          >
-                            <ShoppingCart className="h-4 w-4" />
-                            Cart
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/merchant/orders"
-                            className="rounded-xl !flex-row gap-2"
-                          >
-                            <ClipboardList className="h-4 w-4" />
-                            Orders
-                          </Link>
-                        </li>
-                      </>
-                    )}
-                    <div className="divider my-1 before:bg-base-300/60 after:bg-base-300/60" />
-                    <li>
-                      <SignOutButton className="rounded-xl !flex-row gap-2 hover:bg-error/10 hover:text-error" />
-                    </li>
-                  </ul>
+                      
+                      {/* Menu Items */}
+                      <div className="py-2">
+                        <Link
+                          href={dashHref}
+                          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+                        >
+                          <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                          Dashboard
+                        </Link>
+                        <Link
+                          href="/notifications"
+                          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted sm:hidden"
+                        >
+                          <Bell className="h-4 w-4 text-muted-foreground" />
+                          Notifications
+                        </Link>
+                        {user.role === "merchant" && (
+                          <>
+                            <Link
+                              href="/merchant/cart"
+                              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+                            >
+                              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                              Cart
+                            </Link>
+                            <Link
+                              href="/merchant/orders"
+                              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+                            >
+                              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                              Orders
+                            </Link>
+                          </>
+                        )}
+                      </div>
+                      
+                      {/* Sign Out */}
+                      <div className="border-t border-border pt-2">
+                        <SignOutButton className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10" />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/login"
+                    className="flex h-10 items-center gap-2 rounded-lg border border-border/50 bg-card/50 px-4 text-sm font-medium text-foreground transition-all hover:border-primary/30 hover:bg-card"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sign in</span>
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Register</span>
+                  </Link>
                 </div>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className={clsx(
-                    "btn btn-ghost btn-sm gap-1.5 rounded-full border border-base-300/70 normal-case",
-                    "hover:border-primary/30 hover:bg-primary/5",
-                  )}
-                >
-                  <LogIn className="h-4 w-4 shrink-0" strokeWidth={2.25} />
-                  <span className="hidden sm:inline">Sign in</span>
-                </Link>
-                <Link
-                  href="/register"
-                  className="btn btn-primary btn-sm gap-1.5 rounded-full border-0 px-3 shadow-lg shadow-primary/25 normal-case sm:px-4"
-                >
-                  <UserPlus className="h-4 w-4 shrink-0" strokeWidth={2.25} />
-                  <span className="hidden sm:inline">Register</span>
-                </Link>
-              </>
-            )}
+              )}
+            </div>
+          </div>
+
+          {/* Mobile Search */}
+          <div className="border-t border-border/50 py-3 md:hidden">
+            <SearchBox />
           </div>
         </div>
+      </motion.header>
 
-        {/* Mobile search */}
-        <div className="border-t border-base-300/50 bg-base-200/20 px-0 py-2 md:hidden">
-          <SearchBox />
-        </div>
-      </div>
-    </motion.header>
-
+      {/* Mobile Navigation Drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
-            <motion.button
-              type="button"
-              aria-label="Close menu"
-              className="fixed inset-0 z-[60] bg-base-content/25 backdrop-blur-[2px] lg:hidden"
-              initial={reduceMotion ? false : { opacity: 0 }}
+            <motion.div
+              className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm lg:hidden"
+              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={reduceMotion ? undefined : { opacity: 0 }}
-              transition={{ duration: 0.25 }}
+              exit={{ opacity: 0 }}
               onClick={closeMobile}
             />
             <motion.aside
-              id="site-mobile-nav"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Main navigation"
-              className="fixed inset-y-0 left-0 z-[70] flex w-[min(100vw-2.5rem,20rem)] flex-col border-r border-base-300/80 bg-base-100/98 shadow-2xl backdrop-blur-xl lg:hidden"
-              initial={reduceMotion ? false : { x: "-105%" }}
+              className="fixed inset-y-0 left-0 z-[70] w-80 max-w-[calc(100vw-3rem)] border-r border-border bg-card lg:hidden"
+              initial={{ x: "-100%" }}
               animate={{ x: 0 }}
-              exit={reduceMotion ? undefined : { x: "-105%" }}
-              transition={
-                reduceMotion
-                  ? { duration: 0.2 }
-                  : { type: "spring", stiffness: 320, damping: 32 }
-              }
+              exit={{ x: "-100%" }}
+              transition={reduceMotion ? { duration: 0.15 } : { type: "spring", stiffness: 400, damping: 30 }}
             >
-              <div className="border-b border-base-300/60 px-4 py-3">
-                <p className="font-display text-sm font-bold text-base-content/90">
-                  {brandCopy.name}
-                </p>
-                <p className="text-xs text-base-content/50">Menu</p>
+              {/* Drawer Header */}
+              <div className="flex items-center gap-3 border-b border-border p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70">
+                  <Sparkles className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-foreground">{brandCopy.name}</p>
+                  <p className="text-xs text-muted-foreground">Navigation</p>
+                </div>
               </div>
-              <nav
-                className="flex flex-1 flex-col gap-1 overflow-y-auto overscroll-contain p-3"
-                aria-label="Mobile primary"
-              >
-                <MobileRow
-                  href="/browse"
-                  label="Browse"
-                  icon={LayoutGrid}
-                  active={isPathActive(pathname, "/browse")}
-                  onNavigate={closeMobile}
-                />
-                <MobileRow
-                  href="/companies"
-                  label="Suppliers"
-                  icon={Building2}
-                  active={isPathActive(pathname, "/companies")}
-                  onNavigate={closeMobile}
-                />
+
+              {/* Drawer Content */}
+              <nav className="flex flex-col gap-1 p-3">
+                {navLinks.map((link) => {
+                  const active = isPathActive(pathname, link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={closeMobile}
+                      className={clsx(
+                        "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <link.icon className="h-5 w-5" />
+                      {link.label}
+                    </Link>
+                  );
+                })}
+
+                {/* Categories Accordion */}
                 {categories.length > 0 && (
-                  <div className="rounded-xl border border-base-300/60 bg-base-200/20 py-1">
+                  <div className="rounded-lg border border-border">
                     <button
                       type="button"
-                      className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-base-content/85 hover:bg-base-200/60"
-                      aria-expanded={mobileCatsOpen}
+                      className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
                       onClick={() => setMobileCatsOpen((o) => !o)}
                     >
                       <span className="flex items-center gap-3">
-                        <FolderTree
-                          className="h-5 w-5 shrink-0 text-secondary"
-                          strokeWidth={2.25}
-                          aria-hidden
-                        />
+                        <LayoutGrid className="h-5 w-5" />
                         Categories
                       </span>
                       <motion.span
                         animate={{ rotate: mobileCatsOpen ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <ChevronDown
-                          className="h-4 w-4 opacity-60"
-                          aria-hidden
-                        />
+                        <ChevronDown className="h-4 w-4" />
                       </motion.span>
                     </button>
-                    <AnimatePresence initial={false}>
+                    <AnimatePresence>
                       {mobileCatsOpen && (
                         <motion.div
-                          initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+                          initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
-                          exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
-                          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                          className="overflow-hidden border-t border-base-300/50"
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden border-t border-border"
                         >
                           <div className="p-2">
-                            <label className="relative block">
-                              <Search
-                                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/40"
-                                strokeWidth={2.25}
-                                aria-hidden
-                              />
+                            <div className="relative mb-2">
+                              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                               <input
-                                type="search"
+                                type="text"
+                                placeholder="Search categories..."
                                 value={mobileCatQuery}
                                 onChange={(e) => setMobileCatQuery(e.target.value)}
-                                placeholder="Search categories…"
-                                className="input input-sm h-9 w-full rounded-lg border-base-300/80 bg-base-100 pl-9 text-sm placeholder:text-base-content/40"
+                                className="lm-input pl-10 text-sm"
                               />
-                            </label>
-                          </div>
-                          <ul className="max-h-52 space-y-0.5 overflow-y-auto overscroll-contain px-2 pb-2">
-                            <li>
-                              <Link
-                                href="/browse"
-                                onClick={closeMobile}
-                                className="block rounded-lg px-2 py-2 text-sm font-medium text-base-content/80 hover:bg-base-200/80"
-                              >
-                                All categories
-                              </Link>
-                            </li>
-                            {filteredMobileCategories.map((c) => (
-                              <li key={c.id}>
+                            </div>
+                            <div className="max-h-48 space-y-1 overflow-y-auto">
+                              {filteredMobileCategories.map((cat) => (
                                 <Link
-                                  href={`/browse?category=${encodeURIComponent(c.id)}`}
+                                  key={cat.id}
+                                  href={`/browse?category=${encodeURIComponent(cat.id)}`}
                                   onClick={closeMobile}
-                                  className="block rounded-lg px-2 py-2 text-sm text-base-content/80 hover:bg-base-200/80 hover:text-primary"
+                                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                 >
-                                  {c.name}
+                                  {cat.name}
                                 </Link>
-                              </li>
-                            ))}
-                          </ul>
-                          {filteredMobileCategories.length === 0 && (
-                            <p className="px-3 pb-3 text-center text-xs text-base-content/50">
-                              No matches.
-                            </p>
-                          )}
+                              ))}
+                            </div>
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -566,71 +459,14 @@ export function SiteHeaderClient({
                 )}
               </nav>
 
-              <div className="border-t border-base-300/60 p-3">
-                {user ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 rounded-xl bg-base-200/50 p-3">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary/35 via-secondary/25 to-accent/30 text-sm font-bold text-primary">
-                        {avatarInitials}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">
-                          {user.name}
-                        </p>
-                        <p className="truncate text-xs text-base-content/55">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="px-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-base-content/45">
-                      Your account
-                    </p>
-                    <div className="flex flex-col gap-1">
-                      <Link
-                        href={dashHref}
-                        onClick={closeMobile}
-                        className="btn btn-ghost btn-sm h-auto min-h-0 justify-start gap-2 rounded-xl border border-base-300/50 py-2.5 normal-case"
-                      >
-                        <LayoutDashboard className="h-4 w-4 shrink-0" />
-                        Dashboard
-                      </Link>
-                      {user.role === "merchant" && (
-                        <>
-                          <Link
-                            href="/merchant/cart"
-                            onClick={closeMobile}
-                            className="btn btn-ghost btn-sm h-auto min-h-0 justify-start gap-2 rounded-xl border border-base-300/50 py-2.5 normal-case"
-                          >
-                            <ShoppingCart className="h-4 w-4 shrink-0" />
-                            Cart
-                          </Link>
-                          <Link
-                            href="/merchant/orders"
-                            onClick={closeMobile}
-                            className="btn btn-ghost btn-sm h-auto min-h-0 justify-start gap-2 rounded-xl border border-base-300/50 py-2.5 normal-case"
-                          >
-                            <ClipboardList className="h-4 w-4 shrink-0" />
-                            Orders
-                          </Link>
-                        </>
-                      )}
-                      <Link
-                        href="/notifications"
-                        onClick={closeMobile}
-                        className="btn btn-ghost btn-sm h-auto min-h-0 justify-start gap-2 rounded-xl border border-base-300/50 py-2.5 normal-case sm:hidden"
-                      >
-                        <Bell className="h-4 w-4 shrink-0" strokeWidth={2.25} />
-                        Notifications
-                      </Link>
-                    </div>
-                    <SignOutButton className="btn btn-outline btn-error btn-sm w-full justify-center gap-2 rounded-xl border-error/40 normal-case" />
-                  </div>
-                ) : (
+              {/* Drawer Footer */}
+              {!user && (
+                <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4">
                   <div className="flex flex-col gap-2">
                     <Link
                       href="/login"
                       onClick={closeMobile}
-                      className="btn btn-ghost btn-sm w-full justify-center gap-2 rounded-xl border border-base-300/70 normal-case"
+                      className="flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted"
                     >
                       <LogIn className="h-4 w-4" />
                       Sign in
@@ -638,14 +474,14 @@ export function SiteHeaderClient({
                     <Link
                       href="/register"
                       onClick={closeMobile}
-                      className="btn btn-primary btn-sm w-full justify-center gap-2 rounded-xl normal-case shadow-lg shadow-primary/20"
+                      className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-colors hover:bg-primary/90"
                     >
                       <UserPlus className="h-4 w-4" />
                       Create account
                     </Link>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </motion.aside>
           </>
         )}
