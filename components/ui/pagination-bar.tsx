@@ -1,65 +1,61 @@
 import Link from "next/link";
-
-type Variant = "daisy" | "admin";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function PaginationBar({
   page,
   pageSize,
   total,
   buildHref,
-  variant = "daisy",
   className,
 }: {
   page: number;
   pageSize: number;
   total: number;
   buildHref: (page: number) => string;
-  variant?: Variant;
   className?: string;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const p = Math.min(Math.max(1, page), totalPages);
   if (totalPages <= 1) return null;
 
-  const navClass =
-    className ??
-    (variant === "daisy"
-      ? "mt-8 flex flex-wrap items-center justify-center gap-2"
-      : "mt-6 flex flex-wrap items-center justify-center gap-2");
-
-  const linkClass =
-    variant === "daisy"
-      ? "btn btn-sm btn-outline"
-      : "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800/80";
-
-  const disabledClass =
-    variant === "daisy"
-      ? "btn btn-sm btn-disabled btn-outline pointer-events-none"
-      : "cursor-not-allowed rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-400 dark:border-zinc-800 dark:text-zinc-600";
-
-  const metaClass =
-    variant === "daisy"
-      ? "px-3 text-sm text-base-content/70"
-      : "px-3 text-sm text-zinc-600 dark:text-zinc-400";
-
   return (
-    <nav className={navClass} aria-label="Pagination">
+    <nav
+      className={className ?? "mt-8 flex flex-wrap items-center justify-center gap-2"}
+      aria-label="Pagination"
+    >
       {p > 1 ? (
-        <Link href={buildHref(p - 1)} className={linkClass}>
+        <Link
+          href={buildHref(p - 1)}
+          className="flex h-10 items-center gap-1 rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-muted"
+        >
+          <ChevronLeft className="h-4 w-4" />
           Previous
         </Link>
       ) : (
-        <span className={disabledClass}>Previous</span>
+        <span className="flex h-10 cursor-not-allowed items-center gap-1 rounded-lg border border-border bg-card/50 px-4 text-sm font-medium text-muted-foreground opacity-50">
+          <ChevronLeft className="h-4 w-4" />
+          Previous
+        </span>
       )}
-      <span className={metaClass}>
-        Page {p} of {totalPages}
+      
+      <span className="px-3 text-sm text-muted-foreground">
+        Page <span className="font-medium text-foreground">{p}</span> of{" "}
+        <span className="font-medium text-foreground">{totalPages}</span>
       </span>
+      
       {p < totalPages ? (
-        <Link href={buildHref(p + 1)} className={linkClass}>
+        <Link
+          href={buildHref(p + 1)}
+          className="flex h-10 items-center gap-1 rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-muted"
+        >
           Next
+          <ChevronRight className="h-4 w-4" />
         </Link>
       ) : (
-        <span className={disabledClass}>Next</span>
+        <span className="flex h-10 cursor-not-allowed items-center gap-1 rounded-lg border border-border bg-card/50 px-4 text-sm font-medium text-muted-foreground opacity-50">
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </span>
       )}
     </nav>
   );

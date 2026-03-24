@@ -1,28 +1,28 @@
-import Link from "next/link";
+import Link from "next/link"
 import {
-  HiArrowRight,
-  HiOutlineBanknotes,
-  HiOutlineBuildingOffice2,
-  HiOutlineClipboardDocumentList,
-  HiOutlineCube,
-  HiOutlineShoppingCart,
-} from "react-icons/hi2";
-import { SupplierDashboardCharts } from "@/components/supplier-dashboard-charts";
-import {
-  SupplierAnalyticsSparkline,
-  SupplierHeroBackdrop,
-} from "@/components/supplier/supplier-portal-graphics";
-import { findUserById } from "@/lib/db/users";
-import { companiesByOwner } from "@/lib/db/catalog";
-import { getSupplierAnalytics } from "@/lib/db/supplier-analytics";
-import { getSessionUser } from "@/lib/server/session";
+  ArrowRight,
+  Banknote,
+  Building2,
+  ClipboardList,
+  Package,
+  ShoppingCart,
+  Sparkles,
+  TrendingUp,
+  Plus,
+  BarChart3,
+} from "lucide-react"
+import { SupplierDashboardCharts } from "@/components/supplier-dashboard-charts"
+import { findUserById } from "@/lib/db/users"
+import { companiesByOwner } from "@/lib/db/catalog"
+import { getSupplierAnalytics } from "@/lib/db/supplier-analytics"
+import { getSessionUser } from "@/lib/server/session"
 
 export default async function SupplierDashboardPage() {
-  const user = await getSessionUser();
-  const row = user ? findUserById(user.id) : undefined;
-  const companies = user ? companiesByOwner(user.id) : [];
-  const verified = companies.filter((c) => c.isVerified).length;
-  const analytics = user ? getSupplierAnalytics(user.id) : null;
+  const user = await getSessionUser()
+  const row = user ? findUserById(user.id) : undefined
+  const companies = user ? companiesByOwner(user.id) : []
+  const verified = companies.filter((c) => c.isVerified).length
+  const analytics = user ? getSupplierAnalytics(user.id) : null
 
   const chartPayload = analytics
     ? {
@@ -34,59 +34,77 @@ export default async function SupplierDashboardPage() {
           unitsSold: p.unitsSold,
         })),
       }
-    : null;
+    : null
 
   return (
-    <div className="space-y-10">
-      <section className="relative overflow-hidden rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 via-primary/[0.04] to-secondary/[0.08] p-6 shadow-sm ring-1 ring-base-300/30 sm:p-8">
-        <SupplierHeroBackdrop />
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card via-primary/5 to-accent/5 p-6 sm:p-8">
+        {/* Background decorations */}
+        <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-accent/10 blur-2xl" />
+        
+        {/* Grid pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:32px_32px]" />
+        
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-xl space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              Supplier workspace
-            </p>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-base-content sm:text-3xl">
+          <div className="max-w-xl space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+              <Sparkles className="h-3 w-3" />
+              Supplier Workspace
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Welcome back{user?.name ? `, ${user.name.split(" ")[0]}` : ""}
             </h1>
-            <p className="text-sm leading-relaxed text-base-content/70">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               Posting points:{" "}
-              <strong className="text-base-content">{row?.points ?? 0}</strong>.
+              <strong className="text-foreground">{row?.points ?? 0}</strong>.
               Companies:{" "}
-              <strong className="text-base-content">{companies.length}</strong> (
+              <strong className="text-foreground">{companies.length}</strong> (
               {verified} verified). Listings require a verified company profile.
             </p>
-            <div className="flex flex-wrap gap-2 pt-1">
+            
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-3 pt-2">
               <Link
                 href="/supplier/orders"
-                className="btn btn-neutral btn-sm gap-2 rounded-xl border-0 sm:btn-md"
+                className="inline-flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-medium text-background shadow-lg transition-all hover:bg-foreground/90"
               >
-                <HiOutlineClipboardDocumentList className="h-4 w-4" />
-                Orders pipeline
-                <HiArrowRight className="h-4 w-4 opacity-80" />
+                <ClipboardList className="h-4 w-4" />
+                Orders Pipeline
+                <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/supplier/products"
-                className="btn btn-outline btn-sm gap-2 rounded-xl border-base-300 sm:btn-md"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all hover:border-primary/50 hover:bg-primary/5"
               >
-                <HiOutlineCube className="h-4 w-4 text-primary" />
-                My listings
+                <Package className="h-4 w-4 text-primary" />
+                My Listings
               </Link>
               <Link
                 href="/supplier/products/new"
-                className="btn btn-primary btn-sm gap-2 rounded-xl sm:btn-md"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
               >
-                Post a product
-                <HiArrowRight className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
+                Post Product
               </Link>
             </div>
           </div>
-          <div className="relative flex shrink-0 flex-col items-center justify-center rounded-2xl border border-base-300 bg-base-100/80 px-8 py-6 shadow-inner backdrop-blur-sm">
-            <SupplierAnalyticsSparkline className="mb-2 h-10 w-32" />
-            <p className="text-center text-[11px] font-medium uppercase tracking-wider text-base-content/50">
-              Performance pulse
+
+          {/* Performance card */}
+          <div className="relative flex shrink-0 flex-col items-center justify-center rounded-2xl border border-border/50 bg-card/80 px-8 py-6 shadow-lg backdrop-blur-sm">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20">
+              <TrendingUp className="h-6 w-6 text-primary" />
+            </div>
+            <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Performance Pulse
             </p>
-            <p className="mt-1 text-center text-xs text-base-content/60">
-              Charts below reflect your SKUs only
+            <p className="mt-2 text-center text-2xl font-bold text-foreground">
+              {analytics?.completedOrdersCount || 0}
+              <span className="ml-1 text-sm font-normal text-muted-foreground">orders</span>
+            </p>
+            <p className="mt-1 text-center text-xs text-muted-foreground">
+              Charts reflect your SKUs only
             </p>
           </div>
         </div>
@@ -94,104 +112,159 @@ export default async function SupplierDashboardPage() {
 
       {analytics && (
         <>
+          {/* Key Metrics */}
           <section>
-            <h2 className="text-lg font-semibold text-base-content">Key metrics</h2>
-            <p className="mt-1 text-sm text-base-content/60">
-              Revenue counts only your line items on completed orders (multi-supplier
-              carts).
-            </p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="group relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm ring-1 ring-base-300/20">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10 text-success">
-                  <HiOutlineBanknotes className="h-5 w-5" />
-                </span>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-base-content/50">
-                  Completed revenue
-                </p>
-                <p className="mt-1 text-2xl font-bold tracking-tight text-base-content">
-                  {analytics.completedRevenueEtb.toLocaleString()}{" "}
-                  <span className="text-base font-medium text-base-content/50">
-                    ETB
-                  </span>
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Key Metrics</h2>
+                <p className="text-sm text-muted-foreground">
+                  Revenue from your line items on completed orders
                 </p>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm ring-1 ring-base-300/20">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <HiOutlineShoppingCart className="h-5 w-5" />
-                </span>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-base-content/50">
-                  Completed orders
-                </p>
-                <p className="mt-1 text-2xl font-bold tracking-tight text-base-content">
-                  {analytics.completedOrdersCount}
-                </p>
+            </div>
+            
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Completed Revenue */}
+              <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 p-5 shadow-sm transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5">
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="relative">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
+                    <Banknote className="h-6 w-6 text-accent" />
+                  </div>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Completed Revenue
+                  </p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+                    {analytics.completedRevenueEtb.toLocaleString()}
+                    <span className="ml-1 text-sm font-medium text-muted-foreground">ETB</span>
+                  </p>
+                </div>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm ring-1 ring-base-300/20">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10 text-warning">
-                  <HiOutlineClipboardDocumentList className="h-5 w-5" />
-                </span>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-base-content/50">
-                  Open pipeline
-                </p>
-                <p className="mt-1 text-2xl font-bold tracking-tight text-warning">
-                  {analytics.openOrdersCount}
-                </p>
+
+              {/* Completed Orders */}
+              <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="relative">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <ShoppingCart className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Completed Orders
+                  </p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+                    {analytics.completedOrdersCount}
+                  </p>
+                </div>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm ring-1 ring-base-300/20">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
-                  <HiOutlineBuildingOffice2 className="h-5 w-5" />
-                </span>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-base-content/50">
-                  Companies
-                </p>
-                <p className="mt-1 text-2xl font-bold tracking-tight text-base-content">
-                  {analytics.companyCount}
-                  <span className="ml-1 text-sm font-medium text-base-content/50">
-                    ({analytics.verifiedCompanyCount} verified)
-                  </span>
-                </p>
+
+              {/* Open Pipeline */}
+              <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 p-5 shadow-sm transition-all duration-300 hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="relative">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
+                    <ClipboardList className="h-6 w-6 text-amber-500" />
+                  </div>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Open Pipeline
+                  </p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight text-amber-500">
+                    {analytics.openOrdersCount}
+                  </p>
+                </div>
+              </div>
+
+              {/* Companies */}
+              <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 p-5 shadow-sm transition-all duration-300 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/5">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="relative">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10">
+                    <Building2 className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Companies
+                  </p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+                    {analytics.companyCount}
+                    <span className="ml-2 text-sm font-medium text-muted-foreground">
+                      ({analytics.verifiedCompanyCount} verified)
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
           </section>
 
+          {/* Analytics Charts */}
           <section>
-            <h2 className="text-lg font-semibold text-base-content">Analytics</h2>
-            <p className="mt-1 text-sm text-base-content/60">
-              Interactive charts — revenue trend, pipeline mix, and top performers.
-              Colors follow your selected site theme.
-            </p>
-            <div className="mt-5">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
+                <TrendingUp className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Analytics</h2>
+                <p className="text-sm text-muted-foreground">
+                  Interactive charts showing revenue trends and pipeline mix
+                </p>
+              </div>
+            </div>
+            
+            <div className="rounded-2xl border border-border/50 bg-card/80 p-6 shadow-sm">
               {chartPayload && <SupplierDashboardCharts data={chartPayload} />}
             </div>
           </section>
 
+          {/* Top Products */}
           {analytics.topProducts.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-base-content">
-                Top SKUs (detail)
-              </h2>
-              <ul className="mt-4 divide-y divide-base-300 rounded-2xl border border-base-300 bg-base-100 shadow-sm">
-                {analytics.topProducts.map((p) => (
-                  <li
-                    key={p.productId}
-                    className="flex flex-wrap items-center justify-between gap-2 px-5 py-4 text-sm transition hover:bg-base-200/40"
-                  >
-                    <Link
-                      href={`/products/${p.productId}`}
-                      className="link link-hover font-medium text-primary no-underline"
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                  <Package className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Top Products</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Your best performing SKUs by revenue
+                  </p>
+                </div>
+              </div>
+              
+              <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm">
+                <ul className="divide-y divide-border/50">
+                  {analytics.topProducts.map((p, index) => (
+                    <li
+                      key={p.productId}
+                      className="group flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-primary/5"
                     >
-                      {p.name}
-                    </Link>
-                    <span className="text-base-content/60">
-                      {p.revenueEtb.toLocaleString()} ETB · {p.unitsSold} units
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/50 text-xs font-bold text-muted-foreground">
+                          #{index + 1}
+                        </span>
+                        <Link
+                          href={`/products/${p.productId}`}
+                          className="font-medium text-foreground transition-colors group-hover:text-primary"
+                        >
+                          {p.name}
+                        </Link>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="font-semibold text-foreground">
+                          {p.revenueEtb.toLocaleString()} ETB
+                        </span>
+                        <span className="rounded-full bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+                          {p.unitsSold} units
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </section>
           )}
         </>
       )}
     </div>
-  );
+  )
 }

@@ -1,82 +1,148 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { HiOutlineBell } from "react-icons/hi2";
+import Link from "next/link"
+import { redirect } from "next/navigation"
+import { Bell, Sparkles, ArrowRight, Clock, CheckCircle2, Inbox } from "lucide-react"
 import {
   MarkAllNotificationsRead,
   NotificationMarkReadButton,
-} from "@/components/notifications-mark-actions";
-import { SectionHeader } from "@/components/ui/section-header";
+} from "@/components/notifications-mark-actions"
 import {
   listNotificationsForUser,
   unreadCountForUser,
-} from "@/lib/db/notifications";
-import { getSessionUser } from "@/lib/server/session";
+} from "@/lib/db/notifications"
+import { getSessionUser } from "@/lib/server/session"
 
 export default async function NotificationsPage() {
-  const user = await getSessionUser();
+  const user = await getSessionUser()
   if (!user) {
-    redirect("/login?next=/notifications");
+    redirect("/login?next=/notifications")
   }
 
-  const items = listNotificationsForUser(user.id, 80);
-  const unread = unreadCountForUser(user.id);
+  const items = listNotificationsForUser(user.id, 80)
+  const unread = unreadCountForUser(user.id)
 
   return (
-    <div className="container mx-auto max-w-3xl flex-1 px-4 py-8 sm:py-10">
-      <div className="breadcrumbs text-sm">
-        <ul>
-          <li>
-            <Link href="/">Home</Link>
-          </li>
-          <li>Notifications</li>
-        </ul>
-      </div>
+    <div className="container mx-auto max-w-3xl flex-1 px-4 py-8 sm:py-10 animate-in fade-in duration-500">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/" className="transition-colors hover:text-foreground">Home</Link>
+        <span>/</span>
+        <span className="text-foreground">Notifications</span>
+      </nav>
 
-      <div className="mt-4">
-        <SectionHeader
-          eyebrow="Stay on top of orders & messages"
-          title="Your alerts"
-          description="Order events, chat, and reviews surface here. Open a row to jump into the workspace."
-          icon={<HiOutlineBell className="h-5 w-5" />}
-          action={unread > 0 ? <MarkAllNotificationsRead /> : undefined}
-        />
-      </div>
+      {/* Header */}
+      <header className="relative mt-6 overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card via-primary/5 to-accent/5 p-6 sm:p-8">
+        <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-accent/5 blur-2xl" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:32px_32px]" />
+        
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-wrap items-start gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-lg shadow-primary/20">
+              <Bell className="h-7 w-7 text-primary" />
+            </div>
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+                <Sparkles className="h-3 w-3" />
+                Stay Updated
+              </div>
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                Your Alerts
+              </h1>
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+                Order events, chat messages, and reviews surface here. Open a row to jump into the workspace.
+              </p>
+            </div>
+          </div>
+          
+          {unread > 0 && (
+            <div className="shrink-0">
+              <MarkAllNotificationsRead />
+            </div>
+          )}
+        </div>
 
-      <ul className="mt-8 space-y-2">
-        {items.map((n) => (
+        {/* Stats */}
+        <div className="relative mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total</p>
+            <p className="mt-1 text-xl font-bold text-foreground">{items.length}</p>
+          </div>
+          <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Unread</p>
+            <p className="mt-1 text-xl font-bold text-primary">{unread}</p>
+          </div>
+          <div className="col-span-2 rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm sm:col-span-1">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Read</p>
+            <p className="mt-1 text-xl font-bold text-accent">{items.length - unread}</p>
+          </div>
+        </div>
+      </header>
+
+      {/* Notifications List */}
+      <ul className="mt-8 space-y-3">
+        {items.map((n, index) => (
           <li
             key={n.id}
-            className={`flex flex-wrap items-start gap-3 rounded-xl border p-4 shadow-sm transition ${
+            className={`group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all duration-300 hover:shadow-md ${
               n.read
-                ? "border-base-300/80 bg-base-100/50"
-                : "border-primary/25 bg-primary/5"
+                ? "border-border/50 bg-card/50"
+                : "border-primary/30 bg-primary/5"
             }`}
+            style={{ animationDelay: `${index * 30}ms` }}
           >
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-base-content">{n.title}</p>
-              <p className="mt-1 text-sm text-base-content/70">{n.body}</p>
-              <p className="mt-2 text-xs text-base-content/45">
-                {new Date(n.createdAt).toLocaleString()}
-              </p>
-              {n.href ? (
-                <Link
-                  href={n.href}
-                  className="link link-primary mt-2 inline-block text-sm font-medium"
-                >
-                  Open
-                </Link>
-              ) : null}
+            {/* Unread indicator */}
+            {!n.read && (
+              <div className="absolute left-0 top-0 h-full w-1 bg-primary" />
+            )}
+            
+            <div className="flex flex-wrap items-start gap-4">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                n.read ? "bg-muted/50" : "bg-primary/10"
+              }`}>
+                {n.read ? (
+                  <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <Bell className="h-5 w-5 text-primary" />
+                )}
+              </div>
+              
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-foreground">{n.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{n.body}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {new Date(n.createdAt).toLocaleString()}
+                  </span>
+                  {n.href && (
+                    <Link
+                      href={n.href}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                    >
+                      Open
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  )}
+                </div>
+              </div>
+              
+              <NotificationMarkReadButton id={n.id} read={n.read} />
             </div>
-            <NotificationMarkReadButton id={n.id} read={n.read} />
           </li>
         ))}
       </ul>
 
       {items.length === 0 && (
-        <p className="mt-10 text-center text-sm text-base-content/60">
-          No notifications yet — new orders, chat, and reviews will appear here.
-        </p>
+        <div className="mt-16 flex flex-col items-center justify-center py-16 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50">
+            <Inbox className="h-10 w-10 text-muted-foreground/50" />
+          </div>
+          <h3 className="mt-6 text-lg font-semibold text-foreground">No notifications yet</h3>
+          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+            New orders, chat messages, and reviews will appear here when they happen.
+          </p>
+        </div>
       )}
     </div>
-  );
+  )
 }

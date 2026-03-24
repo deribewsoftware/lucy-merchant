@@ -1,9 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
-import Script from "next/script";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { ThemeInit } from "@/components/theme-init";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,9 +21,23 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Lucy Merchant — B2B marketplace built for trust",
+  title: "Lucy Merchant | B2B Wholesale Marketplace",
   description:
-    "Verified suppliers, bulk ordering, real-time order chat, and role-secure workflows for merchants, suppliers, and admins.",
+    "The modern B2B marketplace connecting verified suppliers with merchants. Bulk ordering, real-time communication, and secure transactions.",
+  keywords: ["B2B", "wholesale", "marketplace", "bulk ordering", "suppliers", "merchants"],
+  authors: [{ name: "Lucy Merchant" }],
+  openGraph: {
+    title: "Lucy Merchant | B2B Wholesale Marketplace",
+    description: "The modern B2B marketplace connecting verified suppliers with merchants.",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
@@ -36,22 +48,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full`}
+      className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable}`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col">
-        <Script
-          id="lm-theme-boot"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k="lm-theme",t=localStorage.getItem(k);if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();`,
-          }}
-        />
-        <ThemeInit />
+      <body className="flex min-h-dvh flex-col bg-background text-foreground antialiased">
         <SiteHeader />
-        <div className="lm-page-gradient flex min-h-dvh flex-1 flex-col bg-base-200">
-          {children}
-        </div>
+        <main className="flex flex-1 flex-col">{children}</main>
         <SiteFooter />
       </body>
     </html>

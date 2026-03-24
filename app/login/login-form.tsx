@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { MdLock, MdMail } from "react-icons/md";
+import { AlertCircle, ArrowRight, Lock, Mail, Sparkles } from "lucide-react";
+import { brandCopy } from "@/lib/brand/copy";
 
 export function LoginForm() {
   const router = useRouter();
@@ -46,77 +47,128 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-[60vh] flex-1 items-center justify-center px-4 py-12">
+    <div className="flex min-h-[calc(100dvh-8rem)] flex-1 items-center justify-center px-4 py-12">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }}
-        className="card w-full max-w-md border border-base-300 bg-base-100 shadow-xl"
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-md"
       >
-        <div className="card-body gap-5">
-          <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+        {/* Logo */}
+        <div className="mb-8 flex justify-center">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 shadow-lg shadow-primary/25">
+              <Sparkles className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <span className="font-display text-2xl font-bold text-foreground">
+              {brandCopy.name}
+            </span>
+          </Link>
+        </div>
+
+        {/* Card */}
+        <div className="lm-card">
+          <div className="text-center">
+            <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
               Welcome back
             </h1>
-            <p className="mt-2 text-sm leading-relaxed text-base-content/70">
-              Secure JWT session, HTTP-only cookie, instant routing to your
-              merchant, supplier, or admin command center.
+            <p className="mt-2 text-sm text-muted-foreground">
+              Sign in to access your dashboard
             </p>
           </div>
-          <form onSubmit={onSubmit} className="flex flex-col gap-4">
-            <label className="form-control w-full">
-              <span className="label-text font-medium">Email</span>
-              <label className="input input-bordered flex w-full items-center gap-2">
-                <MdMail className="opacity-50" />
+
+          <form onSubmit={onSubmit} className="mt-8 space-y-5">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-foreground">
+                Email address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
+                  id="email"
                   type="email"
                   required
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="grow"
+                  className="lm-input pl-11"
                   placeholder="you@company.com"
                 />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium text-foreground">
+                Password
               </label>
-            </label>
-            <label className="form-control w-full">
-              <span className="label-text font-medium">Password</span>
-              <label className="input input-bordered flex w-full items-center gap-2">
-                <MdLock className="opacity-50" />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
+                  id="password"
                   type="password"
                   required
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="grow"
-                  placeholder="••••••••"
+                  className="lm-input pl-11"
+                  placeholder="Enter your password"
                 />
-              </label>
-            </label>
-            {message && (
-              <div role="alert" className="alert alert-error text-sm">
-                {message}
               </div>
+            </div>
+
+            {/* Error Message */}
+            {message && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {message}
+              </motion.div>
             )}
+
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full"
+              className="group flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? (
-                <span className="loading loading-spinner loading-sm" />
-              ) : null}
-              {loading ? "Signing in…" : "Sign in"}
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign in
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
             </button>
           </form>
-          <p className="text-center text-sm text-base-content/70">
-            No account?{" "}
-            <Link href="/register" className="link link-primary font-medium">
-              Register as merchant or supplier
-            </Link>
-          </p>
+
+          {/* Footer */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {"Don't have an account? "}
+              <Link
+                href="/register"
+                className="font-medium text-primary transition-colors hover:text-primary/80"
+              >
+                Create account
+              </Link>
+            </p>
+          </div>
         </div>
+
+        {/* Security Badge */}
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          <Lock className="mb-0.5 mr-1 inline h-3 w-3" />
+          Secured with JWT authentication
+        </p>
       </motion.div>
     </div>
   );

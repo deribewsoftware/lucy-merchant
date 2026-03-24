@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-import { HiMenuAlt3 } from "react-icons/hi";
-import type { ReactNode } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X, Sparkles, ChevronRight } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import clsx from "clsx";
+import { brandCopy } from "@/lib/brand/copy";
 
 export type SidebarLink = {
   href: string;
@@ -16,15 +18,15 @@ export function SidebarLayout({
   title,
   links,
   children,
-  contentMaxWidthClass = "max-w-5xl",
+  contentMaxWidthClass = "max-w-6xl",
 }: {
   title: string;
   links: SidebarLink[];
   children: ReactNode;
-  /** Main column width (e.g. max-w-7xl for analytics-heavy portals) */
   contentMaxWidthClass?: string;
 }) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   function active(href: string) {
     if (href === "/browse") {
@@ -33,56 +35,201 @@ export function SidebarLayout({
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
+  const closeMobile = () => setMobileOpen(false);
+
   return (
-    <div className="drawer lg:drawer-open">
-      <input id="portal-drawer" type="checkbox" className="drawer-toggle" />
-      <div className="drawer-content min-h-[calc(100dvh-5.5rem)] w-full max-w-full flex-1 overflow-x-hidden">
-        <div className="flex items-center gap-2 border-b border-base-300 bg-base-100 px-3 py-3 lg:hidden">
-          <label
-            htmlFor="portal-drawer"
-            className="btn btn-square btn-ghost drawer-button"
-            aria-label="Open sidebar"
-          >
-            <HiMenuAlt3 className="h-6 w-6" />
-          </label>
-          <span className="font-semibold text-base-content">{title}</span>
+    <div className="flex flex-1">
+      {/* Desktop Sidebar */}
+      <aside className="hidden w-64 shrink-0 border-r border-border bg-card lg:block">
+        <div className="sticky top-16 flex h-[calc(100dvh-4rem)] flex-col">
+          {/* Sidebar Header */}
+          <div className="border-b border-border p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-display font-semibold text-foreground">{title}</p>
+                <p className="text-xs text-muted-foreground">Portal</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto p-3">
+            <ul className="space-y-1">
+              {links.map((link) => {
+                const isActive = active(link.href);
+                return (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className={clsx(
+                        "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                        isActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <span
+                        className={clsx(
+                          "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                        )}
+                      >
+                        {link.icon}
+                      </span>
+                      <span className="flex-1">{link.label}</span>
+                      {isActive && (
+                        <ChevronRight className="h-4 w-4 text-primary" />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* Sidebar Footer */}
+          <div className="border-t border-border p-4">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Sparkles className="h-4 w-4" />
+              {brandCopy.name}
+            </Link>
+          </div>
         </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex flex-1 flex-col">
+        {/* Mobile Header */}
+        <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-muted"
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <span className="font-display font-semibold text-foreground">{title}</span>
+          </div>
+        </div>
+
+        {/* Content */}
         <motion.div
           className={`mx-auto w-full ${contentMaxWidthClass} px-4 py-6 sm:px-6 lg:px-8`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] as const }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         >
           {children}
         </motion.div>
       </div>
-      <div className="drawer-side z-40">
-        <label
-          htmlFor="portal-drawer"
-          aria-label="Close menu"
-          className="drawer-overlay lg:hidden"
-        />
-        <aside className="flex min-h-full w-64 flex-col border-r border-base-300 bg-base-200">
-          <div className="border-b border-base-300 px-4 py-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-base-content/50">
-              {title}
-            </p>
-          </div>
-          <ul className="menu menu-md w-full gap-0.5 p-3">
-            {links.map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  className={active(l.href) ? "active font-semibold" : ""}
-                >
-                  <span className="inline-flex w-8 justify-center">{l.icon}</span>
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </aside>
-      </div>
+
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeMobile}
+            />
+            <motion.aside
+              className="fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-card lg:hidden"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            >
+              <div className="flex h-full flex-col">
+                {/* Mobile Sidebar Header */}
+                <div className="flex items-center justify-between border-b border-border p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Sparkles className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-display font-semibold text-foreground">{title}</p>
+                      <p className="text-xs text-muted-foreground">Portal</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeMobile}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-muted"
+                    aria-label="Close menu"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Mobile Navigation */}
+                <nav className="flex-1 overflow-y-auto p-3">
+                  <ul className="space-y-1">
+                    {links.map((link) => {
+                      const isActive = active(link.href);
+                      return (
+                        <li key={link.href}>
+                          <Link
+                            href={link.href}
+                            onClick={closeMobile}
+                            className={clsx(
+                              "group flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-all",
+                              isActive
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
+                          >
+                            <span
+                              className={clsx(
+                                "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                                isActive
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                              )}
+                            >
+                              {link.icon}
+                            </span>
+                            <span className="flex-1">{link.label}</span>
+                            {isActive && (
+                              <ChevronRight className="h-4 w-4 text-primary" />
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </nav>
+
+                {/* Mobile Sidebar Footer */}
+                <div className="border-t border-border p-4">
+                  <Link
+                    href="/"
+                    onClick={closeMobile}
+                    className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Back to {brandCopy.name}
+                  </Link>
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

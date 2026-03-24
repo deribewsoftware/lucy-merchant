@@ -5,12 +5,22 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import {
+  AlertCircle,
+  ArrowRight,
+  Building2,
+  Lock,
+  Mail,
+  ShoppingBag,
+  Sparkles,
+  User,
+} from "lucide-react";
+import {
   REGISTER,
   registerFieldErrors,
   validateRegisterPayload,
   type RegisterFieldErrors,
 } from "@/lib/auth/register-validation";
-import { MdBadge, MdLock, MdMail, MdPerson } from "react-icons/md";
+import { brandCopy } from "@/lib/brand/copy";
 
 type Role = "merchant" | "supplier";
 
@@ -69,40 +79,46 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-[60vh] flex-1 items-center justify-center px-4 py-12">
+    <div className="flex min-h-[calc(100dvh-8rem)] flex-1 items-center justify-center px-4 py-12">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }}
-        className="card w-full max-w-md border border-base-300 bg-base-100 shadow-xl"
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-md"
       >
-        <div className="card-body gap-5">
-          <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              Claim your seat at the table
+        {/* Logo */}
+        <div className="mb-8 flex justify-center">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 shadow-lg shadow-primary/25">
+              <Sparkles className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <span className="font-display text-2xl font-bold text-foreground">
+              {brandCopy.name}
+            </span>
+          </Link>
+        </div>
+
+        {/* Card */}
+        <div className="lm-card">
+          <div className="text-center">
+            <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
+              Create your account
             </h1>
-            <p className="mt-2 text-sm leading-relaxed text-base-content/70">
-              Merchants unlock cart-to-checkout power. Suppliers launch verified
-              storefronts. Platform admins provision via the bootstrap API
-              (env.example).
+            <p className="mt-2 text-sm text-muted-foreground">
+              Join as a merchant or supplier
             </p>
           </div>
-          <form onSubmit={onSubmit} className="flex flex-col gap-4">
-            <label className="form-control w-full">
-              <div className="label">
-                <span className="label-text font-medium">Full name</span>
-                {fieldErrors.name ? (
-                  <span className="label-text-alt text-error">
-                    {fieldErrors.name}
-                  </span>
-                ) : null}
-              </div>
-              <label
-                className={`input input-bordered flex w-full items-center gap-2 ${fieldErrors.name ? "input-error" : ""}`}
-              >
-                <MdPerson className="opacity-50" />
+
+          <form onSubmit={onSubmit} className="mt-8 space-y-5">
+            {/* Name Field */}
+            <div className="space-y-2">
+              <label htmlFor="name" className="text-sm font-medium text-foreground">
+                Full name
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  name="name"
+                  id="name"
                   required
                   minLength={REGISTER.nameMin}
                   maxLength={REGISTER.nameMax}
@@ -112,26 +128,24 @@ export default function RegisterPage() {
                     clearField("name");
                   }}
                   aria-invalid={Boolean(fieldErrors.name)}
-                  className="grow"
+                  className={`lm-input pl-11 ${fieldErrors.name ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
                   placeholder="Jane Doe"
                 />
-              </label>
-            </label>
-            <label className="form-control w-full">
-              <div className="label">
-                <span className="label-text font-medium">Email</span>
-                {fieldErrors.email ? (
-                  <span className="label-text-alt text-error">
-                    {fieldErrors.email}
-                  </span>
-                ) : null}
               </div>
-              <label
-                className={`input input-bordered flex w-full items-center gap-2 ${fieldErrors.email ? "input-error" : ""}`}
-              >
-                <MdMail className="opacity-50" />
+              {fieldErrors.name && (
+                <p className="text-sm text-destructive">{fieldErrors.name}</p>
+              )}
+            </div>
+
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-foreground">
+                Email address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  name="email"
+                  id="email"
                   type="email"
                   required
                   autoComplete="email"
@@ -141,30 +155,29 @@ export default function RegisterPage() {
                     clearField("email");
                   }}
                   aria-invalid={Boolean(fieldErrors.email)}
-                  className="grow"
+                  className={`lm-input pl-11 ${fieldErrors.email ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
                   placeholder="you@company.com"
                 />
-              </label>
-            </label>
-            <label className="form-control w-full">
-              <div className="label">
-                <span className="label-text font-medium">Password</span>
-                {fieldErrors.password ? (
-                  <span className="label-text-alt text-error">
-                    {fieldErrors.password}
-                  </span>
-                ) : (
-                  <span className="label-text-alt text-base-content/50">
-                    {REGISTER.passwordMin}+ chars, one letter and one number
-                  </span>
-                )}
               </div>
-              <label
-                className={`input input-bordered flex w-full items-center gap-2 ${fieldErrors.password ? "input-error" : ""}`}
-              >
-                <MdLock className="opacity-50" />
+              {fieldErrors.email && (
+                <p className="text-sm text-destructive">{fieldErrors.email}</p>
+              )}
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-medium text-foreground">
+                  Password
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  {REGISTER.passwordMin}+ chars, letter & number
+                </span>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  name="password"
+                  id="password"
                   type="password"
                   required
                   autoComplete="new-password"
@@ -176,26 +189,24 @@ export default function RegisterPage() {
                     clearField("password");
                   }}
                   aria-invalid={Boolean(fieldErrors.password)}
-                  className="grow"
+                  className={`lm-input pl-11 ${fieldErrors.password ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
                   placeholder="Create a strong password"
                 />
-              </label>
-            </label>
-            <label className="form-control w-full">
-              <div className="label">
-                <span className="label-text font-medium">Confirm password</span>
-                {fieldErrors.confirmPassword ? (
-                  <span className="label-text-alt text-error">
-                    {fieldErrors.confirmPassword}
-                  </span>
-                ) : null}
               </div>
-              <label
-                className={`input input-bordered flex w-full items-center gap-2 ${fieldErrors.confirmPassword ? "input-error" : ""}`}
-              >
-                <MdLock className="opacity-50" />
+              {fieldErrors.password && (
+                <p className="text-sm text-destructive">{fieldErrors.password}</p>
+              )}
+            </div>
+
+            {/* Confirm Password Field */}
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+                Confirm password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  name="confirmPassword"
+                  id="confirmPassword"
                   type="password"
                   required
                   autoComplete="new-password"
@@ -207,65 +218,101 @@ export default function RegisterPage() {
                     clearField("confirmPassword");
                   }}
                   aria-invalid={Boolean(fieldErrors.confirmPassword)}
-                  className="grow"
-                  placeholder="Re-enter password"
+                  className={`lm-input pl-11 ${fieldErrors.confirmPassword ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
+                  placeholder="Re-enter your password"
                 />
+              </div>
+              {fieldErrors.confirmPassword && (
+                <p className="text-sm text-destructive">{fieldErrors.confirmPassword}</p>
+              )}
+            </div>
+
+            {/* Role Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">
+                I want to join as
               </label>
-            </label>
-            <fieldset className="form-control">
-              <span className="label-text mb-2 font-medium">Role</span>
-              <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
-                <label className="label cursor-pointer justify-start gap-3 border border-base-300 rounded-box px-4 py-3 has-[:checked]:border-primary">
-                  <input
-                    type="radio"
-                    name="role"
-                    className="radio radio-primary"
-                    checked={role === "merchant"}
-                    onChange={() => setRole("merchant")}
-                  />
-                  <span className="flex items-center gap-2">
-                    <MdBadge className="text-primary" />
-                    Merchant
-                  </span>
-                </label>
-                <label className="label cursor-pointer justify-start gap-3 border border-base-300 rounded-box px-4 py-3 has-[:checked]:border-primary">
-                  <input
-                    type="radio"
-                    name="role"
-                    className="radio radio-primary"
-                    checked={role === "supplier"}
-                    onChange={() => setRole("supplier")}
-                  />
-                  <span className="flex items-center gap-2">
-                    <MdBadge className="text-secondary" />
-                    Supplier
-                  </span>
-                </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRole("merchant")}
+                  className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition-all ${
+                    role === "merchant"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:bg-muted"
+                  }`}
+                >
+                  <ShoppingBag className="h-6 w-6" />
+                  <span className="text-sm font-medium">Merchant</span>
+                  <span className="text-xs opacity-70">Buy products</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("supplier")}
+                  className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition-all ${
+                    role === "supplier"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:bg-muted"
+                  }`}
+                >
+                  <Building2 className="h-6 w-6" />
+                  <span className="text-sm font-medium">Supplier</span>
+                  <span className="text-xs opacity-70">Sell products</span>
+                </button>
               </div>
-            </fieldset>
+            </div>
+
+            {/* Error Message */}
             {message && (
-              <div role="alert" className="alert alert-error text-sm">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
                 {message}
-              </div>
+              </motion.div>
             )}
+
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full"
+              className="group flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? (
-                <span className="loading loading-spinner loading-sm" />
-              ) : null}
-              {loading ? "Creating account…" : "Create account"}
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                  Creating account...
+                </>
+              ) : (
+                <>
+                  Create account
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
             </button>
           </form>
-          <p className="text-center text-sm text-base-content/70">
-            Already registered?{" "}
-            <Link href="/login" className="link link-primary font-medium">
-              Sign in
-            </Link>
-          </p>
+
+          {/* Footer */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link
+                href="/login"
+                className="font-medium text-primary transition-colors hover:text-primary/80"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
+
+        {/* Security Badge */}
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          <Lock className="mb-0.5 mr-1 inline h-3 w-3" />
+          Your data is encrypted and secure
+        </p>
       </motion.div>
     </div>
   );
