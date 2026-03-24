@@ -1,0 +1,150 @@
+import { randomUUID } from "crypto";
+import type { Cart, CartItem, Order, OrderStatus } from "@/lib/domain/types";
+import { readJsonFile, writeJsonFile } from "@/lib/store/json-file";
+
+const CARTS = "carts.json";
+const ORDERS = "orders.json";
+
+type CartMap = Record<string, Cart>;
+
+function loadCarts(): CartMap {
+  return readJsonFile<CartMap>(CARTS, {});
+}
+
+function saveCarts(m: CartMap) {
+  writeJsonFile(CARTS, m);
+}
+
+/** Remove a SKU from every merchant cart (e.g. after supplier deletes listing). */
+export function removeProductFromAllCarts(productId: string): void {
+  const m = loadCarts();
+  let changed = false;
+  for (const merchantId of Object.keys(m)) {
+    const cart = m[merchantId];
+    const nextItems = cart.items.filter((i) => i.productId !== productId);
+    if (nextItems.length !== cart.items.length) {
+      m[merchantId] = recalc({ ...cart, items: nextItems });
+      changed = true;
+    }
+  }
+  if (changed) saveCarts(m);
+}
+
+function loadOrders(): Order[] {
+  return readJsonFile<Order[]>(ORDERS, []);
+}
+
+function saveOrders(o: Order[]) {
+  writeJsonFile(ORDERS, o);
+}
+
+export function getCart(merchantId: string): Cart {
+  const m = loadCarts();
+  const existing = m[merchantId];
+  if (existing) return existing;
+  const cart: Cart = {
+    id: randomUUID(),
+    merchantId,
+    items: [],
+    totalAmount: 0,
+    updatedAt: new Date().toISOString(),
+  };
+  m[merchantId] = cart;
+  saveCarts(m);
+  return cart;
+}
+
+function recalc(cart: Cart): Cart {
+  const totalAmount = cart.items.reduce((s, i) => s + i.subtotal, 0);
+  return {
+    ...cart,
+    totalAmount,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function setCartItem(
+  merchantId: string,
+  item: CartItem,
+): Cart {
+  const m = loadCarts();
+  let cart = m[merchantId] ?? getCart(merchantId);
+  const idx = cart.items.findIndex((i) => i.productId === item.productId);
+  if (item.quantity <= 0) {
+    cart.items = cart.items.filter((i) => i.productId !== item.productId);
+  } else if (idx === -1) {
+    cart.items = [...cart.items, item];
+  } else {
+    const next = [...cart.items];
+    next[idx] = item;
+    cart.items = next;
+  }
+  cart = recalc(cart);
+  m[merchantId] = cart;
+  saveCarts(m);
+  return cart;
+}
+
+export function clearCart(merchantId: string): void {
+  const m = loadCarts();
+  m[merchantId] = {
+    id: randomUUID(),
+    merchantId,
+    items: [],
+    totalAmount: 0,
+    updatedAt: new Date().toISOString(),
+  };
+  saveCarts(m);
+}
+
+export function listOrders(): Order[] {
+  return loadOrders();
+}
+
+export function createOrder(o: Order): Order {
+  const all = loadOrders();
+  all.push(o);
+  saveOrders(all);
+  return o;
+}
+
+export function getOrder(id: string): Order | undefined {
+  return loadOrders().find((x) => x.id === id);
+}
+
+export function ordersForMerchant(merchantId: string): Order[] {
+  return loadOrders()
+    .filter((o) => o.merchantId === merchantId)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export function ordersForSupplierCompanyIds(companyIds: string[]): Order[] {
+  const set = new Set(companyIds);
+  return loadOrders()
+    .filter((o) => o.items.some((i) => set.has(i.companyId)))
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus,
+): Order | undefined {
+  const all = loadOrders();
+  const i = all.findIndex((o) => o.id === orderId);
+  if (i === -1) return undefined;
+  all[i] = { ...all[i], status };
+  saveOrders(all);
+  return all[i];
+}
+
+export function updateOrderPaymentStatus(
+  orderId: string,
+  paymentStatus: Order["paymentStatus"],
+): Order | undefined {
+  const all = loadOrders();
+  const i = all.findIndex((o) => o.id === orderId);
+  if (i === -1) return undefined;
+  all[i] = { ...all[i], paymentStatus };
+  saveOrders(all);
+  return all[i];
+}
