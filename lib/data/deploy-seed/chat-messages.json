@@ -1,0 +1,30 @@
+[
+  {
+    "id": "b1000000-0000-4000-a000-000000000001",
+    "orderId": "50000000-0000-4000-a000-000000000002",
+    "senderId": "10000000-0000-4000-a000-000000000005",
+    "senderName": "Solomon Trading House",
+    "content": "Please confirm loading date for the 200 bags — we can receive from Tuesday.",
+    "createdAt": "2026-03-21T13:20:52.775Z",
+    "kind": "text"
+  },
+  {
+    "id": "b1000000-0000-4000-a000-000000000002",
+    "orderId": "50000000-0000-4000-a000-000000000002",
+    "senderId": "10000000-0000-4000-a000-000000000003",
+    "senderName": "Kidist Tadesse",
+    "content": "Tuesday works. Truck plate AA-3-47821 (demo). ETA 09:00.",
+    "createdAt": "2026-03-21T13:20:52.775Z",
+    "kind": "text"
+  },
+  {
+    "id": "b1000000-0000-4000-a000-000000000003",
+    "orderId": "50000000-0000-4000-a000-000000000002",
+    "senderId": "10000000-0000-4000-a000-000000000003",
+    "senderName": "Kidist Tadesse",
+    "content": "",
+    "createdAt": "2026-03-22T13:20:52.775Z",
+    "kind": "price_proposal",
+    "proposedUnitPrice": 2580
+  }
+]

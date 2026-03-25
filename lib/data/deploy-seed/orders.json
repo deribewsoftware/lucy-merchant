@@ -1,0 +1,89 @@
+[
+  {
+    "id": "50000000-0000-4000-a000-000000000001",
+    "merchantId": "10000000-0000-4000-a000-000000000004",
+    "items": [
+      {
+        "productId": "40000000-0000-4000-a000-000000000001",
+        "companyId": "30000000-0000-4000-a000-000000000002",
+        "quantity": 80,
+        "price": 485,
+        "subtotal": 38800
+      },
+      {
+        "productId": "40000000-0000-4000-a000-000000000003",
+        "companyId": "30000000-0000-4000-a000-000000000001",
+        "quantity": 400,
+        "price": 108,
+        "subtotal": 43200
+      }
+    ],
+    "totalPrice": 82000,
+    "deliveryLocation": "Bole, Addis Ababa — Site gate A",
+    "status": "completed",
+    "commissionAmount": 2460,
+    "paymentStatus": "paid",
+    "paymentMethod": "bank_transfer",
+    "createdAt": "2026-02-08T13:20:52.755Z"
+  },
+  {
+    "id": "50000000-0000-4000-a000-000000000002",
+    "merchantId": "10000000-0000-4000-a000-000000000005",
+    "items": [
+      {
+        "productId": "40000000-0000-4000-a000-00000000000d",
+        "companyId": "30000000-0000-4000-a000-000000000003",
+        "quantity": 200,
+        "price": 2650,
+        "subtotal": 530000
+      }
+    ],
+    "totalPrice": 530000,
+    "deliveryLocation": "Hawassa Industrial Park, Zone C",
+    "status": "in_progress",
+    "commissionAmount": 15900,
+    "paymentStatus": "pending",
+    "paymentMethod": "cod",
+    "createdAt": "2026-03-20T13:20:52.755Z"
+  },
+  {
+    "id": "50000000-0000-4000-a000-000000000003",
+    "merchantId": "10000000-0000-4000-a000-000000000004",
+    "items": [
+      {
+        "productId": "40000000-0000-4000-a000-00000000000a",
+        "companyId": "30000000-0000-4000-a000-000000000004",
+        "quantity": 12,
+        "price": 6200,
+        "subtotal": 74400
+      }
+    ],
+    "totalPrice": 74400,
+    "deliveryLocation": "Kality Warehouse 7",
+    "status": "pending",
+    "commissionAmount": 2232,
+    "paymentStatus": "pending",
+    "paymentMethod": "cod",
+    "createdAt": "2026-03-24T13:20:52.755Z"
+  },
+  {
+    "id": "50000000-0000-4000-a000-000000000004",
+    "merchantId": "10000000-0000-4000-a000-000000000004",
+    "items": [
+      {
+        "productId": "40000000-0000-4000-a000-000000000006",
+        "companyId": "30000000-0000-4000-a000-000000000005",
+        "quantity": 40,
+        "price": 2850,
+        "subtotal": 114000
+      }
+    ],
+    "totalPrice": 114000,
+    "deliveryLocation": "Adama — Project Meskel",
+    "status": "delivered",
+    "commissionAmount": 3420,
+    "paymentStatus": "paid",
+    "paymentMethod": "cod",
+    "createdAt": "2026-03-13T13:20:52.755Z"
+  }
+]

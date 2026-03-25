@@ -1,0 +1,12 @@
+[
+  {
+    "id": "a0000000-0000-4000-a000-000000000001",
+    "userId": "10000000-0000-4000-a000-000000000003",
+    "kind": "order_new",
+    "title": "New order",
+    "body": "Solomon Trading House placed a large urea order — review in supplier workspace.",
+    "href": "/supplier/orders/50000000-0000-4000-a000-000000000002",
+    "read": false,
+    "createdAt": "2026-03-20T13:20:52.781Z"
+  }
+]

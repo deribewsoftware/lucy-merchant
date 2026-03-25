@@ -1,0 +1,36 @@
+[
+  {
+    "id": "90000000-0000-4000-a000-000000000001",
+    "productId": "40000000-0000-4000-a000-000000000001",
+    "userId": "10000000-0000-4000-a000-000000000005",
+    "userName": "Solomon Trading House",
+    "comment": "Do you offer deferred payment for 120+ bag orders on NET30 terms?",
+    "parentId": null,
+    "createdAt": "2026-03-17T13:20:52.769Z",
+    "likedBy": [
+      "10000000-0000-4000-a000-000000000004"
+    ]
+  },
+  {
+    "id": "90000000-0000-4000-a000-000000000002",
+    "productId": "40000000-0000-4000-a000-000000000001",
+    "userId": "10000000-0000-4000-a000-000000000002",
+    "userName": "Hailu Bekele",
+    "comment": "Yes for verified buyers — open a ticket with your trade license and we send a credit application (demo).",
+    "parentId": "90000000-0000-4000-a000-000000000001",
+    "createdAt": "2026-03-18T13:20:52.769Z",
+    "likedBy": []
+  },
+  {
+    "id": "90000000-0000-4000-a000-000000000003",
+    "productId": "40000000-0000-4000-a000-00000000000d",
+    "userId": "10000000-0000-4000-a000-000000000001",
+    "userName": "Selamawit Mulugeta",
+    "comment": "Marketplace note: always confirm seasonal availability for bulk urea.",
+    "parentId": null,
+    "createdAt": "2026-03-22T13:20:52.769Z",
+    "likedBy": [
+      "10000000-0000-4000-a000-000000000003"
+    ]
+  }
+]

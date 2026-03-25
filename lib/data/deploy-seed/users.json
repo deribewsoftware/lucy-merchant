@@ -1,0 +1,52 @@
+[
+  {
+    "id": "10000000-0000-4000-a000-000000000001",
+    "email": "admin@demo.lucymerchant.local",
+    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "role": "admin",
+    "name": "Selamawit Mulugeta",
+    "createdAt": "2025-11-25T13:20:52.716Z"
+  },
+  {
+    "id": "10000000-0000-4000-a000-000000000002",
+    "email": "hailu@demo.lucymerchant.local",
+    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "role": "supplier",
+    "name": "Hailu Bekele",
+    "points": 850,
+    "createdAt": "2025-12-25T13:20:52.717Z"
+  },
+  {
+    "id": "10000000-0000-4000-a000-000000000003",
+    "email": "kidist@demo.lucymerchant.local",
+    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "role": "supplier",
+    "name": "Kidist Tadesse",
+    "points": 420,
+    "createdAt": "2026-02-08T13:20:52.717Z"
+  },
+  {
+    "id": "10000000-0000-4000-a000-000000000004",
+    "email": "aster@demo.lucymerchant.local",
+    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "role": "merchant",
+    "name": "Aster Construction PLC",
+    "createdAt": "2026-01-24T13:20:52.717Z"
+  },
+  {
+    "id": "10000000-0000-4000-a000-000000000005",
+    "email": "solomon@demo.lucymerchant.local",
+    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "role": "merchant",
+    "name": "Solomon Trading House",
+    "createdAt": "2026-02-23T13:20:52.717Z"
+  },
+  {
+    "id": "c56b8de8-62d2-4b6e-98eb-49cd45a37b1d",
+    "email": "deribew.tech@gmail.com",
+    "passwordHash": "$2b$10$0Std2Ao763dfHsXJf8wGOePb1Yl2YDpISs4COwHECtzAObA9Dnwhi",
+    "role": "merchant",
+    "name": "Deribew Shimelis",
+    "createdAt": "2026-03-24T10:19:35.084Z"
+  }
+]

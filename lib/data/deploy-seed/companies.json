@@ -1,0 +1,59 @@
+[
+  {
+    "id": "30000000-0000-4000-a000-000000000001",
+    "ownerId": "10000000-0000-4000-a000-000000000002",
+    "name": "Addis Ababa Steel & Rebar Trading PLC",
+    "description": "Wholesale rebar, mesh, and structural steel for contractors across Addis and Oromia. Mill certificates available. Same-week delivery on stock SKUs.",
+    "logo": "https://images.unsplash.com/photo-1565194292457-47a49aeeb2f8?w=200&h=200&fit=crop&q=80",
+    "licenseDocument": "https://www.example.com/licenses/steel-demo.pdf",
+    "isVerified": true,
+    "ratingAverage": 4.8,
+    "totalReviews": 24,
+    "createdAt": "2025-02-18T13:20:52.743Z"
+  },
+  {
+    "id": "30000000-0000-4000-a000-000000000002",
+    "ownerId": "10000000-0000-4000-a000-000000000002",
+    "name": "Blue Nile Cement Distributors",
+    "description": "Bulk and bagged Portland and PPC cement from major producers. Dedicated fleet for 20–40t drops to site or yard.",
+    "logo": "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=200&h=200&fit=crop&q=80",
+    "licenseDocument": "Trade license #C-2019-88421 (demo)",
+    "isVerified": true,
+    "ratingAverage": 4.6,
+    "totalReviews": 31,
+    "createdAt": "2025-04-09T13:20:52.743Z"
+  },
+  {
+    "id": "30000000-0000-4000-a000-000000000005",
+    "ownerId": "10000000-0000-4000-a000-000000000002",
+    "name": "East Africa Timber & Plywood Ltd",
+    "description": "Rough-sawn hardwood, treated poles, and structural plywood. Moisture-tested batches; export-grade packing on request.",
+    "logo": "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=200&h=200&fit=crop&q=80",
+    "isVerified": true,
+    "ratingAverage": 4.4,
+    "totalReviews": 11,
+    "createdAt": "2025-06-18T13:20:52.743Z"
+  },
+  {
+    "id": "30000000-0000-4000-a000-000000000003",
+    "ownerId": "10000000-0000-4000-a000-000000000003",
+    "name": "Hawassa Agro Inputs Cooperative",
+    "description": "Regional hub for urea, NPK blends, and crop protection. Agronomist support for cooperative buyers.",
+    "logo": "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=200&h=200&fit=crop&q=80",
+    "isVerified": true,
+    "ratingAverage": 4.7,
+    "totalReviews": 18,
+    "createdAt": "2025-09-06T13:20:52.743Z"
+  },
+  {
+    "id": "30000000-0000-4000-a000-000000000004",
+    "ownerId": "10000000-0000-4000-a000-000000000003",
+    "name": "Bole Electrical Wholesale",
+    "description": "LV cables, breakers, conduit, and industrial lighting. Authorized distributor channel (demo data).",
+    "logo": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=200&h=200&fit=crop&q=80",
+    "isVerified": false,
+    "ratingAverage": 0,
+    "totalReviews": 0,
+    "createdAt": "2026-03-11T13:20:52.743Z"
+  }
+]

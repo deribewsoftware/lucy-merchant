@@ -3,6 +3,8 @@ import path from "path";
 import { isEphemeralServerHost } from "@/lib/server/ephemeral-host";
 
 const DATA_DIR = path.join(process.cwd(), "data");
+/** Read-only snapshot shipped with the app so serverless (Vercel) cold starts are not empty. */
+const DEPLOY_SEED_DIR = path.join(process.cwd(), "lib", "data", "deploy-seed");
 
 /** Serverless hosts: no writable `/var/task/data` — keep JSON in process memory. */
 function shouldUseMemoryJsonStore(): boolean {
@@ -29,14 +31,27 @@ function isExpectedServerlessFsError(err: unknown): boolean {
   );
 }
 
+function readBundledDeploySeed<T>(file: string): T | null {
+  try {
+    const p = path.join(DEPLOY_SEED_DIR, file);
+    if (!fs.existsSync(p)) return null;
+    const raw = fs.readFileSync(p, "utf-8");
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
 export function readJsonFile<T>(file: string, fallback: T): T {
   if (shouldUseMemoryJsonStore()) {
     if (memory.has(file)) {
       return structuredClone(memory.get(file)) as T;
     }
-    const initial = structuredClone(fallback) as T;
+    const seeded = readBundledDeploySeed<T>(file);
+    const initial =
+      seeded !== null ? structuredClone(seeded) : structuredClone(fallback);
     memory.set(file, structuredClone(initial));
-    return initial;
+    return structuredClone(initial) as T;
   }
 
   const p = resolvePath(file);

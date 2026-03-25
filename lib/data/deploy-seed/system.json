@@ -1,0 +1,7 @@
+{
+  "postProductPoints": 5,
+  "orderCommissionPercent": 3,
+  "featuredProductCost": 50,
+  "freePostingEnabled": true,
+  "freeCommissionEnabled": false
+}

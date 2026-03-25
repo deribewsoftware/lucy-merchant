@@ -1,0 +1,29 @@
+[
+  {
+    "id": "80000000-0000-4000-a000-000000000001",
+    "productId": "40000000-0000-4000-a000-000000000001",
+    "merchantId": "10000000-0000-4000-a000-000000000004",
+    "orderId": "50000000-0000-4000-a000-000000000001",
+    "rating": 5,
+    "comment": "Consistent 50kg weight spot-checks; will reorder for Phase 2.",
+    "createdAt": "2026-02-13T13:20:52.766Z"
+  },
+  {
+    "id": "80000000-0000-4000-a000-000000000002",
+    "productId": "40000000-0000-4000-a000-000000000003",
+    "merchantId": "10000000-0000-4000-a000-000000000004",
+    "orderId": "50000000-0000-4000-a000-000000000001",
+    "rating": 5,
+    "comment": "12mm spec as quoted; MTR copies emailed same day.",
+    "createdAt": "2026-02-14T13:20:52.766Z"
+  },
+  {
+    "id": "80000000-0000-4000-a000-000000000003",
+    "productId": "40000000-0000-4000-a000-000000000006",
+    "merchantId": "10000000-0000-4000-a000-000000000004",
+    "orderId": "50000000-0000-4000-a000-000000000004",
+    "rating": 4,
+    "comment": "Good plywood; one sheet edge splinter — acceptable for our formwork.",
+    "createdAt": "2026-03-14T13:20:52.766Z"
+  }
+]
