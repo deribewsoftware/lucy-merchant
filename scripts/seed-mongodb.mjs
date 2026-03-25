@@ -73,11 +73,62 @@ function readJson(filePath) {
   return JSON.parse(raw);
 }
 
+/**
+ * Atlas often ships URIs with literal `<password>`. If `MONGODB_PASSWORD` is set,
+ * substitute it with proper URL encoding (required for @ : / ? # [ ] etc.).
+ */
+function resolveMongoUri() {
+  let uri = process.env.MONGODB_URI?.trim() || "";
+  const pwd = process.env.MONGODB_PASSWORD;
+  if (!uri) return "";
+
+  if (/<password>/i.test(uri) && pwd !== undefined && pwd !== "") {
+    uri = uri.replace(/<password>/gi, encodeURIComponent(pwd));
+  }
+
+  // mongodb+srv://user:@host — empty password segment
+  if (/mongodb(\+srv)?:\/\/[^:]+:@/i.test(uri)) {
+    console.warn(
+      "[seed:mongodb] MONGODB_URI has an empty password between : and @. Set the password in the URI or use MONGODB_PASSWORD with a <password> placeholder.",
+    );
+  }
+
+  return uri;
+}
+
+function printAtlasAuthHelp() {
+  console.error(`
+MongoDB Atlas rejected the credentials (bad auth). Check:
+
+  1. Atlas → Database Access: user exists and password matches what you put in .env.local.
+     If unsure, edit the user → Edit Password → paste the new password into your URI.
+
+  2. Connection string: copy from Atlas → Connect → Drivers → Node.js (full URI).
+
+  3. Special characters in the password (@ : / ? # [ ] % etc.) must be percent-encoded
+     in MONGODB_URI, OR keep the Atlas template and set:
+       MONGODB_URI=mongodb+srv://myuser:<password>@cluster0.xxxxx.mongodb.net/...
+       MONGODB_PASSWORD=your_actual_password
+     (this script replaces <password> with an encoded value.)
+
+  4. IP allowlist: Atlas → Network Access → allow your current IP (or 0.0.0.0/0 for dev).
+
+  5. No angle brackets in the final URI except the literal <password> placeholder above.
+`);
+}
+
 async function main() {
-  const uri = process.env.MONGODB_URI?.trim();
+  const uri = resolveMongoUri();
   if (!uri) {
     console.error(
       "MONGODB_URI is not set. Add it to .env.local or the environment (see .env.example).",
+    );
+    process.exit(1);
+  }
+
+  if (/<password>/i.test(uri)) {
+    console.error(
+      "MONGODB_URI still contains <password>. Set MONGODB_PASSWORD in .env.local or paste the real password (URL-encoded if it has special characters).",
     );
     process.exit(1);
   }
@@ -91,7 +142,19 @@ async function main() {
     serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
   });
 
-  await client.connect();
+  try {
+    await client.connect();
+  } catch (e) {
+    const code = e && typeof e === "object" && "code" in e ? e.code : undefined;
+    const msg = e instanceof Error ? e.message : String(e);
+    if (code === 8000 || /authentication failed/i.test(msg)) {
+      console.error("Connection failed:", msg);
+      printAtlasAuthHelp();
+    } else {
+      console.error(e);
+    }
+    process.exit(1);
+  }
   const db = client.db(dbName);
 
   try {
@@ -148,6 +211,13 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e);
+  const code = e && typeof e === "object" && "code" in e ? e.code : undefined;
+  const msg = e instanceof Error ? e.message : String(e);
+  if (code === 8000 || /authentication failed/i.test(msg)) {
+    console.error("MongoDB error:", msg);
+    printAtlasAuthHelp();
+  } else {
+    console.error(e);
+  }
   process.exit(1);
 });

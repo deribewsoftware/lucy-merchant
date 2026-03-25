@@ -23,6 +23,19 @@ function missingUriError(): Error {
   );
 }
 
+/**
+ * Atlas connection strings often use a literal `<password>` placeholder.
+ * When `MONGODB_PASSWORD` is set, substitute it with URL encoding (required for @ : / ? # etc.).
+ */
+export function resolveMongoConnectionUri(): string {
+  let uri = process.env.MONGODB_URI?.trim() ?? "";
+  const pwd = process.env.MONGODB_PASSWORD;
+  if (uri && /<password>/i.test(uri) && pwd !== undefined && pwd !== "") {
+    uri = uri.replace(/<password>/gi, encodeURIComponent(pwd));
+  }
+  return uri;
+}
+
 /** True when `MONGODB_URI` is present (trimmed non-empty). */
 export function isMongoConfigured(): boolean {
   return Boolean(process.env.MONGODB_URI?.trim());
@@ -34,9 +47,16 @@ let clientPromise: Promise<MongoClient> | null = null;
  * Lazily connects on first call — avoids Atlas handshakes during `next build` and when Mongo is unused.
  */
 export function getMongoClientPromise(): Promise<MongoClient> {
-  const uri = process.env.MONGODB_URI?.trim();
+  const uri = resolveMongoConnectionUri();
   if (!uri) {
     return Promise.reject(missingUriError());
+  }
+  if (/<password>/i.test(uri)) {
+    return Promise.reject(
+      new Error(
+        "MONGODB_URI still contains <password>. Set MONGODB_PASSWORD in .env.local or paste the real password (URL-encoded if it contains special characters).",
+      ),
+    );
   }
   if (!clientPromise) {
     clientPromise =
