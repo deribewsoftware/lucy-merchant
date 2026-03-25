@@ -28,7 +28,7 @@ export type MerchantDashboardAnalytics = {
   charts: MerchantChartsData;
   /** Sum of order totals for completed orders */
   completedSpendEtb: number;
-  /** Sum of platform commission on completed orders */
+  /** Sum of buyer (merchant) platform fees on completed orders */
   completedCommissionEtb: number;
   /** Orders still in the workflow */
   pipelineOrderCount: number;
@@ -87,6 +87,8 @@ export function getMerchantDashboardAnalytics(
 
   const ordersByStatus: MerchantOrderStatusCount[] = (
     [
+      "awaiting_payment",
+      "awaiting_bank_review",
       "pending",
       "accepted",
       "in_progress",

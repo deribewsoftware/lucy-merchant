@@ -7,6 +7,7 @@ import { PaginationBar } from "@/components/ui/pagination-bar";
 import { getCompany, listProducts } from "@/lib/db/catalog";
 import { listReviewsForCompany } from "@/lib/db/reviews";
 import { findUserById } from "@/lib/db/users";
+import { RichTextContent } from "@/components/rich-text-content";
 import { SectionHeader } from "@/components/ui/section-header";
 
 type Params = {
@@ -45,7 +46,7 @@ export default async function CompanyPage({ params, searchParams }: Params) {
   };
 
   return (
-    <div className="container mx-auto max-w-6xl flex-1 px-4 py-8 sm:py-10">
+    <div className="lm-page-wide">
       <div className="breadcrumbs text-sm">
         <ul>
           <li>
@@ -78,7 +79,12 @@ export default async function CompanyPage({ params, searchParams }: Params) {
               <SectionHeader
                 eyebrow="Supplier profile"
                 title={company.name}
-                description={company.description}
+                description={
+                  <RichTextContent
+                    html={company.description}
+                    variant="baseMuted"
+                  />
+                }
                 icon={<HiOutlineBuildingOffice2 className="h-5 w-5" />}
               />
               <div className="mt-4 flex flex-wrap gap-2">
@@ -175,9 +181,13 @@ export default async function CompanyPage({ params, searchParams }: Params) {
                       {new Date(r.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed text-base-content/80">
-                    {r.comment}
-                  </p>
+                  <div className="mt-2 text-sm leading-relaxed text-base-content/80">
+                    <RichTextContent
+                      html={r.comment}
+                      variant="baseMuted"
+                      className="text-base-content/80"
+                    />
+                  </div>
                 </li>
               );
             })}

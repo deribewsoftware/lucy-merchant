@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCompany, getProduct } from "@/lib/db/catalog";
 import { getCart, setCartItem } from "@/lib/db/commerce";
 import type { CartItem } from "@/lib/domain/types";
+import { API_MERCHANT_COMMISSION_SUSPENDED } from "@/lib/domain/commission-hold-copy";
+import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
 import { requireSession } from "@/lib/server/require-session";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
 
@@ -14,6 +16,10 @@ export async function GET() {
 export async function POST(request: Request) {
   const auth = await requireSession(["merchant"]);
   if (!auth.ok) return auth.response;
+
+  if (merchantHasOutstandingCommission(auth.user.id)) {
+    return NextResponse.json({ error: API_MERCHANT_COMMISSION_SUSPENDED }, { status: 403 });
+  }
 
   const ip = clientIp(request);
   const rl = checkRateLimit(`cart:${auth.user.id}:${ip}`, 90, 60 * 1000);

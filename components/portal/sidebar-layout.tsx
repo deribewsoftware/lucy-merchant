@@ -19,11 +19,14 @@ export function SidebarLayout({
   links,
   children,
   contentMaxWidthClass = "max-w-6xl",
+  topBanner,
 }: {
   title: string;
   links: SidebarLink[];
   children: ReactNode;
   contentMaxWidthClass?: string;
+  /** e.g. account hold notice — full width above main content */
+  topBanner?: ReactNode;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,12 +41,12 @@ export function SidebarLayout({
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className="flex flex-1">
+    <div className="flex min-w-0 flex-1">
       {/* Desktop Sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r border-border bg-card lg:block">
+      <aside className="hidden w-64 shrink-0 border-r border-border/40 bg-card lg:block">
         <div className="sticky top-16 flex h-[calc(100dvh-4rem)] flex-col">
           {/* Sidebar Header */}
-          <div className="border-b border-border p-4">
+          <div className="border-b border-border/40 p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Sparkles className="h-5 w-5" />
@@ -93,7 +96,7 @@ export function SidebarLayout({
           </nav>
 
           {/* Sidebar Footer */}
-          <div className="border-t border-border p-4">
+          <div className="border-t border-border/40 p-4">
             <Link
               href="/"
               className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -106,13 +109,13 @@ export function SidebarLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile Header */}
-        <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm lg:hidden">
+        <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-border/40 bg-background/95 px-4 py-3 backdrop-blur-sm sm:px-5 lg:hidden">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-muted"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 bg-card text-foreground transition-colors hover:bg-muted"
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
@@ -125,9 +128,15 @@ export function SidebarLayout({
           </div>
         </div>
 
+        {topBanner ? (
+          <div className="w-full min-w-0 shrink-0 border-b border-border/50 bg-muted/30">
+            {topBanner}
+          </div>
+        ) : null}
+
         {/* Content */}
         <motion.div
-          className={`mx-auto w-full ${contentMaxWidthClass} px-4 py-6 sm:px-6 lg:px-8`}
+          className={`mx-auto w-full min-w-0 ${contentMaxWidthClass} px-4 py-5 sm:px-5 sm:py-7 md:px-6 lg:px-8 lg:py-8`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -148,7 +157,7 @@ export function SidebarLayout({
               onClick={closeMobile}
             />
             <motion.aside
-              className="fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-card lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-72 border-r border-border/40 bg-card lg:hidden"
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
@@ -156,7 +165,7 @@ export function SidebarLayout({
             >
               <div className="flex h-full flex-col">
                 {/* Mobile Sidebar Header */}
-                <div className="flex items-center justify-between border-b border-border p-4">
+                <div className="flex items-center justify-between border-b border-border/40 p-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <Sparkles className="h-5 w-5" />
@@ -169,7 +178,7 @@ export function SidebarLayout({
                   <button
                     type="button"
                     onClick={closeMobile}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-muted"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 bg-card text-foreground transition-colors hover:bg-muted"
                     aria-label="Close menu"
                   >
                     <X className="h-5 w-5" />
@@ -215,7 +224,7 @@ export function SidebarLayout({
                 </nav>
 
                 {/* Mobile Sidebar Footer */}
-                <div className="border-t border-border p-4">
+                <div className="border-t border-border/40 p-4">
                   <Link
                     href="/"
                     onClick={closeMobile}

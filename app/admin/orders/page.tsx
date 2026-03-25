@@ -1,15 +1,73 @@
 import Link from "next/link";
-import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
+import {
+  HiOutlineArrowPath,
+  HiOutlineClipboardDocumentList,
+  HiOutlineShieldCheck,
+  HiOutlineUserGroup,
+} from "react-icons/hi2";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { listOrders } from "@/lib/db/commerce";
 import { findUserById } from "@/lib/db/users";
+import {
+  adminOrderMatchesTab,
+  adminOrderTab,
+  orderStatusBadgeClass,
+  orderStatusLabel,
+  type AdminOrdersTab,
+} from "@/lib/domain/order-presentations";
+import { isDualPlatformCommissionSettled } from "@/lib/domain/platform-commission";
 
 type Props = {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; tab?: string }>;
 };
+
+const TABS: {
+  id: AdminOrdersTab;
+  label: string;
+  hint: string;
+  icon: typeof HiOutlineClipboardDocumentList;
+}[] = [
+  {
+    id: "all",
+    label: "All",
+    hint: "Full marketplace log",
+    icon: HiOutlineClipboardDocumentList,
+  },
+  {
+    id: "needs_platform",
+    label: "Platform",
+    hint: "Payment, bank proof, or post-delivery supplier payout",
+    icon: HiOutlineShieldCheck,
+  },
+  {
+    id: "fulfillment",
+    label: "Fulfillment",
+    hint: "Supplier / buyer pipeline",
+    icon: HiOutlineArrowPath,
+  },
+  {
+    id: "done",
+    label: "Closed",
+    hint: "Completed or rejected",
+    icon: HiOutlineUserGroup,
+  },
+];
+
+function parseTab(raw: string | undefined): AdminOrdersTab {
+  if (
+    raw === "needs_platform" ||
+    raw === "fulfillment" ||
+    raw === "done" ||
+    raw === "all"
+  ) {
+    return raw;
+  }
+  return "all";
+}
 
 export default async function AdminOrdersPage({ searchParams }: Props) {
   const sp = await searchParams;
+  const tab = parseTab(sp.tab);
   const pageRaw = parseInt(sp.page ?? "1", 10);
   const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1;
   const pageSize = 20;
@@ -17,14 +75,37 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const all = [...listOrders()].sort((a, b) =>
     a.createdAt < b.createdAt ? 1 : -1,
   );
-  const total = all.length;
+  const filtered =
+    tab === "all" ? all : all.filter((o) => adminOrderMatchesTab(o, tab));
+
+  const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * pageSize;
-  const orders = all.slice(start, start + pageSize);
+  const orders = filtered.slice(start, start + pageSize);
 
-  const ordersHref = (p: number) =>
-    p > 1 ? `/admin/orders?page=${p}` : "/admin/orders";
+  const ordersHref = (p: number) => {
+    const q = new URLSearchParams();
+    if (tab !== "all") q.set("tab", tab);
+    if (p > 1) q.set("page", String(p));
+    const qs = q.toString();
+    return qs ? `/admin/orders?${qs}` : "/admin/orders";
+  };
+
+  const tabHref = (t: AdminOrdersTab) => {
+    const q = new URLSearchParams();
+    if (t !== "all") q.set("tab", t);
+    const qs = q.toString();
+    return qs ? `/admin/orders?${qs}` : "/admin/orders";
+  };
+
+  const counts = {
+    all: all.length,
+    needs_platform: all.filter((o) => adminOrderTab(o) === "needs_platform")
+      .length,
+    fulfillment: all.filter((o) => adminOrderTab(o) === "fulfillment").length,
+    done: all.filter((o) => adminOrderTab(o) === "done").length,
+  };
 
   return (
     <div className="space-y-8">
@@ -38,21 +119,59 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               Orders
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-base-content/60">
-              Full marketplace order log — open a row for payment status, line
-              items, and supplier coordination.
+              Marketplace order log — payments, bank review, supplier payout
+              after delivery, line items, and chat.
             </p>
             {total > 0 && (
               <p className="mt-2 text-sm text-base-content/50">
-                Showing {start + 1}–{Math.min(start + pageSize, total)} of {total}
+                Showing {start + 1}–{Math.min(start + pageSize, total)} of{" "}
+                {total}
+                {tab !== "all" ? " in this filter" : ""}
               </p>
             )}
           </div>
         </div>
       </header>
 
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-base-content/45">
+          Filter
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {TABS.map(({ id, label, hint, icon: Icon }) => {
+            const active = tab === id;
+            const count = counts[id];
+            return (
+              <Link
+                key={id}
+                href={tabHref(id)}
+                title={hint}
+                className={`group inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                  active
+                    ? "border-primary bg-primary/10 text-primary shadow-sm"
+                    : "border-base-300 bg-base-100 text-base-content/75 hover:border-primary/30 hover:bg-base-200/50"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0 opacity-80" />
+                <span>{label}</span>
+                <span
+                  className={`rounded-lg px-1.5 py-0.5 text-xs tabular-nums ${
+                    active
+                      ? "bg-primary/15 text-primary"
+                      : "bg-base-200 text-base-content/55"
+                  }`}
+                >
+                  {count}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm ring-1 ring-base-300/20">
         <div className="overflow-x-auto">
-          <table className="table table-sm w-full min-w-[640px]">
+          <table className="table table-sm w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-base-300 bg-base-200/50 text-left text-xs font-semibold uppercase tracking-wide text-base-content/50">
                 <th className="px-4 py-3">Created</th>
@@ -85,8 +204,30 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                     <td className="max-w-[12rem] truncate px-4 py-3 text-base-content">
                       {merchant?.name ?? o.merchantId}
                     </td>
-                    <td className="px-4 py-3 capitalize text-base-content">
-                      {o.status.replace("_", " ")}
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`badge badge-sm font-semibold capitalize ${orderStatusBadgeClass(o.status)}`}
+                        >
+                          {orderStatusLabel(o.status)}
+                        </span>
+                        {o.status === "delivered" &&
+                        (o.commissionAmount > 0 ||
+                          (o.supplierCommissionAmount ?? 0) > 0) &&
+                        !isDualPlatformCommissionSettled(o) ? (
+                          <span className="badge badge-warning badge-sm font-medium">
+                            Fees pending
+                          </span>
+                        ) : null}
+                        {o.status === "delivered" &&
+                        (o.commissionAmount > 0 ||
+                          (o.supplierCommissionAmount ?? 0) > 0) &&
+                        isDualPlatformCommissionSettled(o) ? (
+                          <span className="badge badge-success badge-sm font-medium">
+                            Fees OK
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -112,7 +253,17 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         </div>
         {orders.length === 0 && total === 0 && (
           <p className="p-12 text-center text-sm text-base-content/55">
-            No orders yet.
+            {all.length === 0
+              ? "No orders yet."
+              : "No orders in this view."}
+            {tab !== "all" && all.length > 0 ? (
+              <Link
+                href="/admin/orders"
+                className="btn btn-link btn-sm mt-2 block text-primary"
+              >
+                Show all orders
+              </Link>
+            ) : null}
           </p>
         )}
       </div>
@@ -122,7 +273,6 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         pageSize={pageSize}
         total={total}
         buildHref={ordersHref}
-        variant="admin"
       />
     </div>
   );

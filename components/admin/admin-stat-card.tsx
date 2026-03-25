@@ -14,14 +14,14 @@ const accents = {
     icon: "bg-accent/10 text-accent",
   },
   success: {
-    ring: "hover:border-green-500/30 hover:shadow-lg hover:shadow-green-500/5",
-    blob: "bg-green-500/5",
-    icon: "bg-green-500/10 text-green-500",
+    ring: "hover:border-success/30 hover:shadow-lg hover:shadow-success/5",
+    blob: "bg-success/5",
+    icon: "bg-success/10 text-success",
   },
   warning: {
-    ring: "hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5",
-    blob: "bg-amber-500/5",
-    icon: "bg-amber-500/10 text-amber-500",
+    ring: "hover:border-warning/30 hover:shadow-lg hover:shadow-warning/5",
+    blob: "bg-warning/5",
+    icon: "bg-warning/10 text-warning",
   },
 } as const
 

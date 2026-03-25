@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { isRichTextEmpty } from "@/lib/rich-text";
 
 type CompanyRow = { id: string; name: string; alreadyReviewed: boolean };
 
@@ -58,6 +60,7 @@ function ReviewForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (isRichTextEmpty(comment)) return;
     setLoading(true);
     const res = await fetch("/api/reviews/company", {
       method: "POST",
@@ -101,14 +104,16 @@ function ReviewForm({
           ))}
         </select>
       </label>
-      <textarea
-        required
-        rows={3}
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        placeholder="Share feedback for other merchants…"
-        className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-      />
+      <div className="mt-2">
+        <RichTextEditor
+          value={comment}
+          onChange={setComment}
+          placeholder="Share feedback for other merchants…"
+          variant="zinc"
+          editorMinHeightClass="min-h-[5.5rem] sm:min-h-[6.5rem]"
+          aria-label="Company review comment"
+        />
+      </div>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
       <button
         type="submit"

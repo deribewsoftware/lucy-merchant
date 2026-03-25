@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { getSystemConfig, updateProductStock } from "@/lib/db/catalog";
 import type { Cart, CartItem, Order, OrderStatus } from "@/lib/domain/types";
 import { readJsonFile, writeJsonFile } from "@/lib/store/json-file";
 
@@ -122,6 +123,10 @@ export function ordersForSupplierCompanyIds(companyIds: string[]): Order[] {
   const set = new Set(companyIds);
   return loadOrders()
     .filter((o) => o.items.some((i) => set.has(i.companyId)))
+    .filter(
+      (o) =>
+        o.status !== "awaiting_payment" && o.status !== "awaiting_bank_review",
+    )
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
@@ -132,9 +137,42 @@ export function updateOrderStatus(
   const all = loadOrders();
   const i = all.findIndex((o) => o.id === orderId);
   if (i === -1) return undefined;
-  all[i] = { ...all[i], status };
+  const cur = all[i];
+  const patch: Partial<Order> = { status };
+  if (status === "delivered" && !cur.commissionDeadlineAt) {
+    const hours = getSystemConfig().commissionPaymentGraceHours ?? 72;
+    patch.commissionDeadlineAt = new Date(
+      Date.now() + hours * 3600 * 1000,
+    ).toISOString();
+  }
+  all[i] = { ...cur, ...patch } as Order;
   saveOrders(all);
   return all[i];
+}
+
+export function patchOrder(
+  orderId: string,
+  patch: Partial<Order>,
+): Order | undefined {
+  const all = loadOrders();
+  const i = all.findIndex((o) => o.id === orderId);
+  if (i === -1) return undefined;
+  all[i] = { ...all[i], ...patch } as Order;
+  saveOrders(all);
+  return all[i];
+}
+
+/** Removes an order and restores product stock (used when online checkout fails after orders were created). */
+export function removeOrderAndRestoreStock(orderId: string): boolean {
+  const order = getOrder(orderId);
+  if (!order) return false;
+  for (const line of order.items) {
+    updateProductStock(line.productId, line.quantity);
+  }
+  const all = loadOrders();
+  const next = all.filter((o) => o.id !== orderId);
+  saveOrders(next);
+  return true;
 }
 
 export function updateOrderPaymentStatus(

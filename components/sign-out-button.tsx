@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { MdLogout } from "react-icons/md";
 import clsx from "clsx";
+import { LM_LOGOUT_EVENT } from "@/components/presence-provider";
 
 type Props = {
   className?: string;
@@ -19,6 +20,7 @@ export function SignOutButton({ className }: Props) {
       )}
       onClick={async () => {
         await fetch("/api/auth/logout", { method: "POST" });
+        window.dispatchEvent(new CustomEvent(LM_LOGOUT_EVENT));
         router.push("/");
         router.refresh();
       }}

@@ -12,14 +12,18 @@ import {
 import type { Company } from "@/lib/domain/types";
 import { GoogleLocationPicker } from "@/components/google-location-picker";
 import { SupplierFormSectionTitle } from "@/components/supplier/form-section";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   supplierFormCardClass,
   supplierGhostButtonClass,
   supplierInputClass,
   supplierLabelClass,
   supplierPrimaryButtonClass,
-  supplierTextareaClass,
 } from "@/components/supplier/form-styles";
+import { isRichTextEmpty } from "@/lib/rich-text";
+import { ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER } from "@/lib/data/ethiopian-banks";
+
+const CUSTOM_BANK_VALUE = "__custom__";
 
 export function SupplierCompanyEditForm({ company }: { company: Company }) {
   const router = useRouter();
@@ -39,12 +43,29 @@ export function SupplierCompanyEditForm({ company }: { company: Company }) {
   const [longitude, setLongitude] = useState<number | null>(
     company.longitude ?? null,
   );
+  const [settlementBankName, setSettlementBankName] = useState(
+    company.settlementBankName ?? "",
+  );
+  const [settlementAccountName, setSettlementAccountName] = useState(
+    company.settlementAccountName ?? "",
+  );
+  const [settlementAccountNumber, setSettlementAccountNumber] = useState(
+    company.settlementAccountNumber ?? "",
+  );
+  const [bankCustomMode, setBankCustomMode] = useState(() => {
+    const n = (company.settlementBankName ?? "").trim();
+    return Boolean(n && !ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(n));
+  });
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const locationFieldId = useId();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isRichTextEmpty(description)) {
+      setMsg("Description is required");
+      return;
+    }
     setLoading(true);
     setMsg(null);
     const res = await fetch(`/api/companies/${company.id}`, {
@@ -58,6 +79,9 @@ export function SupplierCompanyEditForm({ company }: { company: Company }) {
         businessAddress: businessAddress.trim(),
         latitude: latitude ?? null,
         longitude: longitude ?? null,
+        settlementBankName: settlementBankName.trim(),
+        settlementAccountName: settlementAccountName.trim(),
+        settlementAccountNumber: settlementAccountNumber.trim(),
       }),
       credentials: "same-origin",
     });
@@ -85,6 +109,13 @@ export function SupplierCompanyEditForm({ company }: { company: Company }) {
             setBusinessAddress(company.businessAddress ?? "");
             setLatitude(company.latitude ?? null);
             setLongitude(company.longitude ?? null);
+            const bn = company.settlementBankName ?? "";
+            setSettlementBankName(bn);
+            setBankCustomMode(
+              Boolean(bn.trim() && !ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(bn.trim())),
+            );
+            setSettlementAccountName(company.settlementAccountName ?? "");
+            setSettlementAccountNumber(company.settlementAccountNumber ?? "");
             setMsg(null);
           }}
           className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-100 dark:border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-950/60"
@@ -114,12 +145,14 @@ export function SupplierCompanyEditForm({ company }: { company: Company }) {
             </label>
             <label className={supplierLabelClass}>
               Description
-              <textarea
-                required
-                rows={3}
+              <RichTextEditor
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className={supplierTextareaClass}
+                onChange={setDescription}
+                placeholder="What you supply, regions, certifications…"
+                variant="supplier"
+                className="mt-1"
+                editorMinHeightClass="min-h-[7rem] sm:min-h-[8rem]"
+                aria-label="Company description"
               />
             </label>
             <label className={supplierLabelClass}>
@@ -144,6 +177,92 @@ export function SupplierCompanyEditForm({ company }: { company: Company }) {
                 className={supplierInputClass}
               />
             </label>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 to-primary/[0.04] p-4">
+            <SupplierFormSectionTitle
+              icon={<HiOutlineBuildingOffice2 className="h-5 w-5" />}
+              title="Buyer payments (Ethiopian banks)"
+              subtitle="Merchants pay you by bank transfer or COD. Pick your bank and account — same institutions as CBE, Awash, Dashen, Telebirr, etc."
+            />
+            <div className="mt-3 space-y-3">
+              <label className={supplierLabelClass}>
+                Bank
+                <select
+                  className={`${supplierInputClass} cursor-pointer`}
+                  value={(() => {
+                    const t = settlementBankName.trim();
+                    if (bankCustomMode) return CUSTOM_BANK_VALUE;
+                    if (!t) return "";
+                    return ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(t)
+                      ? t
+                      : CUSTOM_BANK_VALUE;
+                  })()}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === CUSTOM_BANK_VALUE) {
+                      setBankCustomMode(true);
+                      setSettlementBankName("");
+                    } else if (v === "") {
+                      setBankCustomMode(false);
+                      setSettlementBankName("");
+                    } else {
+                      setBankCustomMode(false);
+                      setSettlementBankName(v);
+                    }
+                  }}
+                >
+                  <option value="">Select bank…</option>
+                  {ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                  <option value={CUSTOM_BANK_VALUE}>Other — type name</option>
+                </select>
+              </label>
+              {(() => {
+                const t = settlementBankName.trim();
+                const showCustom =
+                  bankCustomMode ||
+                  (Boolean(t) &&
+                    !ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(t));
+                return showCustom;
+              })() ? (
+                <label className={supplierLabelClass}>
+                  Bank name
+                  <input
+                    value={settlementBankName}
+                    onChange={(e) => {
+                      setSettlementBankName(e.target.value);
+                      setBankCustomMode(true);
+                    }}
+                    className={supplierInputClass}
+                    placeholder="e.g. Regional or cooperative bank"
+                  />
+                </label>
+              ) : null}
+              <label className={supplierLabelClass}>
+                Account name (as on bank book)
+                <input
+                  value={settlementAccountName}
+                  onChange={(e) => setSettlementAccountName(e.target.value)}
+                  className={supplierInputClass}
+                  placeholder="Business or account holder name"
+                />
+              </label>
+              <label className={supplierLabelClass}>
+                Account number
+                <input
+                  value={settlementAccountNumber}
+                  onChange={(e) => setSettlementAccountNumber(e.target.value)}
+                  className={`${supplierInputClass} font-mono tabular-nums`}
+                  placeholder="Digits for transfer"
+                  inputMode="numeric"
+                  autoComplete="off"
+                />
+              </label>
+            </div>
           </div>
 
           <div className="mt-6 rounded-2xl border border-base-300 p-4">

@@ -2,12 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { PaymentMethod } from "@/lib/domain/types";
 
 type Props = {
   orderId: string;
   /** Show when order.paymentStatus is pending and a payment row exists */
   show: boolean;
-  paymentMethod?: "cod" | "bank_transfer";
+  paymentMethod?: PaymentMethod;
   /** supplier = fulfillment copy; admin = platform audit copy */
   audience?: "supplier" | "admin";
 };
@@ -61,7 +62,9 @@ export function SupplierConfirmPayment({
             ? "Confirm once funds are visible on your account. Optional reference helps reconciliation."
             : "Confirm when cash on delivery has been collected."}
       </p>
-      {paymentMethod === "bank_transfer" && (
+      {(paymentMethod === "bank_transfer" ||
+        paymentMethod === "chapa" ||
+        paymentMethod === "telebirr") && (
         <input
           value={ref}
           onChange={(e) => setRef(e.target.value)}

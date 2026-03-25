@@ -8,12 +8,16 @@ import {
   AlertCircle,
   ArrowRight,
   Building2,
-  Lock,
-  Mail,
+  ShieldCheck,
   ShoppingBag,
   Sparkles,
   User,
 } from "lucide-react";
+import {
+  AuthEmailInput,
+  AuthLeadingIconInput,
+  AuthPasswordInput,
+} from "@/components/auth-credential-inputs";
 import {
   REGISTER,
   registerFieldErrors,
@@ -79,7 +83,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-8rem)] flex-1 items-center justify-center px-4 py-12">
+    <div className="lm-auth-shell">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -115,23 +119,23 @@ export default function RegisterPage() {
               <label htmlFor="name" className="text-sm font-medium text-foreground">
                 Full name
               </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="name"
-                  required
-                  minLength={REGISTER.nameMin}
-                  maxLength={REGISTER.nameMax}
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    clearField("name");
-                  }}
-                  aria-invalid={Boolean(fieldErrors.name)}
-                  className={`lm-input pl-11 ${fieldErrors.name ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
-                  placeholder="Jane Doe"
-                />
-              </div>
+              <AuthLeadingIconInput
+                Icon={User}
+                id="name"
+                required
+                minLength={REGISTER.nameMin}
+                maxLength={REGISTER.nameMax}
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearField("name");
+                }}
+                aria-invalid={Boolean(fieldErrors.name)}
+                inputClassName={
+                  fieldErrors.name ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""
+                }
+                placeholder="Jane Doe"
+              />
               {fieldErrors.name && (
                 <p className="text-sm text-destructive">{fieldErrors.name}</p>
               )}
@@ -142,23 +146,20 @@ export default function RegisterPage() {
               <label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email address
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    clearField("email");
-                  }}
-                  aria-invalid={Boolean(fieldErrors.email)}
-                  className={`lm-input pl-11 ${fieldErrors.email ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
-                  placeholder="you@company.com"
-                />
-              </div>
+              <AuthEmailInput
+                id="email"
+                required
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  clearField("email");
+                }}
+                aria-invalid={Boolean(fieldErrors.email)}
+                inputClassName={
+                  fieldErrors.email ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""
+                }
+                placeholder="you@company.com"
+              />
               {fieldErrors.email && (
                 <p className="text-sm text-destructive">{fieldErrors.email}</p>
               )}
@@ -174,25 +175,23 @@ export default function RegisterPage() {
                   {REGISTER.passwordMin}+ chars, letter & number
                 </span>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  minLength={REGISTER.passwordMin}
-                  maxLength={REGISTER.passwordMax}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    clearField("password");
-                  }}
-                  aria-invalid={Boolean(fieldErrors.password)}
-                  className={`lm-input pl-11 ${fieldErrors.password ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
-                  placeholder="Create a strong password"
-                />
-              </div>
+              <AuthPasswordInput
+                id="password"
+                required
+                autoComplete="new-password"
+                minLength={REGISTER.passwordMin}
+                maxLength={REGISTER.passwordMax}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  clearField("password");
+                }}
+                aria-invalid={Boolean(fieldErrors.password)}
+                inputClassName={
+                  fieldErrors.password ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""
+                }
+                placeholder="Create a strong password"
+              />
               {fieldErrors.password && (
                 <p className="text-sm text-destructive">{fieldErrors.password}</p>
               )}
@@ -203,25 +202,26 @@ export default function RegisterPage() {
               <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
                 Confirm password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  minLength={REGISTER.passwordMin}
-                  maxLength={REGISTER.passwordMax}
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    clearField("confirmPassword");
-                  }}
-                  aria-invalid={Boolean(fieldErrors.confirmPassword)}
-                  className={`lm-input pl-11 ${fieldErrors.confirmPassword ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
-                  placeholder="Re-enter your password"
-                />
-              </div>
+              <AuthPasswordInput
+                id="confirmPassword"
+                required
+                autoComplete="new-password"
+                minLength={REGISTER.passwordMin}
+                maxLength={REGISTER.passwordMax}
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  clearField("confirmPassword");
+                }}
+                aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                inputClassName={
+                  fieldErrors.confirmPassword
+                    ? "border-destructive focus:border-destructive focus:ring-destructive/20"
+                    : ""
+                }
+                placeholder="Re-enter your password"
+                toggleLabels={{ show: "Show confirm password", hide: "Hide confirm password" }}
+              />
               {fieldErrors.confirmPassword && (
                 <p className="text-sm text-destructive">{fieldErrors.confirmPassword}</p>
               )}
@@ -309,8 +309,8 @@ export default function RegisterPage() {
         </div>
 
         {/* Security Badge */}
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          <Lock className="mb-0.5 mr-1 inline h-3 w-3" />
+        <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary/80" strokeWidth={2.25} aria-hidden />
           Your data is encrypted and secure
         </p>
       </motion.div>

@@ -8,6 +8,7 @@ import {
   HiOutlineClock,
 } from "react-icons/hi2";
 import type { Company } from "@/lib/domain/types";
+import { stripHtmlToPlainText } from "@/lib/rich-text";
 
 type Props = { companies: Company[] };
 
@@ -80,7 +81,7 @@ export function AdminCompanyVerify({ companies }: Props) {
                   Owner {c.ownerId}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-base-content/70">
-                  {c.description}
+                  {stripHtmlToPlainText(c.description)}
                 </p>
               </div>
             </div>

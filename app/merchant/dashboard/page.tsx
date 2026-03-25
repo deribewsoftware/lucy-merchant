@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -14,10 +15,14 @@ import { MerchantDashboardCharts } from "@/components/merchant-dashboard-charts"
 import { getProduct } from "@/lib/db/catalog";
 import { getCart, ordersForMerchant } from "@/lib/db/commerce";
 import { getMerchantDashboardAnalytics } from "@/lib/merchant-analytics";
+import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
 import { getSessionUser } from "@/lib/server/session";
 
 export default async function MerchantDashboardPage() {
   const user = await getSessionUser();
+  if (user && merchantHasOutstandingCommission(user.id)) {
+    redirect("/merchant/orders?hold=commission");
+  }
   const orders = user ? ordersForMerchant(user.id) : [];
   const cart = user ? getCart(user.id) : null;
   const cartLines = cart?.items.length ?? 0;
@@ -143,7 +148,7 @@ export default async function MerchantDashboardPage() {
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Commission: {analytics.completedCommissionEtb.toLocaleString()} ETB
+                  Your platform fees: {analytics.completedCommissionEtb.toLocaleString()} ETB
                 </p>
               </div>
             </div>

@@ -15,6 +15,8 @@ import { normalizeCompareAtPrice } from "@/lib/domain/compare-at-price";
 import { packagingFromPatch } from "@/lib/domain/packaging-from-body";
 import { requireSession } from "@/lib/server/require-session";
 import { checkRateLimit } from "@/lib/server/rate-limit";
+import { API_SUPPLIER_COMMISSION_SUSPENDED } from "@/lib/domain/commission-hold-copy";
+import { supplierHasOutstandingCommission } from "@/lib/server/supplier-commission";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -31,6 +33,10 @@ export async function GET(_request: Request, context: Params) {
 export async function PATCH(request: Request, context: Params) {
   const auth = await requireSession(["supplier"]);
   if (!auth.ok) return auth.response;
+
+  if (supplierHasOutstandingCommission(auth.user.id)) {
+    return NextResponse.json({ error: API_SUPPLIER_COMMISSION_SUSPENDED }, { status: 403 });
+  }
 
   const { id } = await context.params;
   const existing = getProduct(id);
@@ -193,6 +199,10 @@ export async function PATCH(request: Request, context: Params) {
 export async function DELETE(_request: Request, context: Params) {
   const auth = await requireSession(["supplier"]);
   if (!auth.ok) return auth.response;
+
+  if (supplierHasOutstandingCommission(auth.user.id)) {
+    return NextResponse.json({ error: API_SUPPLIER_COMMISSION_SUSPENDED }, { status: 403 });
+  }
 
   const { id } = await context.params;
   const existing = getProduct(id);

@@ -27,6 +27,8 @@ export type SupplierAnalytics = {
   completedOrdersCount: number;
   /** Your lines only — completed orders */
   completedRevenueEtb: number;
+  /** Sum of supplier → platform fees on completed orders (your share of marketplace fees) */
+  completedSupplierPlatformFeesEtb: number;
   topProducts: SupplierTopProduct[];
   /** Orders that include your line items, grouped by status */
   ordersByStatus: SupplierOrderStatusCount[];
@@ -43,15 +45,20 @@ function monthKeyFromIso(iso: string): string {
 export function getSupplierAnalytics(ownerId: string): SupplierAnalytics {
   const companies = companiesByOwner(ownerId);
   const companyIds = new Set(companies.map((c) => c.id));
-  const orders = listOrders().filter((o) =>
-    o.items.some((i) => companyIds.has(i.companyId)),
-  );
+  const orders = listOrders()
+    .filter((o) => o.items.some((i) => companyIds.has(i.companyId)))
+    .filter(
+      (o) =>
+        o.status !== "awaiting_payment" &&
+        o.status !== "awaiting_bank_review",
+    );
 
   const openOrdersCount = orders.filter(
     (o) => o.status !== "completed" && o.status !== "rejected",
   ).length;
 
   let completedRevenueEtb = 0;
+  let completedSupplierPlatformFeesEtb = 0;
   let completedOrdersCount = 0;
   const productAgg = new Map<string, { revenue: number; units: number }>();
 
@@ -60,6 +67,7 @@ export function getSupplierAnalytics(ownerId: string): SupplierAnalytics {
     const lines = o.items.filter((i) => companyIds.has(i.companyId));
     if (lines.length === 0) continue;
     completedOrdersCount += 1;
+    completedSupplierPlatformFeesEtb += o.supplierCommissionAmount ?? 0;
     for (const line of lines) {
       completedRevenueEtb += line.subtotal;
       const cur = productAgg.get(line.productId) ?? { revenue: 0, units: 0 };
@@ -70,6 +78,8 @@ export function getSupplierAnalytics(ownerId: string): SupplierAnalytics {
   }
 
   completedRevenueEtb = Math.round(completedRevenueEtb * 100) / 100;
+  completedSupplierPlatformFeesEtb =
+    Math.round(completedSupplierPlatformFeesEtb * 100) / 100;
 
   const topProducts: SupplierTopProduct[] = [...productAgg.entries()]
     .map(([productId, v]) => ({
@@ -138,6 +148,7 @@ export function getSupplierAnalytics(ownerId: string): SupplierAnalytics {
     openOrdersCount,
     completedOrdersCount,
     completedRevenueEtb,
+    completedSupplierPlatformFeesEtb,
     topProducts,
     ordersByStatus,
     revenueByMonth,

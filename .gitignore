@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local B2B data store (JSON)
 /data/*.json
+
+# uploaded bank receipts (dev)
+/public/uploads/

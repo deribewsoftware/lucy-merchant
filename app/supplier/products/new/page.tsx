@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { HiOutlineCube, HiOutlineLightBulb } from "react-icons/hi2";
 import { SupplierProductForm } from "@/components/supplier-product-form";
 import { SupplierHeroBackdrop } from "@/components/supplier/supplier-portal-graphics";
@@ -6,10 +7,14 @@ import {
   getCategories,
   getSystemConfig,
 } from "@/lib/db/catalog";
+import { supplierHasOutstandingCommission } from "@/lib/server/supplier-commission";
 import { getSessionUser } from "@/lib/server/session";
 
 export default async function NewSupplierProductPage() {
   const user = await getSessionUser();
+  if (user?.id && supplierHasOutstandingCommission(user.id)) {
+    redirect("/supplier/orders?hold=commission");
+  }
   const companies = user ? companiesByOwner(user.id) : [];
   const categories = getCategories();
   const system = getSystemConfig();

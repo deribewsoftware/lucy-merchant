@@ -14,6 +14,7 @@ import {
 import type { Category, Company } from "@/lib/domain/types";
 import { GoogleLocationPicker } from "@/components/google-location-picker";
 import { SupplierFormSectionTitle } from "@/components/supplier/form-section";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   supplierCheckboxClass,
   supplierFormCardClass,
@@ -22,8 +23,8 @@ import {
   supplierPrimaryButtonClass,
   supplierSectionClass,
   supplierSelectClass,
-  supplierTextareaClass,
 } from "@/components/supplier/form-styles";
+import { isRichTextEmpty } from "@/lib/rich-text";
 
 type Props = {
   companies: Company[];
@@ -65,6 +66,10 @@ export function SupplierProductForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isRichTextEmpty(description)) {
+      setMsg("Description is required");
+      return;
+    }
     setLoading(true);
     setMsg(null);
     const res = await fetch("/api/products", {
@@ -172,13 +177,14 @@ export function SupplierProductForm({
         </label>
         <label className={supplierLabelClass}>
           Description
-          <textarea
-            required
-            placeholder="Specs, packaging, certifications…"
-            rows={4}
+          <RichTextEditor
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className={supplierTextareaClass}
+            onChange={setDescription}
+            placeholder="Specs, packaging, certifications…"
+            variant="supplier"
+            className="mt-1"
+            editorMinHeightClass="min-h-[8rem] sm:min-h-[9rem]"
+            aria-label="Product description"
           />
         </label>
       </div>

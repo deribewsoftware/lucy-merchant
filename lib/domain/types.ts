@@ -8,6 +8,7 @@ export type Permission =
   | "companies:manage"
   | "products:manage"
   | "orders:supplier"
+  | "orders:complete"
   | "market:browse"
   | "cart:manage"
   | "orders:merchant"
@@ -22,6 +23,8 @@ export type UserRecord = {
   /** Supplier balance for posting products when points are enabled */
   points?: number;
   createdAt: string;
+  /** Admin-only: subtract permissions from the default admin set (e.g. revoke order completion). */
+  adminPermissionDeny?: Permission[];
 };
 
 export type Category = {
@@ -45,6 +48,10 @@ export type Company = {
   ratingAverage: number;
   totalReviews: number;
   createdAt: string;
+  /** Shown to buyers for bank transfer checkout — pay supplier directly */
+  settlementBankName?: string;
+  settlementAccountName?: string;
+  settlementAccountNumber?: string;
 };
 
 export type Product = {
@@ -84,7 +91,14 @@ export type Product = {
 export type NotificationRecord = {
   id: string;
   userId: string;
-  kind: "order_new" | "order_status" | "chat_message" | "review_company" | "review_product";
+  kind:
+    | "order_new"
+    | "order_status"
+    | "order_admin"
+    | "commission_due"
+    | "chat_message"
+    | "review_company"
+    | "review_product";
   title: string;
   body: string;
   href?: string;
@@ -109,6 +123,8 @@ export type Cart = {
 };
 
 export type OrderStatus =
+  | "awaiting_payment"
+  | "awaiting_bank_review"
   | "pending"
   | "accepted"
   | "in_progress"
@@ -118,6 +134,14 @@ export type OrderStatus =
 
 export type OrderItem = CartItem;
 
+/** cod = cash to supplier on delivery; bank_transfer = transfer to supplier’s company account */
+export type PaymentMethod =
+  | "cod"
+  | "bank_transfer"
+  | "stripe"
+  | "chapa"
+  | "telebirr";
+
 export type Order = {
   id: string;
   merchantId: string;
@@ -125,18 +149,60 @@ export type Order = {
   totalPrice: number;
   deliveryLocation: string;
   status: OrderStatus;
+  /** Merchant (buyer) platform commission fee → platform: % of order total from system config. */
   commissionAmount: number;
+  /** Supplier platform commission fee → platform: % of this order’s line subtotal (same supplier per order). */
+  supplierCommissionAmount?: number;
   paymentStatus: "pending" | "paid" | "failed";
-  paymentMethod?: "cod" | "bank_transfer";
+  paymentMethod?: PaymentMethod;
+  /** @deprecated Legacy platform bank choice — new checkouts pay supplier directly */
+  platformBankId?: string;
+  /** Relative public path e.g. /uploads/order-receipts/xxx.jpg */
+  bankProofImagePath?: string;
+  /** Stripe session, Chapa tx_ref, etc. */
+  externalPaymentRef?: string;
+  /** Stripe/Chapa webhook received — admin must confirm before suppliers see the order. */
+  gatewayPaymentCapturedAt?: string;
+  /** Amount recorded as commission received by the platform (mirrors commission when settled) */
+  supplierNetPayoutEtb?: number;
+  /** Legacy: when supplier/admin recorded platform commission before merchant-paid flow */
+  supplierPayoutRecordedAt?: string;
+  /** When the merchant recorded paying their platform commission (buyer → platform). */
+  merchantCommissionPaidAt?: string;
+  /** Screenshot / receipt uploaded when merchant recorded commission (public path). */
+  merchantCommissionProofImagePath?: string;
+  /** When the supplier recorded paying their platform commission (supplier → platform). */
+  supplierCommissionPaidAt?: string;
+  /** Screenshot / receipt uploaded when supplier recorded commission (public path). */
+  supplierCommissionProofImagePath?: string;
+  /**
+   * When the order became delivered: deadline to pay platform commission before
+   * suspension (see SystemConfig.commissionPaymentGraceHours). Set automatically on delivery.
+   */
+  commissionDeadlineAt?: string;
+  /** Admin confirmed they reviewed commission payment screenshots before completing the order. */
+  adminCommissionProofsAcknowledgedAt?: string;
+  adminCommissionProofsAcknowledgedBy?: string;
   createdAt: string;
 };
 
 export type SystemConfig = {
   postProductPoints: number;
+  /** Merchant platform commission fee: % of order total → platform (buyer pays; both fees must be settled before completion when they apply). */
   orderCommissionPercent: number;
+  /** Supplier platform commission fee: % of supplier’s line subtotal on each order → platform */
+  supplierOrderCommissionPercent: number;
   featuredProductCost: number;
   freePostingEnabled: boolean;
+  /** Waives merchant order commission on new checkouts */
   freeCommissionEnabled: boolean;
+  /** Waives supplier order commission on new checkouts */
+  freeSupplierCommissionEnabled: boolean;
+  /**
+   * Hours after delivery before unpaid platform commission triggers account suspension
+   * (per side, when a fee applies). Default 72.
+   */
+  commissionPaymentGraceHours: number;
 };
 
 export type SessionUser = {
@@ -152,11 +218,15 @@ export type ChatMessage = {
   orderId: string;
   senderId: string;
   senderName: string;
+  /** Set for new messages; older rows may omit and rely on API resolution */
+  senderRole?: UserRole;
   content: string;
   createdAt: string;
   /** Optional structured negotiation (PDF: negotiate price) */
-  kind?: "text" | "price_proposal";
+  kind?: "text" | "price_proposal" | "image";
   proposedUnitPrice?: number;
+  /** Public path e.g. /uploads/order-chat/… */
+  imageUrl?: string;
 };
 
 /** Company review after completed order (verified purchase) */
@@ -181,11 +251,11 @@ export type ProductReview = {
   createdAt: string;
 };
 
-/** Payment record per checkout (PDF v2 — COD / bank transfer) */
+/** Payment record per checkout */
 export type Payment = {
   id: string;
   orderId: string;
-  method: "cod" | "bank_transfer";
+  method: PaymentMethod;
   status: "pending" | "paid" | "failed";
   amount: number;
   transactionRef?: string;

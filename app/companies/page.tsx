@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Building2, Star, CheckCircle2, Clock, ArrowRight, Sparkles } from "lucide-react"
 import { PaginationBar } from "@/components/ui/pagination-bar"
 import { listCompanies } from "@/lib/db/catalog"
+import { stripHtmlToPlainText } from "@/lib/rich-text"
 
 type Props = {
   searchParams: Promise<{ page?: string }>
@@ -30,7 +31,7 @@ export default async function CompaniesDirectoryPage({ searchParams }: Props) {
   const href = (p: number) => (p > 1 ? `/companies?page=${p}` : "/companies")
 
   return (
-    <div className="container mx-auto max-w-6xl flex-1 px-4 py-8 sm:py-10">
+    <div className="lm-page-wide animate-in fade-in duration-500">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/" className="transition-colors hover:text-foreground">Home</Link>
@@ -122,7 +123,7 @@ export default async function CompaniesDirectoryPage({ searchParams }: Props) {
                   </div>
                   
                   <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                    {c.description}
+                    {stripHtmlToPlainText(c.description)}
                   </p>
                   
                   <div className="mt-4 flex flex-wrap items-center gap-2">

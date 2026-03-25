@@ -4,7 +4,7 @@ import { jwtVerify } from "jose";
 import { getJwtSecretKey } from "@/lib/auth/secret";
 import type { UserRole } from "@/lib/domain/types";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("lm_token")?.value;
 

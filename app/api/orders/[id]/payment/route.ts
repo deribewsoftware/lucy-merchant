@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { getOrder, updateOrderPaymentStatus } from "@/lib/db/commerce";
-import { markPendingPaymentPaid } from "@/lib/db/payments";
+import { getOrder } from "@/lib/db/commerce";
+import { listPaymentsForOrder } from "@/lib/db/payments";
+import { isSingleSupplierOrder } from "@/lib/domain/order-split";
+import { activatePaidOrder } from "@/lib/payments/order-activation";
 import { requireSession } from "@/lib/server/require-session";
 import { canAccessOrder } from "@/lib/server/order-access";
 
 type Params = { params: Promise<{ id: string }> };
 
-/** Supplier or admin confirms payment received (COD / bank) — PDF payment flow. */
+/** Supplier or admin confirms payment received (COD, Telebirr manual, etc.). */
 export async function POST(request: Request, context: Params) {
   const auth = await requireSession(["supplier", "admin"]);
   if (!auth.ok) return auth.response;
@@ -20,6 +22,16 @@ export async function POST(request: Request, context: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  if (auth.user.role === "supplier" && !isSingleSupplierOrder(order)) {
+    return NextResponse.json(
+      {
+        error:
+          "This order mixes multiple suppliers. Only an admin can confirm payment for legacy orders.",
+      },
+      { status: 400 },
+    );
+  }
+
   if (order.paymentStatus === "paid") {
     return NextResponse.json(
       { error: "Payment already marked as paid" },
@@ -31,14 +43,16 @@ export async function POST(request: Request, context: Params) {
   const transactionRef =
     typeof body?.transactionRef === "string" ? body.transactionRef : undefined;
 
-  const payment = markPendingPaymentPaid(id, transactionRef);
-  if (!payment) {
+  const updated = activatePaidOrder(id, transactionRef);
+  if (!updated) {
     return NextResponse.json(
-      { error: "No pending payment record for this order" },
+      { error: "Could not confirm payment" },
       { status: 400 },
     );
   }
 
-  const updated = updateOrderPaymentStatus(id, "paid");
+  const payments = listPaymentsForOrder(id);
+  const payment =
+    payments.find((p) => p.status === "paid") ?? payments[payments.length - 1];
   return NextResponse.json({ payment, order: updated });
 }

@@ -1,12 +1,32 @@
-import type { OrderStatus } from "@/lib/domain/types";
+import type { Order, OrderStatus } from "@/lib/domain/types";
 
-/** Supplier may advance the order along this path; merchant completes after delivered. */
-export function supplierAllowedNextStatuses(
-  current: OrderStatus,
-): OrderStatus[] {
+type OrderSlice = Pick<
+  Order,
+  "status" | "paymentMethod" | "paymentStatus"
+>;
+
+/**
+ * Supplier may advance the order along this path after the buyer has paid (when bank transfer is required).
+ * COD: accept while payment is still pending (cash collected on delivery).
+ * After delivery, the merchant records buyer platform commission and the supplier records
+ * their platform fee (when configured); the supplier confirms buyer payment; then the buyer
+ * can complete and leave reviews.
+ */
+export function supplierAllowedNextStatuses(order: OrderSlice): OrderStatus[] {
+  const current = order.status;
   switch (current) {
-    case "pending":
+    case "awaiting_payment":
+    case "awaiting_bank_review":
+      return [];
+    case "pending": {
+      if (
+        order.paymentMethod === "bank_transfer" &&
+        order.paymentStatus !== "paid"
+      ) {
+        return [];
+      }
       return ["accepted", "rejected"];
+    }
     case "accepted":
       return ["in_progress", "rejected"];
     case "in_progress":
@@ -17,16 +37,16 @@ export function supplierAllowedNextStatuses(
 }
 
 export function isValidSupplierStatusTransition(
-  from: OrderStatus,
+  order: OrderSlice,
   to: OrderStatus,
 ): boolean {
-  return supplierAllowedNextStatuses(from).includes(to);
+  return supplierAllowedNextStatuses(order).includes(to);
 }
 
 export function defaultSupplierNextChoice(
-  current: OrderStatus,
+  order: OrderSlice,
 ): OrderStatus | null {
-  const next = supplierAllowedNextStatuses(current);
+  const next = supplierAllowedNextStatuses(order);
   if (next.length === 0) return null;
   if (next.includes("accepted")) return "accepted";
   if (next.includes("in_progress")) return "in_progress";

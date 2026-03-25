@@ -6,6 +6,7 @@ import { SupplierCompanyEditForm } from "@/components/supplier-company-edit-form
 import { SupplierCompanyForm } from "@/components/supplier-company-form";
 import { SupplierHeroBackdrop } from "@/components/supplier/supplier-portal-graphics";
 import { companiesByOwner } from "@/lib/db/catalog";
+import { stripHtmlToPlainText } from "@/lib/rich-text";
 import { getSessionUser } from "@/lib/server/session";
 
 export default async function SupplierCompaniesPage() {
@@ -89,7 +90,7 @@ export default async function SupplierCompaniesPage() {
               </div>
               <div className="px-5 py-4">
                 <p className="text-sm leading-relaxed text-base-content/75">
-                  {c.description}
+                  {stripHtmlToPlainText(c.description)}
                 </p>
                 {c.businessAddress?.trim() ? (
                   <p className="mt-3 text-sm text-base-content/60">

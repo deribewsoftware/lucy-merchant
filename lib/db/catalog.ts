@@ -16,9 +16,12 @@ function defaultSystem(): SystemConfig {
   return {
     postProductPoints: 5,
     orderCommissionPercent: 3,
+    supplierOrderCommissionPercent: 2,
     featuredProductCost: 50,
     freePostingEnabled: false,
     freeCommissionEnabled: false,
+    freeSupplierCommissionEnabled: false,
+    commissionPaymentGraceHours: 72,
   };
 }
 
@@ -32,7 +35,9 @@ function seedCategories(): Category[] {
 }
 
 export function getSystemConfig(): SystemConfig {
-  return readJsonFile<SystemConfig>(SYSTEM, defaultSystem());
+  const base = defaultSystem();
+  const stored = readJsonFile<Partial<SystemConfig>>(SYSTEM, base);
+  return { ...base, ...stored };
 }
 
 export function updateSystemConfig(patch: Partial<SystemConfig>): SystemConfig {
@@ -159,7 +164,14 @@ export function updateCompany(
   patch: Partial<
     Pick<
       Company,
-      "name" | "description" | "licenseDocument" | "logo" | "businessAddress"
+      | "name"
+      | "description"
+      | "licenseDocument"
+      | "logo"
+      | "businessAddress"
+      | "settlementBankName"
+      | "settlementAccountName"
+      | "settlementAccountNumber"
     >
   > & { latitude?: number | null; longitude?: number | null },
 ): Company | undefined {
@@ -210,6 +222,18 @@ export function updateCompany(
     } else {
       next.longitude = lng;
     }
+  }
+  if (patch.settlementBankName !== undefined) {
+    const v = String(patch.settlementBankName ?? "").trim();
+    next.settlementBankName = v || undefined;
+  }
+  if (patch.settlementAccountName !== undefined) {
+    const v = String(patch.settlementAccountName ?? "").trim();
+    next.settlementAccountName = v || undefined;
+  }
+  if (patch.settlementAccountNumber !== undefined) {
+    const v = String(patch.settlementAccountNumber ?? "").trim();
+    next.settlementAccountNumber = v || undefined;
   }
 
   all[i] = next;

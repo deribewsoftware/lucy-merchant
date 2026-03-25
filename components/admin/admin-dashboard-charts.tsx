@@ -69,8 +69,8 @@ function useChartPalette() {
     const read = () => {
       const root = document.documentElement;
       const style = getComputedStyle(root);
-      const t = root.getAttribute("data-theme");
-      const dark = t === "night";
+      const scheme = getComputedStyle(root).colorScheme;
+      const dark = scheme === "dark";
 
       const primary = style.getPropertyValue("--p").trim() || FALLBACK.primary;
       const secondary = style.getPropertyValue("--s").trim() || FALLBACK.secondary;
@@ -164,7 +164,7 @@ export function AdminDashboardCharts({
           pointBorderWidth: 2,
         },
         {
-          label: "Commission (ETB)",
+          label: "Platform fees (ETB)",
           data: gmvByMonth.map((m) => m.commissionEtb),
           yAxisID: "y1",
           borderColor: theme.success,
@@ -371,7 +371,7 @@ export function AdminDashboardCharts({
           </span>
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-base-content">
-              Revenue & commission trend
+              Revenue & platform fees trend
             </h3>
             <p className="text-xs text-base-content/60">
               Completed orders by month (last 6 months)

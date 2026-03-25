@@ -1,7 +1,11 @@
 import { randomUUID } from "crypto";
 import type { NotificationRecord, Order } from "@/lib/domain/types";
 import { getCompany, getProduct } from "@/lib/db/catalog";
-import { findUserById } from "@/lib/db/users";
+import { findUserById, listUsers } from "@/lib/db/users";
+import {
+  isMerchantPlatformCommissionPaid,
+  isSupplierPlatformCommissionPaid,
+} from "@/lib/domain/platform-commission";
 import { readJsonFile, writeJsonFile } from "@/lib/store/json-file";
 
 const FILE = "notifications.json";
@@ -81,6 +85,23 @@ export function markAllReadForUser(userId: string): void {
 }
 
 /** PDF: notify suppliers with lines on this order */
+export function notifyAdmins(input: {
+  title: string;
+  body: string;
+  href?: string;
+}): void {
+  for (const u of listUsers()) {
+    if (u.role !== "admin") continue;
+    createNotification({
+      userId: u.id,
+      kind: "order_admin",
+      title: input.title,
+      body: input.body,
+      href: input.href,
+    });
+  }
+}
+
 export function notifySuppliersNewOrder(order: Order): void {
   const merchant = findUserById(order.merchantId);
   const label = merchant?.name ?? "A merchant";
@@ -114,6 +135,107 @@ export function notifyMerchantOrderStatus(
 }
 
 /** When merchant completes (or other merchant-side events), ping involved suppliers */
+export function notifyAdminsOrderDelivered(order: Order): void {
+  notifyAdmins({
+    title: "Order delivered",
+    body: `Order ${order.id.slice(0, 8)}… marked delivered — ${order.totalPrice.toLocaleString()} ETB.`,
+    href: `/admin/orders/${order.id}`,
+  });
+}
+
+/** Remind merchant / suppliers to pay platform commission after delivery (before grace ends). */
+export function notifyCommissionDueOnDelivery(order: Order): void {
+  const short = order.id.slice(0, 8);
+  const hrefM = `/merchant/orders/${order.id}`;
+  const hrefS = `/supplier/orders/${order.id}`;
+
+  if (
+    order.commissionAmount > 0 &&
+    !isMerchantPlatformCommissionPaid(order)
+  ) {
+    createNotification({
+      userId: order.merchantId,
+      kind: "commission_due",
+      title: "Pay merchant platform commission",
+      body: `Order ${short}… is delivered. Pay and record your platform commission before the deadline to avoid suspension.`,
+      href: hrefM,
+    });
+  }
+
+  if ((order.supplierCommissionAmount ?? 0) <= 0) return;
+  if (isSupplierPlatformCommissionPaid(order)) return;
+
+  const seen = new Set<string>();
+  for (const line of order.items) {
+    const co = getCompany(line.companyId);
+    if (!co || seen.has(co.ownerId)) continue;
+    seen.add(co.ownerId);
+    createNotification({
+      userId: co.ownerId,
+      kind: "commission_due",
+      title: "Pay supplier platform commission",
+      body: `Order ${short}… is delivered. Pay and record your platform commission before the deadline to avoid suspension.`,
+      href: hrefS,
+    });
+  }
+}
+
+export function notifyAdminsBankProofSubmitted(order: Order): void {
+  notifyAdmins({
+    title: "Bank transfer proof submitted",
+    body: `Merchant submitted a payment screenshot for order ${order.id.slice(0, 8)}… (${order.totalPrice.toLocaleString()} ETB). Review and approve.`,
+    href: `/admin/orders/${order.id}`,
+  });
+}
+
+/** After buyer → platform commission is recorded (before merchant completes). */
+export function notifyMerchantSupplierPayoutReleased(order: Order): void {
+  const short = order.id.slice(0, 8);
+  const supplierFee = (order.supplierCommissionAmount ?? 0) > 0;
+  const supplierDone = Boolean(order.supplierCommissionPaidAt);
+  const body =
+    supplierFee && !supplierDone
+      ? `Order ${short}… — your buyer platform fee is recorded. The supplier must still pay and record their platform fee before you can complete.`
+      : `Order ${short}… — buyer platform commission recorded. Complete when the supplier has confirmed they received payment for the goods (if not already).`;
+  createNotification({
+    userId: order.merchantId,
+    kind: "order_status",
+    title: "Buyer commission recorded",
+    body,
+    href: `/merchant/orders/${order.id}`,
+  });
+}
+
+/** When supplier records their platform fee — merchant can proceed if other gates are met. */
+export function notifyMerchantSupplierCommissionRecorded(order: Order): void {
+  const short = order.id.slice(0, 8);
+  createNotification({
+    userId: order.merchantId,
+    kind: "order_status",
+    title: "Supplier commission recorded",
+    body: `Order ${short}… — the supplier recorded their platform fee. You can complete once they confirm they received payment for the goods.`,
+    href: `/merchant/orders/${order.id}`,
+  });
+}
+
+/** Suppliers get confirmation when buyer commission is logged. */
+export function notifySuppliersPayoutRecorded(order: Order): void {
+  const amt = order.commissionAmount;
+  const seen = new Set<string>();
+  for (const item of order.items) {
+    const co = getCompany(item.companyId);
+    if (!co || seen.has(co.ownerId)) continue;
+    seen.add(co.ownerId);
+    createNotification({
+      userId: co.ownerId,
+      kind: "order_status",
+      title: "Buyer commission logged",
+      body: `Order ${order.id.slice(0, 8)}… — buyer platform commission recorded: ${amt.toLocaleString()} ETB.`,
+      href: `/supplier/orders/${order.id}`,
+    });
+  }
+}
+
 export function notifySuppliersOrderStatus(
   order: Order,
   status: Order["status"],
@@ -128,7 +250,7 @@ export function notifySuppliersOrderStatus(
       userId: co.ownerId,
       kind: "order_status",
       title: "Order update",
-      body: `A shared order moved to: ${line}.`,
+      body: `Order status is now: ${line}.`,
       href: `/supplier/orders/${order.id}`,
     });
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -14,6 +14,7 @@ import {
 } from "react";
 import clsx from "clsx";
 import {
+  AlertTriangle,
   ArrowRight,
   Building2,
   Check,
@@ -28,6 +29,11 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { SearchScope } from "@/lib/search/catalog-search";
 import { brandCopy } from "@/lib/brand/copy";
+import {
+  MERCHANT_COMMISSION_HOLD_INLINE,
+  SUPPLIER_COMMISSION_HOLD_INLINE,
+} from "@/lib/domain/commission-hold-copy";
+import { ImagePreviewLightbox } from "@/components/image-preview-lightbox";
 import { ProductUnitPrice } from "@/components/product-unit-price";
 import { ProductOrderSpecs } from "@/components/product-order-specs";
 
@@ -433,13 +439,23 @@ function pushRecent(term: string) {
   localStorage.setItem(RECENT_KEY, JSON.stringify(prev.slice(0, MAX_RECENT)));
 }
 
-type Props = {
+export type GlobalSearchProps = {
   variant?: "navbar" | "hero";
   className?: string;
+  /** SSR hint; live value merged from GET /api/auth/me when logged in */
+  merchantCommissionHold?: boolean;
+  /** SSR hint; live value merged from GET /api/auth/me when logged in */
+  supplierCommissionHold?: boolean;
 };
 
-export function GlobalSearch({ variant = "navbar", className = "" }: Props) {
+export function GlobalSearch({
+  variant = "navbar",
+  className = "",
+  merchantCommissionHold = false,
+  supplierCommissionHold = false,
+}: GlobalSearchProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const panelId = useId();
   const filterMenuRef = useRef<HTMLDivElement>(null);
   const panelBlurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -458,6 +474,66 @@ export function GlobalSearch({ variant = "navbar", className = "" }: Props) {
   const [companies, setCompanies] = useState<HitCompany[]>([]);
   const [categories, setCategories] = useState<HitCategory[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
+  /** After /api/auth/me — overrides SSR props when set */
+  const [apiMerchantHold, setApiMerchantHold] = useState<boolean | null>(null);
+  const [apiSupplierHold, setApiSupplierHold] = useState<boolean | null>(null);
+  /** Full-screen preview for product / company images in results */
+  const [imagePreview, setImagePreview] = useState<{
+    src: string;
+    alt: string;
+  } | null>(null);
+
+  const fetchAuthMeHolds = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (res.status === 401) {
+        setApiMerchantHold(null);
+        setApiSupplierHold(null);
+        return;
+      }
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        user?: {
+          merchantCommissionHold?: boolean;
+          supplierCommissionHold?: boolean;
+        };
+      };
+      const u = data.user;
+      if (!u) return;
+      setApiMerchantHold(
+        typeof u.merchantCommissionHold === "boolean"
+          ? u.merchantCommissionHold
+          : null,
+      );
+      setApiSupplierHold(
+        typeof u.supplierCommissionHold === "boolean"
+          ? u.supplierCommissionHold
+          : null,
+      );
+    } catch {
+      /* keep prior api* state */
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchAuthMeHolds();
+  }, [fetchAuthMeHolds, pathname]);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible") void fetchAuthMeHolds();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [fetchAuthMeHolds]);
+
+  const effectiveMerchantHold =
+    apiMerchantHold !== null ? apiMerchantHold : merchantCommissionHold;
+  const effectiveSupplierHold =
+    apiSupplierHold !== null ? apiSupplierHold : supplierCommissionHold;
 
   const isHero = variant === "hero";
   const ddSize = isHero ? "md" : "sm";
@@ -582,6 +658,38 @@ export function GlobalSearch({ variant = "navbar", className = "" }: Props) {
 
   return (
     <div className={`relative w-full ${className}`}>
+      {effectiveMerchantHold ? (
+        <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-2.5 py-2 text-[11px] leading-snug text-base-content sm:text-xs">
+          <AlertTriangle
+            className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1">{MERCHANT_COMMISSION_HOLD_INLINE}</span>
+          <Link
+            href="/merchant/orders?hold=commission"
+            className="shrink-0 font-semibold text-amber-800 underline-offset-2 hover:underline dark:text-amber-200"
+            onMouseDown={() => setPanelOpen(false)}
+          >
+            Open orders
+          </Link>
+        </div>
+      ) : null}
+      {effectiveSupplierHold ? (
+        <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-violet-500/35 bg-violet-500/10 px-2.5 py-2 text-[11px] leading-snug text-base-content sm:text-xs">
+          <AlertTriangle
+            className="h-3.5 w-3.5 shrink-0 text-violet-600 dark:text-violet-400"
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1">{SUPPLIER_COMMISSION_HOLD_INLINE}</span>
+          <Link
+            href="/supplier/orders?hold=commission"
+            className="shrink-0 font-semibold text-violet-800 underline-offset-2 hover:underline dark:text-violet-200"
+            onMouseDown={() => setPanelOpen(false)}
+          >
+            Open orders
+          </Link>
+        </div>
+      ) : null}
       <form onSubmit={onSubmit} className="relative">
         <div
           className={clsx(
@@ -811,14 +919,28 @@ export function GlobalSearch({ variant = "navbar", className = "" }: Props) {
                           >
                             <span className="flex min-w-0 items-center gap-2">
                               {c.logo ? (
-                                <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-base-300 bg-base-200">
+                                <button
+                                  type="button"
+                                  className="relative h-12 w-12 shrink-0 cursor-zoom-in overflow-hidden rounded-xl border-2 border-base-200 bg-base-200/80 shadow-sm ring-1 ring-base-300/40 transition hover:border-primary/35 hover:ring-primary/20"
+                                  aria-label={`View larger: ${c.name} logo`}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setImagePreview({
+                                      src: c.logo!,
+                                      alt: `${c.name} logo`,
+                                    });
+                                  }}
+                                >
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={c.logo}
                                     alt=""
                                     className="h-full w-full object-cover"
+                                    loading="lazy"
                                   />
-                                </span>
+                                </button>
                               ) : null}
                               <span className="truncate font-medium">
                                 {c.name}
@@ -872,12 +994,33 @@ export function GlobalSearch({ variant = "navbar", className = "" }: Props) {
                           >
                             <span className="flex min-w-0 flex-1 items-start gap-2">
                               {p.imageUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={p.imageUrl}
-                                  alt=""
-                                  className="mt-0.5 h-8 w-8 shrink-0 rounded-lg object-cover"
-                                />
+                                <button
+                                  type="button"
+                                  className={clsx(
+                                    "shrink-0 cursor-zoom-in overflow-hidden rounded-xl border-2 border-base-200 bg-base-200/50 shadow-sm ring-1 ring-base-300/40 transition hover:border-primary/35 hover:ring-primary/20",
+                                    isHero
+                                      ? "h-14 w-14 sm:h-16 sm:w-16"
+                                      : "mt-0.5 h-11 w-11 sm:h-12 sm:w-12",
+                                  )}
+                                  aria-label={`View larger product image: ${p.name}`}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setImagePreview({
+                                      src: p.imageUrl!,
+                                      alt: p.name,
+                                    });
+                                  }}
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={p.imageUrl}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                    loading="lazy"
+                                  />
+                                </button>
                               ) : null}
                               <span className="min-w-0 flex-1">
                                 <span className="flex flex-wrap items-center gap-2 font-medium">
@@ -968,6 +1111,15 @@ export function GlobalSearch({ variant = "navbar", className = "" }: Props) {
           </div>
         )}
       </form>
+
+      {imagePreview ? (
+        <ImagePreviewLightbox
+          open
+          onClose={() => setImagePreview(null)}
+          src={imagePreview.src}
+          alt={imagePreview.alt}
+        />
+      ) : null}
     </div>
   );
 }

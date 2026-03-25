@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { HiChatBubbleLeftRight, HiHandThumbUp } from "react-icons/hi2";
+import { MessageCircle, ThumbsUp } from "lucide-react";
+import { RichTextContent } from "@/components/rich-text-content";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import type { ProductComment } from "@/lib/domain/types";
+import { isRichTextEmpty } from "@/lib/rich-text";
 
 type Props = {
   productId: string;
@@ -34,7 +37,7 @@ export function ProductComments({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canPost || !text.trim()) return;
+    if (!canPost || isRichTextEmpty(text)) return;
     setLoading(true);
     setError(null);
     const res = await fetch(`/api/products/${productId}/comments`, {
@@ -67,128 +70,146 @@ export function ProductComments({
   }
 
   return (
-    <section className="mt-12 border-t border-base-300 pt-10">
-      <div className="flex items-center gap-2">
-        <HiChatBubbleLeftRight className="h-6 w-6 text-secondary" />
-        <h2 className="text-xl font-bold sm:text-2xl">Product comments</h2>
+    <section className="mt-10 rounded-2xl border border-border/50 bg-card/60 p-6 shadow-sm ring-1 ring-border/15 sm:mt-12 sm:p-8">
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary">
+          <MessageCircle className="h-5 w-5" strokeWidth={2} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-xl font-bold text-foreground sm:text-2xl">
+            Questions & comments
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Threaded discussion. Sign in to like replies.
+          </p>
+        </div>
       </div>
-      <p className="mt-1 text-sm text-base-content/65">
-        Threaded replies and likes. Sign in to react with a thumbs up.
-      </p>
 
       {canPost && (
-        <form onSubmit={submit} className="card mt-6 border border-base-300 bg-base-100 shadow-sm">
-          <div className="card-body gap-3 p-4 sm:p-6">
-            {parentId && (
-              <p className="text-xs text-base-content/60">
-                Replying in thread —{" "}
-                <button
-                  type="button"
-                  className="link link-primary"
-                  onClick={() => setParentId(null)}
-                >
-                  cancel
-                </button>
-              </p>
-            )}
-            <textarea
-              required
-              rows={3}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Ask a question or leave a note…"
-              className="textarea textarea-bordered w-full"
-            />
-            {error && (
-              <div role="alert" className="alert alert-error text-sm">
-                {error}
-              </div>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full sm:w-auto"
+        <form
+          onSubmit={submit}
+          className="mt-6 rounded-xl border border-border/50 bg-base-100/90 p-4 shadow-inner sm:p-5"
+        >
+          {parentId && (
+            <p className="mb-3 text-xs text-muted-foreground">
+              Replying in thread —{" "}
+              <button
+                type="button"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+                onClick={() => setParentId(null)}
+              >
+                Cancel
+              </button>
+            </p>
+          )}
+          <RichTextEditor
+            value={text}
+            onChange={setText}
+            placeholder="Ask a question or leave a note…"
+            variant="default"
+            editorMinHeightClass="min-h-[6.5rem] sm:min-h-[7.5rem]"
+            className="mt-0.5"
+            aria-label="Comment"
+          />
+          {error && (
+            <div
+              role="alert"
+              className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
             >
-              {loading ? (
-                <span className="loading loading-spinner loading-sm" />
-              ) : null}
-              {loading ? "Posting…" : "Post comment"}
-            </button>
-          </div>
+              {error}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-4 inline-flex h-11 min-w-[8rem] items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition hover:bg-primary/90 disabled:opacity-60"
+          >
+            {loading ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+            ) : null}
+            {loading ? "Posting…" : "Post"}
+          </button>
         </form>
       )}
       {!canPost && (
-        <div className="alert alert-info mt-4">
-          <span className="text-sm">
-            <a href="/login" className="link font-semibold">
-              Sign in
-            </a>{" "}
-            as merchant or supplier to comment.
-          </span>
+        <div className="mt-6 rounded-xl border border-info/25 bg-info/5 px-4 py-3 text-sm text-muted-foreground">
+          <a
+            href="/login"
+            className="font-semibold text-primary underline-offset-2 hover:underline"
+          >
+            Sign in
+          </a>{" "}
+          as merchant or supplier to join the thread.
         </div>
       )}
 
       <ul className="mt-8 space-y-4">
         {roots.length === 0 && (
-          <li className="text-sm text-base-content/50">No comments yet.</li>
+          <li className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+            No comments yet — be the first to ask a question.
+          </li>
         )}
         {roots.map((c) => (
           <li
             key={c.id}
-            className="card border border-base-300 bg-base-100 shadow-sm"
+            className="overflow-hidden rounded-xl border border-border/50 bg-base-100/90 shadow-sm"
           >
-            <div className="card-body p-4 sm:p-5">
-              <p className="font-semibold">{c.userName}</p>
+            <div className="p-4 sm:p-5">
+              <p className="font-semibold text-foreground">{c.userName}</p>
               <time
-                className="text-xs text-base-content/50"
+                className="text-xs text-muted-foreground"
                 dateTime={c.createdAt}
               >
                 {new Date(c.createdAt).toLocaleString()}
               </time>
-              <p className="mt-2 text-sm leading-relaxed text-base-content/85">
-                {c.comment}
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                <RichTextContent html={c.comment} variant="compact" />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   disabled={!currentUserId}
-                  title={currentUserId ? "Toggle like" : "Sign in to like"}
+                  title={currentUserId ? "Like" : "Sign in to like"}
                   onClick={() => toggleLike(c.id)}
-                  className={`btn btn-ghost btn-xs gap-1 ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border border-border/50 px-3 py-1.5 text-xs font-medium transition hover:bg-muted ${
                     currentUserId && c.likedBy?.includes(currentUserId)
-                      ? "text-primary"
-                      : ""
-                  }`}
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "text-muted-foreground"
+                  } disabled:opacity-40`}
                 >
-                  <HiHandThumbUp className="h-4 w-4" />
+                  <ThumbsUp className="h-3.5 w-3.5" />
                   {c.likedBy?.length ?? 0}
                 </button>
                 {canPost && (
                   <button
                     type="button"
-                    className="btn btn-ghost btn-xs w-fit px-0"
+                    className="text-xs font-medium text-primary underline-offset-2 hover:underline"
                     onClick={() => setParentId(c.id)}
                   >
                     Reply
                   </button>
                 )}
               </div>
-              <ul className="mt-3 space-y-3 border-s-2 border-base-300 ps-4">
+              <ul className="mt-4 space-y-3 border-s-2 border-primary/20 ps-4">
                 {byParent(c.id).map((r) => (
                   <li key={r.id}>
-                    <p className="text-sm font-medium">{r.userName}</p>
-                    <p className="text-sm text-base-content/75">{r.comment}</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {r.userName}
+                    </p>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      <RichTextContent html={r.comment} variant="compact" />
+                    </div>
                     <button
                       type="button"
                       disabled={!currentUserId}
                       onClick={() => toggleLike(r.id)}
-                      className={`btn btn-ghost btn-xs mt-1 gap-1 ${
+                      className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${
                         currentUserId && r.likedBy?.includes(currentUserId)
                           ? "text-primary"
-                          : ""
-                      }`}
+                          : "text-muted-foreground"
+                      } disabled:opacity-40`}
                     >
-                      <HiHandThumbUp className="h-3.5 w-3.5" />
+                      <ThumbsUp className="h-3 w-3" />
                       {r.likedBy?.length ?? 0}
                     </button>
                   </li>

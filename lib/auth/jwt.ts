@@ -30,9 +30,9 @@ export async function verifyToken(token: string): Promise<TokenPayload> {
   const key = getJwtSecretKey();
   const { payload } = await jwtVerify(token, key);
   const sub = payload.sub;
-  if (!sub) throw new Error("Invalid token");
+  if (sub === undefined || sub === null) throw new Error("Invalid token");
   return {
-    sub,
+    sub: String(sub),
     email: String(payload.email),
     role: payload.role as UserRole,
     name: String(payload.name),

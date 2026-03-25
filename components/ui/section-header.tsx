@@ -4,7 +4,7 @@ type Props = {
   /** Small uppercase label above the title */
   eyebrow?: string;
   title: string;
-  description?: string;
+  description?: ReactNode;
   icon?: ReactNode;
   /** Right-aligned slot (e.g. link or tabs) */
   action?: ReactNode;
@@ -38,8 +38,8 @@ export function SectionHeader({
           )}
           <h2 className="lm-heading-section">{title}</h2>
         </div>
-        {description && (
-          <p className="lm-body-muted max-w-2xl text-pretty">{description}</p>
+        {description != null && description !== "" && (
+          <div className="lm-body-muted max-w-2xl text-pretty">{description}</div>
         )}
       </div>
       {action && <div className="shrink-0">{action}</div>}

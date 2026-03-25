@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { Order, Payment } from "@/lib/domain/types";
+import type { Order, Payment, PaymentMethod } from "@/lib/domain/types";
 import { readJsonFile, writeJsonFile } from "@/lib/store/json-file";
 
 const FILE = "payments.json";
@@ -14,7 +14,7 @@ function save(rows: Payment[]) {
 
 export function createPayment(input: {
   orderId: string;
-  method: "cod" | "bank_transfer";
+  method: PaymentMethod;
   amount: number;
   transactionRef?: string;
 }): Payment {
@@ -44,7 +44,15 @@ export function listPaymentsForOrder(orderId: string): Payment[] {
 export function ensureLegacyPaymentForOrder(order: Order): void {
   if (listPaymentsForOrder(order.id).length > 0) return;
   const method = order.paymentMethod;
-  if (method !== "cod" && method !== "bank_transfer") return;
+  if (
+    method !== "cod" &&
+    method !== "bank_transfer" &&
+    method !== "stripe" &&
+    method !== "chapa" &&
+    method !== "telebirr"
+  ) {
+    return;
+  }
   createPayment({
     orderId: order.id,
     method,
@@ -53,6 +61,11 @@ export function ensureLegacyPaymentForOrder(order: Order): void {
 }
 
 /** Marks the first pending payment for this order as paid (COD / bank confirmed). */
+export function deletePaymentsForOrder(orderId: string): void {
+  const rows = load().filter((p) => p.orderId !== orderId);
+  save(rows);
+}
+
 export function markPendingPaymentPaid(
   orderId: string,
   transactionRef?: string,

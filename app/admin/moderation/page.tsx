@@ -6,6 +6,7 @@ import {
   HiOutlineStar,
 } from "react-icons/hi2";
 import { ModerationDeleteButton } from "@/components/moderation-delete-button";
+import { RichTextContent } from "@/components/rich-text-content";
 import { getCompany, getProduct } from "@/lib/db/catalog";
 import { listAllProductComments } from "@/lib/db/comments";
 import { listAllProductReviews } from "@/lib/db/product-reviews";
@@ -73,9 +74,9 @@ export default function AdminModerationPage() {
                       on {p?.name ?? c.productId}
                     </span>
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-base-content/70">
-                    {c.comment}
-                  </p>
+                  <div className="mt-2 text-sm leading-relaxed text-base-content/70">
+                    <RichTextContent html={c.comment} variant="compact" />
+                  </div>
                   <Link
                     href={`/products/${c.productId}`}
                     className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
@@ -119,12 +120,16 @@ export default function AdminModerationPage() {
                     <span className="text-warning">{r.rating}★</span> ·{" "}
                     {co?.name ?? r.companyId}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-base-content/70">
+                  <div className="mt-2 text-sm leading-relaxed text-base-content/70">
                     <span className="font-medium text-base-content/80">
                       {author?.name ?? r.merchantId}:
-                    </span>{" "}
-                    {r.comment}
-                  </p>
+                    </span>
+                    <RichTextContent
+                      html={r.comment}
+                      variant="compact"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
                 <ModerationDeleteButton
                   apiPath={`/api/admin/moderation/company-review/${r.id}`}
@@ -162,12 +167,16 @@ export default function AdminModerationPage() {
                     <span className="text-warning">{r.rating}★</span> ·{" "}
                     {p?.name ?? r.productId}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-base-content/70">
+                  <div className="mt-2 text-sm leading-relaxed text-base-content/70">
                     <span className="font-medium text-base-content/80">
                       {author?.name ?? r.merchantId}:
-                    </span>{" "}
-                    {r.comment}
-                  </p>
+                    </span>
+                    <RichTextContent
+                      html={r.comment}
+                      variant="compact"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
                 <ModerationDeleteButton
                   apiPath={`/api/admin/moderation/product-review/${r.id}`}

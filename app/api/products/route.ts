@@ -10,6 +10,8 @@ import { findUserById, updateUserPoints } from "@/lib/db/users";
 import { normalizeCompareAtPrice } from "@/lib/domain/compare-at-price";
 import { packagingForCreate } from "@/lib/domain/packaging-from-body";
 import { requireSession } from "@/lib/server/require-session";
+import { API_SUPPLIER_COMMISSION_SUSPENDED } from "@/lib/domain/commission-hold-copy";
+import { supplierHasOutstandingCommission } from "@/lib/server/supplier-commission";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -36,6 +38,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const auth = await requireSession(["supplier"]);
   if (!auth.ok) return auth.response;
+
+  if (supplierHasOutstandingCommission(auth.user.id)) {
+    return NextResponse.json({ error: API_SUPPLIER_COMMISSION_SUSPENDED }, { status: 403 });
+  }
 
   const body = await request.json().catch(() => null);
   const companyId = String(body?.companyId ?? "");

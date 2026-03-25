@@ -24,6 +24,9 @@ export async function PATCH(request: Request) {
   if (typeof body.orderCommissionPercent === "number") {
     patch.orderCommissionPercent = body.orderCommissionPercent;
   }
+  if (typeof body.supplierOrderCommissionPercent === "number") {
+    patch.supplierOrderCommissionPercent = body.supplierOrderCommissionPercent;
+  }
   if (typeof body.featuredProductCost === "number") {
     patch.featuredProductCost = body.featuredProductCost;
   }
@@ -32,6 +35,15 @@ export async function PATCH(request: Request) {
   }
   if (typeof body.freeCommissionEnabled === "boolean") {
     patch.freeCommissionEnabled = body.freeCommissionEnabled;
+  }
+  if (typeof body.freeSupplierCommissionEnabled === "boolean") {
+    patch.freeSupplierCommissionEnabled = body.freeSupplierCommissionEnabled;
+  }
+  if (typeof body.commissionPaymentGraceHours === "number") {
+    const h = Math.floor(body.commissionPaymentGraceHours);
+    if (h >= 1 && h <= 8760) {
+      patch.commissionPaymentGraceHours = h;
+    }
   }
 
   const config = updateSystemConfig(patch);

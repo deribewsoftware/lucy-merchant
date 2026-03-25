@@ -84,12 +84,21 @@ export async function PATCH(request: Request, context: Params) {
       patch.longitude = Number.isFinite(n) ? n : null;
     }
   }
+  if (body?.settlementBankName !== undefined) {
+    patch.settlementBankName = String(body.settlementBankName ?? "");
+  }
+  if (body?.settlementAccountName !== undefined) {
+    patch.settlementAccountName = String(body.settlementAccountName ?? "");
+  }
+  if (body?.settlementAccountNumber !== undefined) {
+    patch.settlementAccountNumber = String(body.settlementAccountNumber ?? "");
+  }
 
   if (Object.keys(patch).length === 0) {
     return NextResponse.json(
       {
         error:
-          "Provide at least one of: name, description, licenseDocument, logo, businessAddress, latitude, longitude",
+          "Provide at least one field to update (including settlement bank details)",
       },
       { status: 400 },
     );

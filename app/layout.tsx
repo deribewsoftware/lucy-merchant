@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
+import { PresenceProvider } from "@/components/presence-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { SupportBot } from "@/components/support-bot";
+import { THEME_INIT_SCRIPT } from "@/lib/theme/theme-script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -48,13 +51,20 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="business"
       className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable}`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-dvh flex-col bg-background text-foreground antialiased">
-        <SiteHeader />
-        <main className="flex flex-1 flex-col">{children}</main>
-        <SiteFooter />
+      <body className="flex min-h-dvh min-w-0 flex-col antialiased">
+        <script
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
+        <PresenceProvider>
+          <SiteHeader />
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</main>
+          <SiteFooter />
+          <SupportBot />
+        </PresenceProvider>
       </body>
     </html>
   );

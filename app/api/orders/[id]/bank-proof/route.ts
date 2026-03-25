@@ -1,0 +1,88 @@
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { NextResponse } from "next/server";
+import { getOrder, patchOrder } from "@/lib/db/commerce";
+import { notifyAdminsBankProofSubmitted } from "@/lib/db/notifications";
+import { requireSession } from "@/lib/server/require-session";
+
+export const runtime = "nodejs";
+
+type Params = { params: Promise<{ id: string }> };
+
+const ALLOWED = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+
+export async function POST(request: Request, context: Params) {
+  const auth = await requireSession(["merchant"]);
+  if (!auth.ok) return auth.response;
+
+  const { id } = await context.params;
+  const order = getOrder(id);
+  if (!order || order.merchantId !== auth.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (order.paymentMethod !== "bank_transfer") {
+    return NextResponse.json({ error: "Not a bank transfer order" }, { status: 400 });
+  }
+
+  const legacyAwaiting = order.status === "awaiting_payment";
+  const newFlowPending =
+    order.status === "pending" && order.paymentMethod === "bank_transfer";
+
+  if (!legacyAwaiting && !newFlowPending) {
+    return NextResponse.json(
+      { error: "Proof cannot be uploaded for this order state" },
+      { status: 400 },
+    );
+  }
+
+  const form = await request.formData().catch(() => null);
+  const file = form?.get("file");
+  if (!file || !(file instanceof Blob)) {
+    return NextResponse.json({ error: "Missing file" }, { status: 400 });
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 400 });
+  }
+
+  const origName =
+    typeof (file as { name?: string }).name === "string"
+      ? (file as { name: string }).name
+      : "receipt.jpg";
+  const ext = path.extname(origName).toLowerCase() || ".jpg";
+  if (!ALLOWED.has(ext)) {
+    return NextResponse.json(
+      { error: "Use JPG, PNG, or WebP" },
+      { status: 400 },
+    );
+  }
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const dir = path.join(
+    process.cwd(),
+    "public",
+    "uploads",
+    "order-receipts",
+  );
+  await mkdir(dir, { recursive: true });
+  const filename = `${id}-${Date.now()}${ext}`;
+  const full = path.join(dir, filename);
+  await writeFile(full, buf);
+
+  const publicPath = `/uploads/order-receipts/${filename}`;
+
+  if (legacyAwaiting) {
+    const updated = patchOrder(id, {
+      bankProofImagePath: publicPath,
+      status: "awaiting_bank_review",
+    });
+    if (updated) {
+      notifyAdminsBankProofSubmitted(updated);
+    }
+    return NextResponse.json({ ok: true, order: updated, imagePath: publicPath });
+  }
+
+  const updated = patchOrder(id, {
+    bankProofImagePath: publicPath,
+  });
+  return NextResponse.json({ ok: true, order: updated, imagePath: publicPath });
+}

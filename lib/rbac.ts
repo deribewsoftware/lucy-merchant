@@ -6,6 +6,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "companies:verify",
     "categories:manage",
     "system:configure",
+    "orders:complete",
   ],
   supplier: ["companies:manage", "products:manage", "orders:supplier"],
   merchant: [

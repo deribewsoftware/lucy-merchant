@@ -1,36 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { HiOutlineSparkles } from "react-icons/hi2";
 import { MdDarkMode, MdLightMode } from "react-icons/md";
 
 const STORAGE_KEY = "lm-theme";
 
-const OPTIONS = [
-  { value: "business", label: "Business" },
-  { value: "corporate", label: "Corporate" },
+export const THEME_OPTIONS = [
+  { value: "business", label: "Business (dark)" },
+  { value: "corporate", label: "Corporate (light)" },
   { value: "light", label: "Light" },
   { value: "night", label: "Midnight" },
 ] as const;
 
+export type ThemeId = (typeof THEME_OPTIONS)[number]["value"];
+
+const ALLOWED = new Set<string>(THEME_OPTIONS.map((o) => o.value));
+
+function normalizeTheme(raw: string | null | undefined): ThemeId {
+  return raw && ALLOWED.has(raw) ? (raw as ThemeId) : "business";
+}
+
 export function ThemeToggle() {
-  const [current, setCurrent] = useState<string>("business");
+  const [current, setCurrent] = useState<ThemeId>("business");
 
   useEffect(() => {
-    const t =
+    const raw =
       localStorage.getItem(STORAGE_KEY) ??
       document.documentElement.getAttribute("data-theme") ??
       "business";
+    const t = normalizeTheme(raw);
     setCurrent(t);
+    document.documentElement.setAttribute("data-theme", t);
+    if (raw !== t) {
+      localStorage.setItem(STORAGE_KEY, t);
+    }
   }, []);
 
-  function apply(theme: string) {
-    setCurrent(theme);
-    localStorage.setItem(STORAGE_KEY, theme);
-    document.documentElement.setAttribute("data-theme", theme);
+  function apply(theme: ThemeId) {
+    const t = normalizeTheme(theme);
+    setCurrent(t);
+    localStorage.setItem(STORAGE_KEY, t);
+    document.documentElement.setAttribute("data-theme", t);
   }
 
-  const isDarkish = current === "night";
+  const lightish = current === "light" || current === "corporate";
 
   return (
     <div className="dropdown dropdown-end">
@@ -40,19 +53,17 @@ export function ThemeToggle() {
         className="btn btn-ghost btn-circle btn-sm"
         aria-label="Choose color theme"
       >
-        {current === "light" ? (
+        {lightish ? (
           <MdLightMode className="h-5 w-5" />
-        ) : isDarkish ? (
-          <MdDarkMode className="h-5 w-5" />
         ) : (
-          <HiOutlineSparkles className="h-5 w-5" />
+          <MdDarkMode className="h-5 w-5" />
         )}
       </div>
       <ul
         tabIndex={0}
-        className="dropdown-content menu z-[100] w-48 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
+        className="dropdown-content menu z-[100] w-52 rounded-box border border-base-300/45 bg-base-100 p-2 shadow-lg"
       >
-        {OPTIONS.map((o) => (
+        {THEME_OPTIONS.map((o) => (
           <li key={o.value}>
             <button
               type="button"

@@ -11,19 +11,41 @@ import {
   Loader2,
   FileCheck,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react"
 import { PaginationBar } from "@/components/ui/pagination-bar"
 import { getProduct } from "@/lib/db/catalog"
 import { ordersForMerchant } from "@/lib/db/commerce"
+import { merchantPaymentSummary } from "@/lib/domain/order-presentations"
+import {
+  isPlatformCommissionPaid,
+  isSupplierPlatformCommissionPaid,
+} from "@/lib/domain/platform-commission"
 import type { OrderStatus } from "@/lib/domain/types"
+import {
+  MERCHANT_ORDERS_HOLD_EXPLAINER_BODY,
+  MERCHANT_ORDERS_HOLD_EXPLAINER_TITLE,
+} from "@/lib/domain/commission-hold-copy"
 import { getSessionUser } from "@/lib/server/session"
 
 type Props = {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; hold?: string }>
 }
 
 function getStatusConfig(status: OrderStatus) {
   switch (status) {
+    case "awaiting_payment":
+      return {
+        icon: Clock,
+        class: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+        label: "Awaiting payment",
+      }
+    case "awaiting_bank_review":
+      return {
+        icon: Clock,
+        class: "bg-amber-500/10 text-amber-700 border-amber-500/20",
+        label: "Bank review",
+      }
     case "completed":
       return {
         icon: CheckCircle2,
@@ -54,6 +76,12 @@ function getStatusConfig(status: OrderStatus) {
         class: "bg-primary/10 text-primary border-primary/20",
         label: "Accepted"
       }
+    case "pending":
+      return {
+        icon: Package,
+        class: "bg-primary/10 text-primary border-primary/20",
+        label: "Awaiting supplier",
+      }
     default:
       return {
         icon: Clock,
@@ -67,6 +95,7 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
   const user = await getSessionUser()
   const all = user ? ordersForMerchant(user.id) : []
   const sp = await searchParams
+  const showCommissionHold = sp.hold === "commission"
   const pageRaw = parseInt(sp.page ?? "1", 10)
   const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1
   const pageSize = 12
@@ -80,12 +109,26 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
     p > 1 ? `/merchant/orders?page=${p}` : "/merchant/orders"
 
   // Stats
-  const completedCount = all.filter(o => o.status === 'completed').length
-  const pendingCount = all.filter(o => o.status === 'pending').length
-  const totalRevenue = all.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.totalPrice, 0)
+  const completedCount = all.filter((o) => o.status === "completed").length
+  const awaitingSupplierCount = all.filter((o) => o.status === "pending").length
+  const totalRevenue = all
+    .filter((o) => o.status === "completed")
+    .reduce((sum, o) => sum + o.totalPrice, 0)
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {showCommissionHold ? (
+        <div
+          className="flex flex-wrap items-start gap-3 rounded-2xl border border-amber-500/35 bg-amber-500/10 px-4 py-4 text-sm text-foreground shadow-sm sm:items-center sm:px-5"
+          role="status"
+        >
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">{MERCHANT_ORDERS_HOLD_EXPLAINER_TITLE}</p>
+            <p className="mt-1 text-muted-foreground">{MERCHANT_ORDERS_HOLD_EXPLAINER_BODY}</p>
+          </div>
+        </div>
+      ) : null}
       {/* Header */}
       <header className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card via-primary/5 to-accent/5 p-6 sm:p-8">
         <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/5 blur-3xl" />
@@ -103,7 +146,9 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
               <Sparkles className="h-5 w-5 text-accent animate-pulse" />
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Track your orders through the complete lifecycle: pending, accepted, in progress, delivered, and completed.
+              The payment line shows Paid only after the platform clears funds (admin approval for
+              bank transfers, card, and Chapa). Suppliers then fulfill → delivery → payout → you
+              complete.
             </p>
           </div>
         </div>
@@ -119,8 +164,10 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
             <p className="mt-1 text-xl font-bold text-accent">{completedCount}</p>
           </div>
           <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Pending</p>
-            <p className="mt-1 text-xl font-bold text-amber-500">{pendingCount}</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Awaiting supplier
+            </p>
+            <p className="mt-1 text-xl font-bold text-primary">{awaitingSupplierCount}</p>
           </div>
           <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Revenue</p>
@@ -132,7 +179,7 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
       {/* Orders List */}
       <div className="space-y-4">
         {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/40 bg-card/50 px-6 py-16 text-center">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50">
               <Package className="h-10 w-10 text-muted-foreground/50" />
             </div>
@@ -152,7 +199,16 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
           orders.map((o, index) => {
             const statusConfig = getStatusConfig(o.status)
             const StatusIcon = statusConfig.icon
-            
+            const pay = merchantPaymentSummary(o)
+            const payClass =
+              pay.tone === "success"
+                ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+                : pay.tone === "warning"
+                  ? "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+                  : pay.tone === "error"
+                    ? "border-red-500/25 bg-red-500/10 text-red-800 dark:text-red-200"
+                    : "border-border/50 bg-muted/50 text-muted-foreground"
+
             return (
               <article
                 key={o.id}
@@ -176,6 +232,39 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
                       {statusConfig.label}
                     </span>
                   </div>
+                  {o.status === "delivered" &&
+                  o.commissionAmount > 0 &&
+                  !isPlatformCommissionPaid(o) ? (
+                    <p className="mt-2 text-xs font-medium text-amber-600 dark:text-amber-500">
+                      Pay your buyer platform commission — browsing and checkout stay limited
+                      until you record it.
+                    </p>
+                  ) : null}
+                  {o.status === "delivered" &&
+                  isPlatformCommissionPaid(o) &&
+                  (o.supplierCommissionAmount ?? 0) > 0 &&
+                  !isSupplierPlatformCommissionPaid(o) ? (
+                    <p className="mt-2 text-xs font-medium text-violet-600 dark:text-violet-400">
+                      Your fee is recorded — waiting for the supplier to pay their platform
+                      commission.
+                    </p>
+                  ) : null}
+                  {o.status === "delivered" &&
+                  isPlatformCommissionPaid(o) &&
+                  isSupplierPlatformCommissionPaid(o) &&
+                  o.paymentStatus !== "paid" ? (
+                    <p className="mt-2 text-xs font-medium text-sky-600 dark:text-sky-400">
+                      Fees recorded — waiting for supplier to confirm they received payment.
+                    </p>
+                  ) : null}
+                  {o.status === "delivered" &&
+                  isPlatformCommissionPaid(o) &&
+                  isSupplierPlatformCommissionPaid(o) &&
+                  o.paymentStatus === "paid" ? (
+                    <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-500">
+                      Ready to complete — mark the order when you are satisfied.
+                    </p>
+                  ) : null}
 
                   {/* Title link */}
                   <Link
@@ -193,45 +282,57 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
                   </div>
 
                   {/* Price info */}
-                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                  <div className="mt-3 flex flex-wrap items-start gap-x-4 gap-y-2 text-sm">
                     <span className="font-semibold text-foreground">
                       {o.totalPrice.toLocaleString()} ETB
                     </span>
                     <span className="text-muted-foreground">
-                      Commission: {o.commissionAmount.toLocaleString()} ETB
+                      Merchant platform fee{" "}
+                      {o.commissionAmount.toLocaleString()} ETB
                     </span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      o.paymentStatus === 'paid' 
-                        ? 'bg-accent/10 text-accent' 
-                        : 'bg-amber-500/10 text-amber-500'
-                    }`}>
-                      {o.paymentStatus}
+                    <span
+                      className={`inline-flex max-w-[min(100%,18rem)] flex-col gap-0.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium sm:max-w-xs ${payClass}`}
+                      title={pay.sub}
+                    >
+                      <span className="leading-tight">{pay.headline}</span>
+                      {pay.sub ? (
+                        <span className="text-[10px] font-normal opacity-90 line-clamp-2">
+                          {pay.sub}
+                        </span>
+                      ) : null}
                     </span>
                   </div>
 
-                  {/* Items */}
+                  {/* Products */}
                   <div className="mt-4 border-t border-border/50 pt-4">
-                    <ul className="flex flex-wrap gap-2">
-                      {o.items.slice(0, 3).map((i) => {
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Products
+                    </p>
+                    <ul className="mt-2 space-y-1.5">
+                      {o.items.slice(0, 4).map((i) => {
                         const p = getProduct(i.productId)
+                        const title = p?.name ?? i.productId
                         return (
-                          <li key={i.productId}>
+                          <li key={`${i.productId}-${i.companyId}`}>
                             <Link
                               href={`/products/${i.productId}`}
-                              className="inline-flex items-center gap-1 rounded-lg bg-muted/50 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                              className="text-sm font-medium text-primary underline-offset-2 hover:underline"
                             >
-                              <Package className="h-3 w-3" />
-                              {p?.name ?? 'Product'} x{i.quantity}
+                              {title}
                             </Link>
+                            <span className="text-sm text-muted-foreground">
+                              {" "}
+                              · ×{i.quantity}
+                            </span>
                           </li>
                         )
                       })}
-                      {o.items.length > 3 && (
-                        <li className="inline-flex items-center rounded-lg bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                          +{o.items.length - 3} more
-                        </li>
-                      )}
                     </ul>
+                    {o.items.length > 4 ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        +{o.items.length - 4} more line{o.items.length - 4 === 1 ? "" : "s"} in order detail
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </article>
@@ -245,7 +346,6 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
         pageSize={pageSize}
         total={total}
         buildHref={href}
-        variant="admin"
       />
     </div>
   )

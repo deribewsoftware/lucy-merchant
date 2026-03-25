@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Filter, Grid3X3, Package, Star, X } from "lucide-react";
 import { BrowseToolbar } from "@/components/browse/browse-toolbar";
 import { ProductOrderSpecs } from "@/components/product-order-specs";
 import { ProductUnitPrice } from "@/components/product-unit-price";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { getCategories, listProducts } from "@/lib/db/catalog";
+import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
+import { stripHtmlToPlainText } from "@/lib/rich-text";
+import { getSessionUser } from "@/lib/server/session";
 
 type Props = {
   searchParams: Promise<{
@@ -21,6 +25,14 @@ type Props = {
 };
 
 export default async function BrowsePage({ searchParams }: Props) {
+  const sessionUser = await getSessionUser();
+  if (
+    sessionUser?.role === "merchant" &&
+    merchantHasOutstandingCommission(sessionUser.id)
+  ) {
+    redirect("/merchant/orders?hold=commission");
+  }
+
   const sp = await searchParams;
   const sort = sp.sort ?? "recent";
   const categoryId = sp.category?.trim() ?? "";
@@ -129,8 +141,8 @@ export default async function BrowsePage({ searchParams }: Props) {
   return (
     <div className="flex flex-col">
       {/* Page Header */}
-      <div className="border-b border-border bg-card/30">
-        <div className="lm-container py-8 sm:py-12">
+      <div className="border-b border-border/35 bg-card/30">
+        <div className="lm-container py-6 sm:py-10 lg:py-12">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Grid3X3 className="h-6 w-6" />
@@ -146,7 +158,7 @@ export default async function BrowsePage({ searchParams }: Props) {
         </div>
       </div>
 
-      <div className="lm-container py-6 sm:py-8">
+      <div className="lm-container py-5 pb-8 sm:py-6 sm:pb-10 lg:py-8">
         {/* Toolbar */}
         <BrowseToolbar
           sort={sort}
@@ -256,7 +268,7 @@ export default async function BrowsePage({ searchParams }: Props) {
                   </div>
                   
                   <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                    {p.description}
+                    {stripHtmlToPlainText(p.description)}
                   </p>
 
                   {/* Rating */}
@@ -302,7 +314,7 @@ export default async function BrowsePage({ searchParams }: Props) {
             ))}
           </div>
         ) : (
-          <div className="mt-12 flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
+          <div className="mt-12 flex flex-col items-center justify-center rounded-xl border border-dashed border-border/40 py-16 text-center">
             <Package className="h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 font-display text-lg font-semibold text-foreground">
               No products found

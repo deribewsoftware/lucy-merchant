@@ -18,6 +18,7 @@ export type AdminGmvMonthPoint = {
   key: string;
   label: string;
   gmvEtb: number;
+  /** Total platform fees (buyer + supplier) */
   commissionEtb: number;
 };
 
@@ -31,8 +32,12 @@ export type AdminAnalytics = {
   openOrderCount: number;
   /** Gross merchandise value — completed orders total */
   gmvCompletedEtb: number;
-  /** Sum of platform commission on completed orders */
+  /** Sum of buyer + supplier platform fees on completed orders */
   commissionCollectedEtb: number;
+  /** Buyer (merchant) fee portion on completed orders */
+  commissionBuyerCollectedEtb: number;
+  /** Supplier fee portion on completed orders */
+  commissionSupplierCollectedEtb: number;
   ordersPendingPayment: number;
   topCategories: AdminCategoryGmv[];
   /** Non-zero status slices for charts */
@@ -42,6 +47,8 @@ export type AdminAnalytics = {
 };
 
 const STATUS_ORDER = [
+  "awaiting_payment",
+  "awaiting_bank_review",
   "pending",
   "accepted",
   "in_progress",
@@ -62,13 +69,20 @@ export function getAdminAnalytics(): AdminAnalytics {
   const completed = orders.filter((o) => o.status === "completed");
 
   let gmvCompletedEtb = 0;
-  let commissionCollectedEtb = 0;
+  let commissionBuyerCollectedEtb = 0;
+  let commissionSupplierCollectedEtb = 0;
   for (const o of completed) {
     gmvCompletedEtb += o.totalPrice;
-    commissionCollectedEtb += o.commissionAmount;
+    commissionBuyerCollectedEtb += o.commissionAmount;
+    commissionSupplierCollectedEtb += o.supplierCommissionAmount ?? 0;
   }
   gmvCompletedEtb = Math.round(gmvCompletedEtb * 100) / 100;
-  commissionCollectedEtb = Math.round(commissionCollectedEtb * 100) / 100;
+  commissionBuyerCollectedEtb = Math.round(commissionBuyerCollectedEtb * 100) / 100;
+  commissionSupplierCollectedEtb =
+    Math.round(commissionSupplierCollectedEtb * 100) / 100;
+  const commissionCollectedEtb =
+    Math.round((commissionBuyerCollectedEtb + commissionSupplierCollectedEtb) * 100) /
+    100;
 
   const catGmv = new Map<string, number>();
   for (const o of completed) {
@@ -120,7 +134,8 @@ export function getAdminAnalytics(): AdminAnalytics {
     if (!mk) continue;
     const cur = monthAgg.get(mk) ?? { gmv: 0, commission: 0 };
     cur.gmv += o.totalPrice;
-    cur.commission += o.commissionAmount;
+    cur.commission +=
+      o.commissionAmount + (o.supplierCommissionAmount ?? 0);
     monthAgg.set(mk, cur);
   }
 
@@ -152,6 +167,8 @@ export function getAdminAnalytics(): AdminAnalytics {
     openOrderCount,
     gmvCompletedEtb,
     commissionCollectedEtb,
+    commissionBuyerCollectedEtb,
+    commissionSupplierCollectedEtb,
     ordersPendingPayment,
     topCategories,
     ordersByStatus,

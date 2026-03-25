@@ -4,8 +4,20 @@ import {
   completedUnitsByCompany,
   sortCompaniesByReputationAndVolume,
 } from "@/lib/db/marketplace-stats";
+import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
+import { getSessionUser } from "@/lib/server/session";
+import { supplierHasOutstandingCommission } from "@/lib/server/supplier-commission";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const sessionUser = await getSessionUser();
+  const merchantCommissionHold =
+    sessionUser?.role === "merchant"
+      ? merchantHasOutstandingCommission(sessionUser.id)
+      : false;
+  const supplierCommissionHold =
+    sessionUser?.role === "supplier"
+      ? supplierHasOutstandingCommission(sessionUser.id)
+      : false;
   const products = listProducts();
   const companies = listCompanies().filter((c) => c.isVerified);
 
@@ -75,6 +87,8 @@ export default function HomePage() {
         ratingAverage: c.ratingAverage,
         totalReviews: c.totalReviews,
       }))}
+      merchantCommissionHold={merchantCommissionHold}
+      supplierCommissionHold={supplierCommissionHold}
     />
   );
 }

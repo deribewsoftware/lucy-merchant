@@ -143,7 +143,7 @@ export default async function SearchPage({ searchParams }: Props) {
   const catQ = filterCategoryId ? `&category=${encodeURIComponent(filterCategoryId)}` : ""
 
   return (
-    <div className="container mx-auto max-w-6xl flex-1 px-4 py-8 sm:py-10">
+    <div className="lm-page-wide">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/" className="transition-colors hover:text-foreground">Home</Link>
@@ -182,7 +182,7 @@ export default async function SearchPage({ searchParams }: Props) {
             name="q"
             defaultValue={q}
             placeholder="Search products, companies, categories..."
-            className="h-12 w-full rounded-xl border border-border bg-card pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="h-12 w-full rounded-xl border border-border/50 bg-card pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/20"
           />
         </div>
         <button

@@ -1,66 +1,104 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   defaultSupplierNextChoice,
   supplierAllowedNextStatuses,
 } from "@/lib/domain/order-flow";
-import type { OrderStatus } from "@/lib/domain/types";
+import {
+  isSupplierPositiveTransition,
+  orderStatusLabel,
+  supplierActionButtonLabel,
+} from "@/lib/domain/order-presentations";
+import type { Order, OrderStatus } from "@/lib/domain/types";
 
-type Props = { orderId: string; current: OrderStatus };
+type OrderSlice = Pick<
+  Order,
+  "status" | "paymentMethod" | "paymentStatus"
+>;
 
-export function SupplierOrderActions({ orderId, current }: Props) {
+type Props = {
+  orderId: string;
+  order: OrderSlice;
+  /** Buyer → platform commission recorded (merchant-paid or legacy). */
+  platformCommissionPaid: boolean;
+  /** Supplier → platform commission recorded when a fee applies. */
+  supplierCommissionPaid: boolean;
+  /** ETB owed by supplier to platform on this order (0 = none). */
+  supplierCommissionOwed: number;
+};
+
+export function SupplierOrderActions({
+  orderId,
+  order,
+  platformCommissionPaid,
+  supplierCommissionPaid,
+  supplierCommissionOwed,
+}: Props) {
   const router = useRouter();
-  const allowed = supplierAllowedNextStatuses(current);
-  const defaultPick =
-    defaultSupplierNextChoice(current) ?? allowed[0] ?? ("rejected" as const);
-  const [status, setStatus] = useState<OrderStatus>(defaultPick);
+  const current = order.status;
+  const allowed = supplierAllowedNextStatuses(order);
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const a = supplierAllowedNextStatuses(current);
-    const next =
-      defaultSupplierNextChoice(current) ?? a[0] ?? ("rejected" as const);
-    setStatus(next);
-  }, [current]);
-
   if (current === "completed" || current === "rejected") {
     return (
-      <span className="text-xs text-zinc-500">
-        Closed ({current.replace("_", " ")})
-      </span>
+      <div className="rounded-xl border border-base-300 bg-base-200/30 px-3 py-2 text-xs text-base-content/60">
+        Closed —{" "}
+        <span className="font-medium capitalize text-base-content">
+          {orderStatusLabel(current)}
+        </span>
+      </div>
     );
   }
 
   if (current === "delivered") {
+    const needSupplierFee =
+      supplierCommissionOwed > 0 && !supplierCommissionPaid;
     return (
-      <span className="max-w-xs text-xs text-zinc-500">
-        Delivered — the buyer will mark this order complete. You cannot change
-        status now.
-      </span>
+      <div className="max-w-md rounded-xl border border-info/30 bg-info/5 px-3 py-2 text-xs text-base-content/70">
+        <span className="font-semibold text-info">Delivered</span>
+        {" — "}
+        {!platformCommissionPaid
+          ? "The buyer pays their platform commission after delivery and records it first."
+          : needSupplierFee
+            ? "Pay and record your supplier platform commission on this order — then the buyer can complete after you confirm you received payment for the goods."
+            : "Platform fees are recorded — the buyer can complete once they confirm everything."}
+      </div>
     );
   }
 
   if (allowed.length === 0) {
     return (
-      <span className="text-xs text-zinc-500">
-        Current:{" "}
-        <span className="font-medium capitalize">
-          {current.replace("_", " ")}
-        </span>
-      </span>
+      <div className="rounded-xl border border-base-300 bg-base-200/30 px-3 py-2 text-xs text-base-content/60">
+        {current === "pending" &&
+        order.paymentMethod === "bank_transfer" &&
+        order.paymentStatus !== "paid" ? (
+          <>
+            Waiting for the buyer to transfer and upload proof, then confirm payment received
+            above.
+          </>
+        ) : (
+          <>
+            Status:{" "}
+            <span className="font-medium capitalize text-base-content">
+              {orderStatusLabel(current)}
+            </span>
+            <span className="text-base-content/50"> — no updates available.</span>
+          </>
+        )}
+      </div>
     );
   }
 
-  async function save() {
+  async function save(next: OrderStatus) {
     setLoading(true);
     setMsg(null);
     const res = await fetch(`/api/orders/${orderId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status: next }),
     });
     const data = await res.json().catch(() => ({}));
     setLoading(false);
@@ -71,39 +109,44 @@ export function SupplierOrderActions({ orderId, current }: Props) {
     router.refresh();
   }
 
+  const positive = allowed.filter((s) => isSupplierPositiveTransition(s));
+  const primary =
+    positive.find((s) => s === defaultSupplierNextChoice(order)) ??
+    positive[0];
+
   return (
-    <div className="flex max-w-md flex-col items-end gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-      <p className="w-full text-right text-xs text-zinc-500 sm:w-auto sm:text-left">
-        Now:{" "}
-        <span className="font-medium capitalize text-zinc-700 dark:text-zinc-300">
-          {current.replace("_", " ")}
-        </span>
-        {" · "}Move to:
-      </p>
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as OrderStatus)}
-          className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm capitalize dark:border-zinc-700 dark:bg-zinc-950"
-        >
-          {allowed.map((s) => (
-            <option key={s} value={s}>
-              {s.replace("_", " ")}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={save}
-          className="rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          {loading ? "Saving…" : "Update"}
-        </button>
+    <div className="flex w-full max-w-xl flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {primary ? (
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => save(primary)}
+            className="btn btn-primary btn-sm"
+          >
+            {loading ? (
+              <span className="loading loading-spinner loading-xs" />
+            ) : null}
+            {supplierActionButtonLabel(primary)}
+          </button>
+        ) : null}
+        {allowed.includes("rejected") && primary !== "rejected" ? (
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => save("rejected")}
+            className="btn btn-outline btn-error btn-sm border-error/40"
+          >
+            Reject order
+          </button>
+        ) : null}
       </div>
-      {msg && (
-        <span className="w-full text-right text-xs text-red-600">{msg}</span>
-      )}
+
+      {msg ? (
+        <p className="text-xs text-error" role="alert">
+          {msg}
+        </p>
+      ) : null}
     </div>
   );
 }

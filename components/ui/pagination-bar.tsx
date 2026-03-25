@@ -26,13 +26,13 @@ export function PaginationBar({
       {p > 1 ? (
         <Link
           href={buildHref(p - 1)}
-          className="flex h-10 items-center gap-1 rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-muted"
+          className="flex h-10 items-center gap-1 rounded-lg border border-border/45 bg-card px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-muted"
         >
           <ChevronLeft className="h-4 w-4" />
           Previous
         </Link>
       ) : (
-        <span className="flex h-10 cursor-not-allowed items-center gap-1 rounded-lg border border-border bg-card/50 px-4 text-sm font-medium text-muted-foreground opacity-50">
+        <span className="flex h-10 cursor-not-allowed items-center gap-1 rounded-lg border border-border/45 bg-card/50 px-4 text-sm font-medium text-muted-foreground opacity-50">
           <ChevronLeft className="h-4 w-4" />
           Previous
         </span>
@@ -46,13 +46,13 @@ export function PaginationBar({
       {p < totalPages ? (
         <Link
           href={buildHref(p + 1)}
-          className="flex h-10 items-center gap-1 rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-muted"
+          className="flex h-10 items-center gap-1 rounded-lg border border-border/45 bg-card px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-muted"
         >
           Next
           <ChevronRight className="h-4 w-4" />
         </Link>
       ) : (
-        <span className="flex h-10 cursor-not-allowed items-center gap-1 rounded-lg border border-border bg-card/50 px-4 text-sm font-medium text-muted-foreground opacity-50">
+        <span className="flex h-10 cursor-not-allowed items-center gap-1 rounded-lg border border-border/45 bg-card/50 px-4 text-sm font-medium text-muted-foreground opacity-50">
           Next
           <ChevronRight className="h-4 w-4" />
         </span>

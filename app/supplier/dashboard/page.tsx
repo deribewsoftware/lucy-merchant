@@ -1,9 +1,11 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import {
   ArrowRight,
   Banknote,
   Building2,
   ClipboardList,
+  Landmark,
   Package,
   ShoppingCart,
   Sparkles,
@@ -15,10 +17,14 @@ import { SupplierDashboardCharts } from "@/components/supplier-dashboard-charts"
 import { findUserById } from "@/lib/db/users"
 import { companiesByOwner } from "@/lib/db/catalog"
 import { getSupplierAnalytics } from "@/lib/db/supplier-analytics"
+import { supplierHasOutstandingCommission } from "@/lib/server/supplier-commission"
 import { getSessionUser } from "@/lib/server/session"
 
 export default async function SupplierDashboardPage() {
   const user = await getSessionUser()
+  if (user && supplierHasOutstandingCommission(user.id)) {
+    redirect("/supplier/orders?hold=commission")
+  }
   const row = user ? findUserById(user.id) : undefined
   const companies = user ? companiesByOwner(user.id) : []
   const verified = companies.filter((c) => c.isVerified).length
@@ -121,12 +127,12 @@ export default async function SupplierDashboardPage() {
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Key Metrics</h2>
                 <p className="text-sm text-muted-foreground">
-                  Revenue from your line items on completed orders
+                  Revenue and supplier platform fees on completed orders
                 </p>
               </div>
             </div>
             
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {/* Completed Revenue */}
               <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 p-5 shadow-sm transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5">
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
@@ -156,6 +162,26 @@ export default async function SupplierDashboardPage() {
                   </p>
                   <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
                     {analytics.completedOrdersCount}
+                  </p>
+                </div>
+              </div>
+
+              {/* Supplier platform fees (completed orders) */}
+              <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 p-5 shadow-sm transition-all duration-300 hover:border-violet-500/30 hover:shadow-lg hover:shadow-violet-500/5">
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="relative">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10">
+                    <Landmark className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Platform fees (completed)
+                  </p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight text-violet-700 dark:text-violet-300">
+                    {analytics.completedSupplierPlatformFeesEtb.toLocaleString()}
+                    <span className="ml-1 text-sm font-medium text-muted-foreground">ETB</span>
+                  </p>
+                  <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                    Supplier share on settled orders
                   </p>
                 </div>
               </div>

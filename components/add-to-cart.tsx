@@ -40,29 +40,38 @@ export function AddToCart({
 
   if (!isMerchant) {
     return (
-      <div className="lm-card">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <LogIn className="h-7 w-7" />
+      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg ring-1 ring-border/20">
+        <div className="border-b border-border/40 bg-gradient-to-r from-primary/[0.07] to-transparent px-5 py-4 sm:px-6">
+          <h2 className="font-display text-lg font-bold text-foreground">
+            Order this product
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Merchant accounts can add to cart and checkout.
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-5 px-5 py-8 text-center sm:px-6">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <LogIn className="h-8 w-8" />
           </div>
-          <div>
-            <h3 className="font-display text-lg font-semibold text-foreground">
+          <div className="max-w-xs">
+            <h3 className="font-display text-base font-semibold text-foreground">
               Sign in to order
             </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Create a merchant account to add items to your cart
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Create a merchant account to build your cart and place orders with
+              verified suppliers.
             </p>
           </div>
-          <div className="flex w-full flex-col gap-2">
+          <div className="flex w-full max-w-sm flex-col gap-2.5">
             <Link
               href="/login"
-              className="flex h-11 w-full items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-colors hover:bg-primary/90"
+              className="flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition hover:bg-primary/90"
             >
               Sign in
             </Link>
             <Link
               href="/register"
-              className="flex h-11 w-full items-center justify-center rounded-lg border border-border bg-card text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+              className="flex h-12 w-full items-center justify-center rounded-xl border border-border/60 bg-card text-sm font-semibold text-foreground transition hover:bg-muted"
             >
               Create account
             </Link>
@@ -77,6 +86,7 @@ export function AddToCart({
     setMsg(null);
     const res = await fetch("/api/cart", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ productId, quantity: safeQty }),
     });
@@ -100,97 +110,106 @@ export function AddToCart({
   }
 
   return (
-    <div className="lm-card">
-      <h2 className="font-display text-lg font-semibold text-foreground">
-        Place Order
-      </h2>
-      
-      {/* Quantity Selector */}
-      <div className="mt-5">
-        <label className="text-sm font-medium text-foreground">
-          Quantity
-        </label>
-        <div className="mt-2 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={decrement}
-            disabled={safeQty <= minQty}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-          >
-            <Minus className="h-4 w-4" />
-          </button>
-          <input
-            type="number"
-            min={minQty}
-            max={cap}
-            value={safeQty}
-            onChange={(e) => setQty(Number(e.target.value))}
-            className="lm-input w-24 text-center text-lg font-semibold"
-          />
-          <button
-            type="button"
-            onClick={increment}
-            disabled={safeQty >= cap}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Min: {minQty} | Max: {cap} | In stock: {stock}
+    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg ring-1 ring-border/20">
+      <div className="border-b border-border/40 bg-gradient-to-r from-primary/[0.08] to-transparent px-5 py-4 sm:px-6">
+        <h2 className="font-display text-lg font-bold text-foreground">
+          Add to cart
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Choose quantity, then add to your merchant cart.
         </p>
       </div>
 
-      {/* Add to Cart Button */}
-      <button
-        type="button"
-        disabled={loading || cap < minQty}
-        onClick={() => add()}
-        className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 disabled:opacity-50"
-      >
-        {loading ? (
-          <>
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-            Adding to cart...
-          </>
-        ) : (
-          <>
-            <ShoppingCart className="h-5 w-5" />
-            Add to Cart
-          </>
-        )}
-      </button>
-
-      {/* Go to Cart Link */}
-      <Link
-        href="/merchant/cart"
-        className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-border bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted"
-      >
-        View Cart
-      </Link>
-
-      {/* Status Message */}
-      <AnimatePresence>
-        {msg && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={`mt-4 flex items-center gap-2 rounded-lg p-3 text-sm ${
-              msg.type === "success"
-                ? "bg-success/10 text-success"
-                : "bg-destructive/10 text-destructive"
-            }`}
+      <div className="space-y-6 px-5 py-6 sm:px-6">
+        <div>
+          <label
+            className="text-sm font-semibold text-foreground"
+            htmlFor="product-qty"
           >
-            {msg.type === "success" ? (
-              <CheckCircle className="h-4 w-4" />
-            ) : (
-              <AlertCircle className="h-4 w-4" />
-            )}
-            {msg.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            Quantity
+          </label>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={decrement}
+              disabled={safeQty <= minQty}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card text-foreground transition hover:bg-muted disabled:opacity-40"
+              aria-label="Decrease quantity"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <input
+              id="product-qty"
+              type="number"
+              min={minQty}
+              max={cap}
+              value={safeQty}
+              onChange={(e) => setQty(Number(e.target.value))}
+              className="lm-input max-w-[6rem] flex-1 text-center text-lg font-bold tabular-nums"
+            />
+            <button
+              type="button"
+              onClick={increment}
+              disabled={safeQty >= cap}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card text-foreground transition hover:bg-muted disabled:opacity-40"
+              aria-label="Increase quantity"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            Min {minQty} · Max {cap} · In stock {stock.toLocaleString()}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          disabled={loading || cap < minQty}
+          onClick={() => add()}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition hover:bg-primary/90 active:scale-[0.99] disabled:opacity-50"
+        >
+          {loading ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              Adding…
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="h-5 w-5" />
+              Add to cart
+            </>
+          )}
+        </button>
+
+        <Link
+          href="/merchant/cart"
+          className="flex h-11 w-full items-center justify-center rounded-xl border border-border/60 bg-transparent text-sm font-medium text-foreground transition hover:bg-muted"
+        >
+          View cart
+        </Link>
+
+        <AnimatePresence>
+          {msg && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm ${
+                msg.type === "success"
+                  ? "bg-success/12 text-success"
+                  : "bg-destructive/10 text-destructive"
+              }`}
+            >
+              {msg.type === "success" ? (
+                <CheckCircle className="h-4 w-4 shrink-0" />
+              ) : (
+                <AlertCircle className="h-4 w-4 shrink-0" />
+              )}
+              {msg.text}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

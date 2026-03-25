@@ -141,14 +141,15 @@ export default function AdminDashboardPage() {
               <TrendingUp className="h-6 w-6 text-green-500" />
             </div>
             <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Commission
+              Platform fees (completed)
             </p>
             <p className="mt-1 text-2xl font-bold tracking-tight text-green-500">
               {a.commissionCollectedEtb.toLocaleString()}
               <span className="ml-1 text-sm font-medium text-muted-foreground">ETB</span>
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              From completed checkouts
+              Buyer {a.commissionBuyerCollectedEtb.toLocaleString()} · Supplier{" "}
+              {a.commissionSupplierCollectedEtb.toLocaleString()} ETB
             </p>
           </div>
         </div>
@@ -182,7 +183,7 @@ export default function AdminDashboardPage() {
           <div>
             <h2 className="text-lg font-semibold text-foreground">Analytics</h2>
             <p className="text-sm text-muted-foreground">
-              Platform GMV, commission mix, and category concentration
+              Platform GMV, fee trends, and category concentration
             </p>
           </div>
         </div>

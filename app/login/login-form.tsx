@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { AlertCircle, ArrowRight, Lock, Mail, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { AuthEmailInput, AuthPasswordInput } from "@/components/auth-credential-inputs";
+import { LM_LOGIN_EVENT } from "@/components/presence-provider";
 import { brandCopy } from "@/lib/brand/copy";
 
 export function LoginForm() {
@@ -42,12 +44,13 @@ export function LoginForm() {
         : role === "supplier"
           ? "/supplier/dashboard"
           : "/merchant/dashboard";
+    window.dispatchEvent(new CustomEvent(LM_LOGIN_EVENT));
     router.push(next && next.startsWith("/") ? next : fallback);
     router.refresh();
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-8rem)] flex-1 items-center justify-center px-4 py-12">
+    <div className="lm-auth-shell">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -83,19 +86,13 @@ export function LoginForm() {
               <label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email address
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="lm-input pl-11"
-                  placeholder="you@company.com"
-                />
-              </div>
+              <AuthEmailInput
+                id="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+              />
             </div>
 
             {/* Password Field */}
@@ -103,19 +100,14 @@ export function LoginForm() {
               <label htmlFor="password" className="text-sm font-medium text-foreground">
                 Password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="lm-input pl-11"
-                  placeholder="Enter your password"
-                />
-              </div>
+              <AuthPasswordInput
+                id="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+              />
             </div>
 
             {/* Error Message */}
@@ -165,8 +157,8 @@ export function LoginForm() {
         </div>
 
         {/* Security Badge */}
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          <Lock className="mb-0.5 mr-1 inline h-3 w-3" />
+        <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary/80" strokeWidth={2.25} aria-hidden />
           Secured with JWT authentication
         </p>
       </motion.div>

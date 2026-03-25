@@ -15,9 +15,10 @@ import {
   supplierInputClass,
   supplierLabelClass,
   supplierPrimaryButtonClass,
-  supplierTextareaClass,
 } from "@/components/supplier/form-styles";
+import { isRichTextEmpty } from "@/lib/rich-text";
 import { SupplierHeroBackdrop } from "@/components/supplier/supplier-portal-graphics";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 export function SupplierCompanyForm() {
   const router = useRouter();
@@ -33,6 +34,10 @@ export function SupplierCompanyForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isRichTextEmpty(description)) {
+      setMsg("Description is required");
+      return;
+    }
     setLoading(true);
     setMsg(null);
     const res = await fetch("/api/companies", {
@@ -90,13 +95,14 @@ export function SupplierCompanyForm() {
               <HiOutlineDocumentText className="h-3.5 w-3.5" />
               Description
             </span>
-            <textarea
-              required
-              placeholder="What you supply, regions, certifications…"
-              rows={4}
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={supplierTextareaClass}
+              onChange={setDescription}
+              placeholder="What you supply, regions, certifications…"
+              variant="supplier"
+              className="mt-1"
+              editorMinHeightClass="min-h-[8rem] sm:min-h-[9rem]"
+              aria-label="Company description"
             />
           </label>
           <label className={supplierLabelClass}>

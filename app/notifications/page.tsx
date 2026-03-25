@@ -21,7 +21,7 @@ export default async function NotificationsPage() {
   const unread = unreadCountForUser(user.id)
 
   return (
-    <div className="container mx-auto max-w-3xl flex-1 px-4 py-8 sm:py-10 animate-in fade-in duration-500">
+    <div className="lm-page-narrow animate-in fade-in duration-500">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/" className="transition-colors hover:text-foreground">Home</Link>

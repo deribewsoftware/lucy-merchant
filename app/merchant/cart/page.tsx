@@ -1,11 +1,17 @@
-import { ShoppingBag, Sparkles } from "lucide-react"
+import Link from "next/link"
+import { redirect } from "next/navigation"
+import { ArrowRight, ClipboardList, ShoppingBag, Sparkles } from "lucide-react"
 import { MerchantCart } from "@/components/merchant-cart"
 import { getProduct } from "@/lib/db/catalog"
 import { getCart } from "@/lib/db/commerce"
+import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission"
 import { getSessionUser } from "@/lib/server/session"
 
 export default async function MerchantCartPage() {
   const user = await getSessionUser()
+  if (user && merchantHasOutstandingCommission(user.id)) {
+    redirect("/merchant/orders?hold=commission")
+  }
   const cart = user ? getCart(user.id) : null
   const lineTitles =
     cart?.items.map((i) => ({
@@ -36,8 +42,25 @@ export default async function MerchantCartPage() {
               <Sparkles className="h-5 w-5 text-accent animate-pulse" />
             </div>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Multi-supplier checkout with delivery lookup, payment options, and streamlined order management.
+              Orders are split by supplier. Bank transfers need admin approval; card and Chapa
+              payments show as cleared only after the platform confirms them.
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href="/browse"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                Continue shopping
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+              <Link
+                href="/merchant/orders"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                <ClipboardList className="h-3.5 w-3.5" />
+                My orders
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -53,7 +76,7 @@ export default async function MerchantCartPage() {
             <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Suppliers</p>
               <p className="mt-1 text-xl font-bold text-foreground">
-                {[...new Set(cart.items.map((i) => i.supplierId))].length}
+                {[...new Set(cart.items.map((i) => i.companyId))].length}
               </p>
             </div>
             <div className="col-span-2 rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm sm:col-span-1">
