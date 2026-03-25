@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import {
   HiOutlineClipboardDocumentList,
-  HiOutlineMagnifyingGlass,
   HiOutlinePresentationChartLine,
   HiOutlineShoppingBag,
 } from "react-icons/hi2";
@@ -29,11 +28,6 @@ export default async function MerchantLayout({
       href: "/merchant/dashboard",
       label: "Overview",
       icon: <HiOutlinePresentationChartLine className="h-5 w-5" />,
-    },
-    {
-      href: "/browse",
-      label: "Browse",
-      icon: <HiOutlineMagnifyingGlass className="h-5 w-5" />,
     },
     {
       href: "/merchant/cart",

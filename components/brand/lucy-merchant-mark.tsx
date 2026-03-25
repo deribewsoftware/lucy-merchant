@@ -30,23 +30,24 @@ export function LucyMerchantMark({ className, size = "md" }: Props) {
       {/* Connection arc — marketplace network */}
       <path
         d="M7 19.5c7.5-5.5 18.5-5.5 34 0"
-        stroke="currentColor"
+        fill="none"
+        className="stroke-accent"
         strokeWidth="2.2"
         strokeLinecap="round"
-        opacity={0.88}
+        opacity={0.92}
       />
       {/* L */}
       <path
-        fill="currentColor"
+        className="fill-primary-content"
         d="M10 12.5h5.5v18.5H25v5H10v-23.5z"
       />
       {/* M — geometric peaks */}
       <path
-        fill="currentColor"
+        className="fill-primary-content"
         d="M28 10h4v18l4-8 4 8V10h4v26h-4V18l-4 6-4-6v18h-4V10z"
       />
       {/* Spark */}
-      <circle cx="39" cy="11.5" r="2.5" fill="currentColor" opacity={0.95} />
+      <circle cx="39" cy="11.5" r="2.5" className="fill-accent" opacity={0.95} />
     </svg>
   );
 }
@@ -80,7 +81,7 @@ export function LucyMerchantMarkBadge({
     >
       <LucyMerchantMark
         size={markSize}
-        className="text-primary-content drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)]"
+        className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)]"
       />
     </div>
   );

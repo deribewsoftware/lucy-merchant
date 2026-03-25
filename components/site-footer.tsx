@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ReactNode, SVGProps } from "react";
 import Link from "next/link";
 import {
   Mail,
@@ -27,24 +27,22 @@ function GitHubGlyph(props: SVGProps<SVGSVGElement>) {
 }
 
 const discoverLinks = [
-  { label: "Browse catalog", href: "/browse" },
-  { label: "Verified suppliers", href: "/companies" },
-  { label: "Search products", href: "/search" },
-  { label: "About us", href: "/about" },
+  { label: "Suppliers", href: "/companies" },
+  { label: "Search", href: "/search" },
+  { label: "About", href: "/about" },
   { label: "FAQ", href: "/faq" },
-];
+] as const;
 
 const accountLinks = [
   { label: "Sign in", href: "/login" },
-  { label: "Create account", href: "/register" },
-  { label: "Merchant portal", href: "/merchant/dashboard" },
-  { label: "Supplier portal", href: "/supplier/dashboard" },
-];
+  { label: "Register", href: "/register" },
+  { label: "Merchant", href: "/merchant/dashboard" },
+] as const;
 
 const legalLinks = [
-  { label: "Privacy policy", href: "/privacy" },
-  { label: "Terms of service", href: "/terms" },
-];
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
+] as const;
 
 const trustItems = [
   { icon: Lock, text: brandCopy.trust.line1 },
@@ -53,181 +51,139 @@ const trustItems = [
 ] as const;
 
 const socialLinks = [
-  {
-    label: "LinkedIn",
-    href: "https://www.linkedin.com",
-    Icon: LinkedInGlyph,
-  },
-  {
-    label: "GitHub",
-    href: "https://github.com",
-    Icon: GitHubGlyph,
-  },
+  { label: "LinkedIn", href: "https://www.linkedin.com", Icon: LinkedInGlyph },
+  { label: "GitHub", href: "https://github.com", Icon: GitHubGlyph },
 ] as const;
 
-function FooterWave() {
+function FooterLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
   return (
-    <svg
-      className="absolute inset-x-0 top-0 h-12 w-full -translate-y-[99%] text-base-300/50 sm:h-16"
-      viewBox="0 0 1440 48"
-      preserveAspectRatio="none"
-      aria-hidden
+    <Link
+      href={href}
+      className="block py-0.5 text-[13px] leading-snug text-base-content/70 transition-colors hover:text-primary"
     >
-      <path
-        fill="currentColor"
-        fillOpacity="0.35"
-        d="M0 48V20c120 18 240 18 360 6s240-30 360-30 240 18 360 30 240 6 360-6v28H0z"
-      />
-    </svg>
+      {children}
+    </Link>
   );
 }
 
 export function SiteFooter() {
+  const year = new Date().getFullYear();
+
   return (
-    <footer className="relative mt-auto border-t border-base-300/50 bg-base-100">
-      <FooterWave />
-
+    <footer className="relative mt-auto border-t border-base-300/40 bg-gradient-to-b from-base-100 via-base-100 to-base-200/35">
+      {/* Accent line */}
       <div
-        className="pointer-events-none absolute -top-32 left-[10%] h-56 w-56 rounded-full bg-primary/15 blur-3xl sm:left-[20%]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute bottom-0 right-[-10%] h-64 w-64 rounded-full bg-secondary/10 blur-3xl sm:right-[5%]"
+        className="h-px w-full bg-gradient-to-r from-transparent via-primary/35 to-transparent"
         aria-hidden
       />
 
-      <div className="relative lm-container py-12 sm:py-14 lg:py-16">
-        <div className="grid gap-12 lg:grid-cols-12 lg:gap-10 xl:gap-14">
-          {/* Brand + trust + social */}
-          <div className="flex flex-col gap-8 lg:col-span-5">
-            <div>
-              <Link
-                href="/"
-                className="group inline-flex max-w-full items-center gap-2.5 rounded-xl outline-none ring-offset-2 ring-offset-base-100 transition hover:opacity-95 focus-visible:ring-2 focus-visible:ring-primary sm:gap-3.5"
-              >
-                <LucyMerchantMarkBadge
-                  badgeSize="xl"
-                  markSize="xl"
-                  className="ring-white/15 transition-transform duration-300 group-hover:scale-[1.02]"
-                />
-                <div className="min-w-0 text-left">
-                  <span className="block font-display text-lg font-bold tracking-tight text-base-content sm:text-xl">
-                    {brandCopy.name}
-                  </span>
-                  <p className="mt-0.5 text-pretty text-xs leading-snug text-base-content/60 sm:text-sm">
-                    {brandCopy.tagline}
-                  </p>
-                </div>
-              </Link>
-              <p className="mt-5 max-w-md text-pretty text-sm leading-relaxed text-base-content/70 sm:text-[0.9375rem]">
-                A modern B2B marketplace for verified suppliers and merchants —
-                bulk ordering, clear pricing, and secure role-based access.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {trustItems.map(({ icon: Icon, text }) => (
-                <span
-                  key={text}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-base-300/80 bg-base-200/40 px-3 py-1.5 text-xs font-medium text-base-content/80 backdrop-blur-sm"
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-                  {text}
+      <div className="relative lm-container py-7 sm:py-8 md:py-9">
+        <div className="grid gap-7 sm:gap-8 lg:grid-cols-12 lg:gap-6 xl:gap-8">
+          {/* Brand block — compact */}
+          <div className="lg:col-span-4">
+            <Link
+              href="/"
+              className="group inline-flex max-w-full items-start gap-2.5 rounded-lg outline-none ring-offset-2 ring-offset-base-100 transition hover:opacity-[0.97] focus-visible:ring-2 focus-visible:ring-primary/50 sm:gap-3"
+            >
+              <LucyMerchantMarkBadge
+                badgeSize="md"
+                markSize="md"
+                className="ring-white/10 transition group-hover:shadow-md group-hover:shadow-primary/20"
+              />
+              <div className="min-w-0 pt-0.5 text-left">
+                <span className="font-display text-base font-bold tracking-tight text-base-content sm:text-[1.05rem]">
+                  {brandCopy.name}
                 </span>
-              ))}
-            </div>
+                <p className="mt-0.5 text-[11px] leading-snug text-base-content/55 sm:text-xs">
+                  {brandCopy.tagline}
+                </p>
+              </div>
+            </Link>
+            <p className="mt-3 max-w-sm text-pretty text-[13px] leading-relaxed text-base-content/60">
+              B2B marketplace for verified suppliers and merchants — bulk orders,
+              clear pricing, secure access.
+            </p>
 
-            <div className="flex flex-wrap items-center gap-4 border-t border-base-300/40 pt-6">
+            {/* Trust — dense inline row */}
+            <ul className="mt-3 flex flex-wrap gap-x-2.5 gap-y-1.5 text-[11px] text-base-content/55">
+              {trustItems.map(({ icon: Icon, text }) => (
+                <li
+                  key={text}
+                  className="inline-flex max-w-full items-center gap-1 rounded-md border border-base-300/50 bg-base-200/25 px-2 py-0.5"
+                >
+                  <Icon
+                    className="h-3 w-3 shrink-0 text-primary/90"
+                    aria-hidden
+                  />
+                  <span className="leading-tight">{text}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <a
                 href="mailto:hello@lucymerchant.com"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-content shadow-md shadow-primary/20 transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-primary-content shadow-sm shadow-primary/15 transition hover:bg-primary/92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
               >
-                <Mail className="h-4 w-4 shrink-0" aria-hidden />
-                Contact sales
+                <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Contact
               </a>
-              <div className="flex items-center gap-1.5 text-sm text-base-content/65">
-                <MapPin className="h-4 w-4 shrink-0 text-primary/80" aria-hidden />
-                <span>San Francisco, CA</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="sr-only">Social</span>
-              {socialLinks.map(({ label, href, Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-base-300/70 bg-base-200/30 text-base-content/70 transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
-                  aria-label={label}
-                >
-                  <Icon className="h-[18px] w-[18px]" />
-                </a>
-              ))}
+              <span className="inline-flex items-center gap-1 text-[12px] text-base-content/55">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden />
+                San Francisco, CA
+              </span>
             </div>
           </div>
 
-          {/* Link columns — 2 cols on small phones, 3 from sm+ */}
+          {/* Link grid — tight columns */}
           <nav
-            className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:col-span-7 lg:gap-x-8"
+            className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 lg:col-span-8 lg:gap-x-8"
             aria-label="Footer"
           >
             <div>
-              <h2 className="font-display text-xs font-semibold uppercase tracking-[0.12em] text-base-content">
+              <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-base-content/45">
                 Discover
               </h2>
-              <ul className="mt-4 space-y-2.5">
+              <ul className="mt-2 space-y-1">
                 {discoverLinks.map((link) => (
-                  <li key={link.href + link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-base-content/65 transition hover:text-primary hover:underline hover:underline-offset-4"
-                    >
-                      {link.label}
-                    </Link>
+                  <li key={link.href}>
+                    <FooterLink href={link.href}>{link.label}</FooterLink>
                   </li>
                 ))}
               </ul>
             </div>
-
             <div>
-              <h2 className="font-display text-xs font-semibold uppercase tracking-[0.12em] text-base-content">
+              <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-base-content/45">
                 Account
               </h2>
-              <ul className="mt-4 space-y-2.5">
+              <ul className="mt-2 space-y-1">
                 {accountLinks.map((link) => (
-                  <li key={link.href + link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-base-content/65 transition hover:text-primary hover:underline hover:underline-offset-4"
-                    >
-                      {link.label}
-                    </Link>
+                  <li key={link.href}>
+                    <FooterLink href={link.href}>{link.label}</FooterLink>
                   </li>
                 ))}
               </ul>
             </div>
-
             <div className="col-span-2 sm:col-span-1">
-              <h2 className="font-display text-xs font-semibold uppercase tracking-[0.12em] text-base-content">
+              <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-base-content/45">
                 Legal
               </h2>
-              <ul className="mt-4 space-y-2.5">
+              <ul className="mt-2 space-y-1">
                 {legalLinks.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-base-content/65 transition hover:text-primary hover:underline hover:underline-offset-4"
-                    >
-                      {link.label}
-                    </Link>
+                  <li key={link.href}>
+                    <FooterLink href={link.href}>{link.label}</FooterLink>
                   </li>
                 ))}
                 <li>
                   <a
                     href="mailto:hello@lucymerchant.com"
-                    className="text-sm text-base-content/65 transition hover:text-primary hover:underline hover:underline-offset-4"
+                    className="block py-0.5 text-[13px] leading-snug text-base-content/70 transition-colors hover:text-primary"
                   >
                     hello@lucymerchant.com
                   </a>
@@ -238,14 +194,32 @@ export function SiteFooter() {
         </div>
       </div>
 
-      <div className="relative border-t border-base-300/50 bg-base-200/20">
-        <div className="lm-container flex flex-col items-center justify-between gap-3 py-5 sm:flex-row sm:gap-4 sm:py-6">
-          <p className="text-center text-xs text-base-content/55 sm:text-left sm:text-sm">
-            © {new Date().getFullYear()} {brandCopy.name}. All rights reserved.
+      {/* Bar — single compact strip */}
+      <div className="border-t border-base-300/40 bg-base-200/30">
+        <div className="lm-container flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-3">
+          <p className="text-center text-[11px] text-base-content/50 sm:text-left sm:text-xs">
+            © {year} {brandCopy.name}. All rights reserved.
           </p>
-          <p className="text-center text-xs text-base-content/45 sm:text-right">
-            Built for wholesale & procurement teams
-          </p>
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-5">
+            <p className="text-center text-[11px] text-base-content/40 sm:text-right sm:text-xs">
+              Wholesale & procurement
+            </p>
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="sr-only">Social</span>
+              {socialLinks.map(({ label, href, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-base-300/55 bg-base-100/50 text-base-content/60 transition hover:border-primary/35 hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+                  aria-label={label}
+                >
+                  <Icon className="h-[15px] w-[15px]" />
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </footer>

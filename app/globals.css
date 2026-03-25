@@ -75,6 +75,7 @@
 /* color-scheme comes from each Daisy theme ([data-theme]) */
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -82,6 +83,146 @@ body {
   font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.6;
+}
+
+/*
+ * Horizontal gutters: slightly tighter than classic px-4…px-8; never undercut safe-area insets.
+ */
+@layer components {
+  .lm-container {
+    @apply mx-auto w-full min-w-0 max-w-7xl;
+    padding-left: max(0.875rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.875rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 640px) {
+    .lm-container {
+      padding-left: max(1.125rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.125rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 768px) {
+    .lm-container {
+      padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lm-container {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  .lm-page {
+    @apply mx-auto w-full min-w-0 max-w-7xl flex-1 py-5 sm:py-7 lg:py-9;
+    padding-left: max(0.875rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.875rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 640px) {
+    .lm-page {
+      padding-left: max(1.125rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.125rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 768px) {
+    .lm-page {
+      padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lm-page {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  .lm-page-wide {
+    @apply mx-auto w-full min-w-0 max-w-6xl flex-1 py-5 sm:py-7 lg:py-9;
+    padding-left: max(0.875rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.875rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 640px) {
+    .lm-page-wide {
+      padding-left: max(1.125rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.125rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 768px) {
+    .lm-page-wide {
+      padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lm-page-wide {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  .lm-page-narrow {
+    @apply mx-auto w-full min-w-0 max-w-3xl flex-1 py-5 sm:py-7 lg:py-9;
+    padding-left: max(0.875rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.875rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 640px) {
+    .lm-page-narrow {
+      padding-left: max(1.125rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.125rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 768px) {
+    .lm-page-narrow {
+      padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lm-page-narrow {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  .lm-auth-shell {
+    @apply flex min-h-[calc(100dvh-8rem)] flex-1 items-center justify-center py-8 sm:py-12;
+    padding-left: max(0.875rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.875rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 640px) {
+    .lm-auth-shell {
+      padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 768px) {
+    .lm-auth-shell {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lm-auth-shell {
+      padding-left: max(2rem, env(safe-area-inset-left, 0px));
+      padding-right: max(2rem, env(safe-area-inset-right, 0px));
+    }
+  }
 }
 
 /* Typography System */
@@ -410,32 +551,6 @@ body {
 .menu li > *:not(ul, .menu-title, details, .btn).active,
 .menu li > details > summary:active {
   @apply bg-primary/15 text-primary;
-}
-
-/* Responsive container — horizontal padding scales with viewport */
-.lm-container {
-  @apply mx-auto w-full min-w-0 max-w-7xl px-4 sm:px-5 md:px-6 lg:px-8;
-}
-
-/*
- * Standard page shells (full-width routes): use instead of ad-hoc container + px + py.
- * Home stays full-bleed; inner sections keep using .lm-container only.
- */
-.lm-page {
-  @apply mx-auto w-full min-w-0 max-w-7xl flex-1 px-4 py-6 sm:px-5 sm:py-8 md:px-6 lg:px-8 lg:py-10;
-}
-
-.lm-page-wide {
-  @apply mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-6 sm:px-5 sm:py-8 md:px-6 lg:px-8 lg:py-10;
-}
-
-.lm-page-narrow {
-  @apply mx-auto w-full min-w-0 max-w-3xl flex-1 px-4 py-6 sm:px-5 sm:py-8 md:px-6 lg:px-8 lg:py-10;
-}
-
-/* Auth / centered flows */
-.lm-auth-shell {
-  @apply flex min-h-[calc(100dvh-8rem)] flex-1 items-center justify-center px-4 py-10 sm:px-6 sm:py-14 md:px-8 lg:px-10;
 }
 
 /* Text Balance for Headers */

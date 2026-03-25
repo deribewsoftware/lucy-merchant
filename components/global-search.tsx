@@ -117,6 +117,7 @@ function SearchFiltersMenu({
   catalogCategories,
   size,
   variant,
+  layout = "default",
   menuContainerRef,
   onFiltersPointerDown,
 }: {
@@ -127,6 +128,8 @@ function SearchFiltersMenu({
   catalogCategories: CatalogCategory[];
   size: "sm" | "md";
   variant: "navbar" | "hero";
+  /** Tighter inline filter control for header mobile bar */
+  layout?: "default" | "mobileBar";
   menuContainerRef: RefObject<HTMLDivElement | null>;
   onFiltersPointerDown?: () => void;
 }) {
@@ -194,9 +197,16 @@ function SearchFiltersMenu({
 
   const compact = size === "sm";
   const isHero = variant === "hero";
+  const isMobileBar = layout === "mobileBar";
 
   return (
-    <div ref={menuContainerRef} className="relative w-full sm:w-auto">
+    <div
+      ref={menuContainerRef}
+      className={clsx(
+        "relative h-full min-w-0",
+        isMobileBar ? "w-full max-w-[11rem]" : "w-full sm:w-auto",
+      )}
+    >
       <button
         type="button"
         aria-expanded={filtersOpen}
@@ -208,20 +218,30 @@ function SearchFiltersMenu({
         onClick={() => setFiltersOpen((o) => !o)}
         className={clsx(
           "flex w-full items-center justify-between gap-1.5 text-left font-medium text-base-content transition",
-          "rounded-t-lg border-0 bg-transparent hover:bg-base-200/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/20",
-          "sm:rounded-l-lg sm:rounded-tr-none",
-          compact ? "min-h-9 px-2 sm:px-2.5" : "min-h-11 px-2.5 sm:px-3",
+          "border-0 bg-transparent hover:bg-base-200/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/20",
+          isMobileBar
+            ? "h-full min-h-[2.75rem] rounded-none rounded-l-xl px-2 py-2"
+            : [
+                "rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none",
+                compact ? "min-h-9 px-2 sm:px-2.5" : "min-h-11 px-2.5 sm:px-3",
+              ],
         )}
       >
         <span className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
           <span
             className={clsx(
               "flex shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary",
-              compact ? "h-6 w-6" : "h-8 w-8",
+              isMobileBar
+                ? "h-7 w-7"
+                : compact
+                  ? "h-6 w-6"
+                  : "h-8 w-8",
             )}
           >
             <SlidersHorizontal
-              className={compact ? "h-3.5 w-3.5" : "h-4 w-4"}
+              className={
+                isMobileBar ? "h-4 w-4" : compact ? "h-3.5 w-3.5" : "h-4 w-4"
+              }
               strokeWidth={2.25}
               aria-hidden
             />
@@ -230,12 +250,23 @@ function SearchFiltersMenu({
             <span
               className={clsx(
                 "block truncate font-semibold leading-tight text-base-content",
-                compact ? "text-[11px] sm:text-xs" : "text-xs sm:text-sm",
+                isMobileBar
+                  ? "text-[11px] leading-snug"
+                  : compact
+                    ? "text-[11px] sm:text-xs"
+                    : "text-xs sm:text-sm",
               )}
             >
               {scopeMeta.label}
             </span>
-            <span className="mt-px block truncate text-[10px] font-normal leading-tight text-base-content/45 sm:text-[11px]">
+            <span
+              className={clsx(
+                "mt-px block truncate font-normal leading-tight text-base-content/45",
+                isMobileBar
+                  ? "text-[9px]"
+                  : "text-[10px] sm:text-[11px]",
+              )}
+            >
               {narrowLabel}
             </span>
           </span>
@@ -243,7 +274,7 @@ function SearchFiltersMenu({
         <ChevronDown
           className={clsx(
             "shrink-0 opacity-50 transition-transform duration-200",
-            compact ? "h-3.5 w-3.5" : "h-4 w-4",
+            isMobileBar ? "h-3.5 w-3.5" : compact ? "h-3.5 w-3.5" : "h-4 w-4",
             filtersOpen && "rotate-180",
           )}
           strokeWidth={2.25}
@@ -441,6 +472,10 @@ function pushRecent(term: string) {
 
 export type GlobalSearchProps = {
   variant?: "navbar" | "hero";
+  /**
+   * Inline filter + search on one row, tuned for the header mobile strip (`md:hidden`).
+   */
+  layout?: "default" | "mobileBar";
   className?: string;
   /** SSR hint; live value merged from GET /api/auth/me when logged in */
   merchantCommissionHold?: boolean;
@@ -450,6 +485,7 @@ export type GlobalSearchProps = {
 
 export function GlobalSearch({
   variant = "navbar",
+  layout = "default",
   className = "",
   merchantCommissionHold = false,
   supplierCommissionHold = false,
@@ -536,6 +572,7 @@ export function GlobalSearch({
     apiSupplierHold !== null ? apiSupplierHold : supplierCommissionHold;
 
   const isHero = variant === "hero";
+  const isMobileBar = layout === "mobileBar";
   const ddSize = isHero ? "md" : "sm";
 
   useEffect(() => {
@@ -655,6 +692,7 @@ export function GlobalSearch({
   const popular = brandCopy.search.popularKeywords;
 
   const barRounded = isHero ? "rounded-xl sm:rounded-2xl" : "rounded-lg";
+  const searchBarRounded = isMobileBar ? "rounded-xl" : barRounded;
 
   return (
     <div className={`relative w-full ${className}`}>
@@ -694,14 +732,23 @@ export function GlobalSearch({
         <div
           className={clsx(
             /* overflow-visible so the filter popover (absolute) is not clipped */
-            "card flex flex-col overflow-visible border border-base-300/75 bg-base-100/95 p-0 shadow-sm transition-[box-shadow,border-color,ring]",
+            "card flex overflow-visible border border-base-300/75 bg-base-100/95 p-0 shadow-sm transition-[box-shadow,border-color,ring]",
             "focus-within:border-primary/30 focus-within:shadow-md focus-within:ring-1 focus-within:ring-primary/15",
-            "sm:flex-row sm:items-stretch",
-            barRounded,
+            isMobileBar
+              ? "flex-row items-stretch"
+              : "flex-col sm:flex-row sm:items-stretch",
+            searchBarRounded,
             isHero && "shadow-md",
           )}
         >
-          <div className="flex shrink-0 border-b border-base-300/70 sm:max-w-[min(100%,12.5rem)] sm:border-b-0 sm:border-r sm:border-base-300/70 sm:pl-0.5 md:max-w-[13.5rem]">
+          <div
+            className={clsx(
+              "flex shrink-0 border-base-300/70",
+              isMobileBar
+                ? "h-full min-h-[2.75rem] max-w-[min(44%,11rem)] border-b-0 border-r sm:max-w-[12.5rem]"
+                : "border-b sm:max-w-[min(100%,12.5rem)] sm:border-b-0 sm:border-r sm:pl-0.5 md:max-w-[13.5rem]",
+            )}
+          >
             <SearchFiltersMenu
               scope={scope}
               setScope={setScope}
@@ -710,6 +757,7 @@ export function GlobalSearch({
               catalogCategories={catalogCategories}
               size={ddSize}
               variant={variant}
+              layout={layout}
               menuContainerRef={filterMenuRef}
               onFiltersPointerDown={onFiltersPointerDown}
             />
@@ -718,9 +766,12 @@ export function GlobalSearch({
           <label
             className={clsx(
               "flex flex-1 cursor-text items-center gap-2 bg-base-100/80 px-2.5",
-              isHero
-                ? "min-h-11 py-2.5 sm:min-h-12 sm:px-3.5"
-                : "min-h-9 py-1.5 sm:min-h-9 sm:py-2 sm:pr-3",
+              isMobileBar &&
+                "min-h-[2.75rem] rounded-r-xl py-2 pl-2 pr-2.5 sm:px-3",
+              !isMobileBar &&
+                (isHero
+                  ? "min-h-11 py-2.5 sm:min-h-12 sm:px-3.5"
+                  : "min-h-9 py-1.5 sm:min-h-9 sm:py-2 sm:pr-3"),
             )}
           >
             <Search

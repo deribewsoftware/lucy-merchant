@@ -7,13 +7,13 @@ export function MerchantHeroBackdrop({ className = "" }: { className?: string })
       aria-hidden
     >
       <svg
-        className="absolute -right-4 -top-6 h-40 w-48 text-secondary/25"
+        className="absolute -right-4 -top-6 h-40 w-48"
         viewBox="0 0 180 160"
         fill="none"
       >
         <path
           d="M40 120h120M40 120l20-48h80l20 48"
-          stroke="currentColor"
+          className="stroke-primary/40"
           strokeWidth="1.4"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -24,26 +24,26 @@ export function MerchantHeroBackdrop({ className = "" }: { className?: string })
           width="68"
           height="44"
           rx="6"
-          stroke="currentColor"
+          className="stroke-secondary/38"
           strokeWidth="1.2"
-          opacity="0.85"
+          opacity="0.9"
         />
-        <circle cx="90" cy="28" r="10" stroke="currentColor" strokeWidth="1.2" />
+        <circle cx="90" cy="28" r="10" className="stroke-accent/45" strokeWidth="1.2" />
         <path
           d="M90 38v14M76 62h28"
-          stroke="currentColor"
+          className="stroke-primary/45"
           strokeWidth="1.2"
           strokeLinecap="round"
         />
       </svg>
       <svg
-        className="absolute -bottom-2 left-2 h-28 w-44 text-primary/20"
+        className="absolute -bottom-2 left-2 h-28 w-44"
         viewBox="0 0 176 100"
         fill="none"
       >
         <path
           d="M12 78c22-14 42-20 64-12s48 2 76-22"
-          stroke="currentColor"
+          className="stroke-secondary/40"
           strokeWidth="1.5"
           strokeLinecap="round"
         />
@@ -53,16 +53,16 @@ export function MerchantHeroBackdrop({ className = "" }: { className?: string })
           width="128"
           height="36"
           rx="8"
-          stroke="currentColor"
+          className="stroke-primary/28"
           strokeWidth="1.2"
-          opacity="0.7"
+          opacity="0.85"
         />
         <path
           d="M40 48h32M40 58h56"
-          stroke="currentColor"
+          className="stroke-accent/32"
           strokeWidth="2"
           strokeLinecap="round"
-          opacity="0.5"
+          opacity="0.65"
         />
       </svg>
     </div>
@@ -79,7 +79,7 @@ export function MerchantSpendSparkline({ className = "" }: { className?: string 
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="116" cy="6" r="2.5" className="fill-secondary" />
+      <circle cx="116" cy="6" r="2.5" className="fill-accent" />
     </svg>
   );
 }

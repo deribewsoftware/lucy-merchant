@@ -41,6 +41,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  /** Enables env(safe-area-inset-*) on iOS / edge-to-edge so horizontal padding is correct in production */
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
