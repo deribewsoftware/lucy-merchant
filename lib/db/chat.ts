@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import type { ChatMessage, UserRole } from "@/lib/domain/types";
+import { isUploadedAssetPath } from "@/lib/server/upload-path";
 import { readJsonFile, writeJsonFile } from "@/lib/store/json-file";
 
 const FILE = "chat-messages.json";
@@ -9,16 +10,6 @@ export function listMessagesForOrder(orderId: string): ChatMessage[] {
   return all
     .filter((m) => m.orderId === orderId)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-}
-
-const UPLOAD_CHAT_PREFIX = "/uploads/order-chat/";
-
-function isAllowedChatImageUrl(url: string): boolean {
-  return (
-    url.startsWith(UPLOAD_CHAT_PREFIX) &&
-    !url.includes("..") &&
-    url.length < 500
-  );
 }
 
 export function appendOrderMessage(input: {
@@ -64,7 +55,7 @@ export function appendOrderMessage(input: {
   }
   if (kind === "image") {
     const imageUrl = input.imageUrl?.trim();
-    if (!imageUrl || !isAllowedChatImageUrl(imageUrl)) {
+    if (!imageUrl || !isUploadedAssetPath(imageUrl, "order-chat")) {
       throw new Error("Invalid image");
     }
     const all = readJsonFile<ChatMessage[]>(FILE, []);

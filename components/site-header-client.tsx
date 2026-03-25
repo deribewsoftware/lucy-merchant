@@ -21,7 +21,6 @@ import {
   ShoppingCart,
   UserPlus,
   X,
-  Sparkles,
 } from "lucide-react";
 import {
   Suspense,
@@ -30,6 +29,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { LucyMerchantMarkBadge } from "@/components/brand/lucy-merchant-mark";
 import { NavCategoryDropdown } from "@/components/nav-category-dropdown";
 import {
   PresenceAvatar,
@@ -195,15 +195,20 @@ export function SiteHeaderClient({
             </motion.button>
 
             {/* Logo */}
-            <Link href="/" className="group flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70 shadow-lg shadow-primary/20">
-                <Sparkles className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div className="hidden flex-col sm:flex">
-                <span className="font-display text-lg font-bold tracking-tight text-foreground">
+            <Link
+              href="/"
+              className="group flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5 md:gap-3"
+            >
+              <LucyMerchantMarkBadge
+                badgeSize="md"
+                markSize="lg"
+                className="transition-transform duration-300 group-hover:scale-[1.03] group-hover:shadow-xl group-hover:shadow-primary/35"
+              />
+              <div className="hidden min-w-0 flex-col leading-tight sm:flex">
+                <span className="font-display text-base font-bold tracking-tight text-foreground transition-colors group-hover:text-primary sm:text-lg md:text-xl">
                   {brandCopy.name}
                 </span>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground md:text-[11px] md:tracking-[0.22em]">
                   B2B Marketplace
                 </span>
               </div>
@@ -394,9 +399,7 @@ export function SiteHeaderClient({
             >
               {/* Drawer Header */}
               <div className="flex items-center gap-3 border-b border-border/40 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70">
-                  <Sparkles className="h-5 w-5 text-primary-foreground" />
-                </div>
+                <LucyMerchantMarkBadge badgeSize="lg" markSize="xl" />
                 <div>
                   <p className="font-display font-bold text-foreground">{brandCopy.name}</p>
                   <p className="text-xs text-muted-foreground">Navigation</p>

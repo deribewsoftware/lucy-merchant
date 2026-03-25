@@ -1,6 +1,6 @@
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
+import { writeBufferToUpload } from "@/lib/server/upload-path";
 import { getOrder, patchOrder } from "@/lib/db/commerce";
 import { notifyAdminsBankProofSubmitted } from "@/lib/db/notifications";
 import { requireSession } from "@/lib/server/require-session";
@@ -57,18 +57,12 @@ export async function POST(request: Request, context: Params) {
   }
 
   const buf = Buffer.from(await file.arrayBuffer());
-  const dir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    "order-receipts",
-  );
-  await mkdir(dir, { recursive: true });
   const filename = `${id}-${Date.now()}${ext}`;
-  const full = path.join(dir, filename);
-  await writeFile(full, buf);
-
-  const publicPath = `/uploads/order-receipts/${filename}`;
+  const saved = await writeBufferToUpload("order-receipts", filename, buf);
+  if (!saved.ok) {
+    return NextResponse.json({ error: saved.error }, { status: 500 });
+  }
+  const publicPath = saved.publicPath;
 
   if (legacyAwaiting) {
     const updated = patchOrder(id, {

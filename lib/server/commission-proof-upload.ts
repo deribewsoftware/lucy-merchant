@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { writeBufferToUpload } from "@/lib/server/upload-path";
 
 const ALLOWED = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -17,9 +17,6 @@ export async function saveCommissionProofImage(
     return { ok: false, error: "Use JPG, PNG, or WebP" };
   }
   const buf = Buffer.from(await file.arrayBuffer());
-  const dir = path.join(process.cwd(), "public", "uploads", "commission-proofs");
-  await mkdir(dir, { recursive: true });
   const filename = `${orderId}-${Date.now()}${ext}`;
-  await writeFile(path.join(dir, filename), buf);
-  return { ok: true, publicPath: `/uploads/commission-proofs/${filename}` };
+  return writeBufferToUpload("commission-proofs", filename, buf);
 }

@@ -1,7 +1,17 @@
 import fs from "fs";
 import path from "path";
+import { isEphemeralServerHost } from "@/lib/server/ephemeral-host";
 
 const DATA_DIR = path.join(process.cwd(), "data");
+
+/** Serverless hosts: no writable `/var/task/data` — keep JSON in process memory. */
+function useMemoryStore(): boolean {
+  if (process.env.LUCY_DATA_STORE === "memory") return true;
+  if (process.env.LUCY_DATA_STORE === "filesystem") return false;
+  return isEphemeralServerHost();
+}
+
+const memory = new Map<string, unknown>();
 
 function resolvePath(file: string): string {
   return path.join(DATA_DIR, file);
@@ -20,6 +30,15 @@ function isExpectedServerlessFsError(err: unknown): boolean {
 }
 
 export function readJsonFile<T>(file: string, fallback: T): T {
+  if (useMemoryStore()) {
+    if (memory.has(file)) {
+      return structuredClone(memory.get(file)) as T;
+    }
+    const initial = structuredClone(fallback) as T;
+    memory.set(file, structuredClone(initial));
+    return initial;
+  }
+
   const p = resolvePath(file);
   if (!fs.existsSync(p)) {
     try {
@@ -34,6 +53,11 @@ export function readJsonFile<T>(file: string, fallback: T): T {
 }
 
 export function writeJsonFile<T>(file: string, data: T): void {
+  if (useMemoryStore()) {
+    memory.set(file, structuredClone(data));
+    return;
+  }
+
   const p = resolvePath(file);
   try {
     if (!fs.existsSync(DATA_DIR)) {

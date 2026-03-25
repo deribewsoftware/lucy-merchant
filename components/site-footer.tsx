@@ -1,13 +1,13 @@
 import type { SVGProps } from "react";
 import Link from "next/link";
 import {
-  Sparkles,
   Mail,
   MapPin,
   ShieldCheck,
   MessageSquare,
   Lock,
 } from "lucide-react";
+import { LucyMerchantMarkBadge } from "@/components/brand/lucy-merchant-mark";
 import { brandCopy } from "@/lib/brand/copy";
 
 function LinkedInGlyph(props: SVGProps<SVGSVGElement>) {
@@ -103,19 +103,18 @@ export function SiteFooter() {
             <div>
               <Link
                 href="/"
-                className="group inline-flex items-center gap-3 rounded-xl outline-none ring-offset-2 ring-offset-base-100 transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary"
+                className="group inline-flex max-w-full items-center gap-2.5 rounded-xl outline-none ring-offset-2 ring-offset-base-100 transition hover:opacity-95 focus-visible:ring-2 focus-visible:ring-primary sm:gap-3.5"
               >
-                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/75 shadow-lg shadow-primary/25 ring-1 ring-white/10">
-                  <Sparkles
-                    className="h-5 w-5 text-primary-content"
-                    aria-hidden
-                  />
-                </div>
-                <div className="text-left">
-                  <span className="font-display text-lg font-bold tracking-tight text-base-content sm:text-xl">
+                <LucyMerchantMarkBadge
+                  badgeSize="xl"
+                  markSize="xl"
+                  className="ring-white/15 transition-transform duration-300 group-hover:scale-[1.02]"
+                />
+                <div className="min-w-0 text-left">
+                  <span className="block font-display text-lg font-bold tracking-tight text-base-content sm:text-xl">
                     {brandCopy.name}
                   </span>
-                  <p className="text-xs text-base-content/60 sm:text-sm">
+                  <p className="mt-0.5 text-pretty text-xs leading-snug text-base-content/60 sm:text-sm">
                     {brandCopy.tagline}
                   </p>
                 </div>

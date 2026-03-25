@@ -1,6 +1,6 @@
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
+import { writeBufferToUpload } from "@/lib/server/upload-path";
 import { getOrder } from "@/lib/db/commerce";
 import { canAccessOrder } from "@/lib/server/order-access";
 import { requireSession } from "@/lib/server/require-session";
@@ -67,12 +67,10 @@ export async function POST(request: Request, context: Params) {
   }
 
   const buf = Buffer.from(await file.arrayBuffer());
-  const dir = path.join(process.cwd(), "public", "uploads", "order-chat");
-  await mkdir(dir, { recursive: true });
   const filename = `${id}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}${ext}`;
-  const full = path.join(dir, filename);
-  await writeFile(full, buf);
-
-  const publicPath = `/uploads/order-chat/${filename}`;
-  return NextResponse.json({ url: publicPath });
+  const saved = await writeBufferToUpload("order-chat", filename, buf);
+  if (!saved.ok) {
+    return NextResponse.json({ error: saved.error }, { status: 500 });
+  }
+  return NextResponse.json({ url: saved.publicPath });
 }

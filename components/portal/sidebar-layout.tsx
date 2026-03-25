@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sparkles, ChevronRight } from "lucide-react";
+import { Menu, X, ChevronRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import clsx from "clsx";
+import { LucyMerchantMarkBadge } from "@/components/brand/lucy-merchant-mark";
 import { brandCopy } from "@/lib/brand/copy";
 
 export type SidebarLink = {
@@ -48,9 +49,7 @@ export function SidebarLayout({
           {/* Sidebar Header */}
           <div className="border-b border-border/40 p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Sparkles className="h-5 w-5" />
-              </div>
+              <LucyMerchantMarkBadge badgeSize="sm" markSize="md" />
               <div>
                 <p className="font-display font-semibold text-foreground">{title}</p>
                 <p className="text-xs text-muted-foreground">Portal</p>
@@ -101,7 +100,7 @@ export function SidebarLayout({
               href="/"
               className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              <Sparkles className="h-4 w-4" />
+              <LucyMerchantMarkBadge badgeSize="sm" markSize="sm" className="scale-90" />
               {brandCopy.name}
             </Link>
           </div>
@@ -120,10 +119,8 @@ export function SidebarLayout({
           >
             <Menu className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Sparkles className="h-4 w-4" />
-            </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <LucyMerchantMarkBadge badgeSize="sm" markSize="sm" className="shrink-0" />
             <span className="font-display font-semibold text-foreground">{title}</span>
           </div>
         </div>
@@ -167,9 +164,7 @@ export function SidebarLayout({
                 {/* Mobile Sidebar Header */}
                 <div className="flex items-center justify-between border-b border-border/40 p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Sparkles className="h-5 w-5" />
-                    </div>
+                    <LucyMerchantMarkBadge badgeSize="md" markSize="lg" />
                     <div>
                       <p className="font-display font-semibold text-foreground">{title}</p>
                       <p className="text-xs text-muted-foreground">Portal</p>
@@ -230,7 +225,7 @@ export function SidebarLayout({
                     onClick={closeMobile}
                     className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    <Sparkles className="h-4 w-4" />
+                    <LucyMerchantMarkBadge badgeSize="sm" markSize="sm" className="scale-90" />
                     Back to {brandCopy.name}
                   </Link>
                 </div>

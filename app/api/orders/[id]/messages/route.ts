@@ -7,6 +7,7 @@ import { notifyOrderChatRecipients } from "@/lib/db/notifications";
 import { canAccessOrder } from "@/lib/server/order-access";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { requireSession } from "@/lib/server/require-session";
+import { isUploadedAssetPath } from "@/lib/server/upload-path";
 import { resolveChatSenderRole } from "@/lib/server/resolve-chat-sender-role";
 import type { Order } from "@/lib/domain/types";
 
@@ -112,9 +113,7 @@ export async function POST(request: Request, context: Params) {
     kind === "price_proposal" ? undefined : body?.imageUrl;
   const imageUrl =
     typeof imageUrlRaw === "string" &&
-    imageUrlRaw.startsWith("/uploads/order-chat/") &&
-    !imageUrlRaw.includes("..") &&
-    imageUrlRaw.length < 500
+    isUploadedAssetPath(imageUrlRaw, "order-chat")
       ? imageUrlRaw.trim()
       : undefined;
   try {
