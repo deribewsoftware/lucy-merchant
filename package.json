@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "verify": "npm run lint && npm run build",
     "seed:demo": "node scripts/seed-demo-data.mjs",
-    "sync:deploy-seed": "node scripts/sync-deploy-seed.mjs"
+    "sync:deploy-seed": "node scripts/sync-deploy-seed.mjs",
+    "seed:mongodb": "node scripts/seed-mongodb.mjs",
+    "seed:all": "npm run seed:demo && npm run sync:deploy-seed && npm run seed:mongodb"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
