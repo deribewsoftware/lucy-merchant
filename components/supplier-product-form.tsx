@@ -5,7 +5,6 @@ import { useId, useState } from "react";
 import {
   HiOutlineCube,
   HiOutlineCurrencyDollar,
-  HiOutlineMapPin,
   HiOutlinePhoto,
   HiOutlineSparkles,
   HiOutlineTag,

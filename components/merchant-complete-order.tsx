@@ -13,12 +13,8 @@ type Props = {
   supplierPaymentReceived: boolean;
 };
 
-export function MerchantCompleteOrder({
-  orderId,
-  commissionPaid,
-  supplierCommissionPaid,
-  supplierPaymentReceived,
-}: Props) {
+export function MerchantCompleteOrder(props: Props) {
+  const { orderId, commissionPaid, supplierPaymentReceived } = props;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);

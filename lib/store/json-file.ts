@@ -5,7 +5,7 @@ import { isEphemeralServerHost } from "@/lib/server/ephemeral-host";
 const DATA_DIR = path.join(process.cwd(), "data");
 
 /** Serverless hosts: no writable `/var/task/data` — keep JSON in process memory. */
-function useMemoryStore(): boolean {
+function shouldUseMemoryJsonStore(): boolean {
   if (process.env.LUCY_DATA_STORE === "memory") return true;
   if (process.env.LUCY_DATA_STORE === "filesystem") return false;
   return isEphemeralServerHost();
@@ -30,7 +30,7 @@ function isExpectedServerlessFsError(err: unknown): boolean {
 }
 
 export function readJsonFile<T>(file: string, fallback: T): T {
-  if (useMemoryStore()) {
+  if (shouldUseMemoryJsonStore()) {
     if (memory.has(file)) {
       return structuredClone(memory.get(file)) as T;
     }
@@ -53,7 +53,7 @@ export function readJsonFile<T>(file: string, fallback: T): T {
 }
 
 export function writeJsonFile<T>(file: string, data: T): void {
-  if (useMemoryStore()) {
+  if (shouldUseMemoryJsonStore()) {
     memory.set(file, structuredClone(data));
     return;
   }

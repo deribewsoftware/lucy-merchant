@@ -16,7 +16,7 @@ import { supplierHasOutstandingCommission } from "@/lib/server/supplier-commissi
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sort = searchParams.get("sort") ?? "recent";
-  let products = [...listProducts()];
+  const products = [...listProducts()];
   const feat = (a: (typeof products)[0], b: (typeof products)[0]) =>
     Number(!!b.isFeatured) - Number(!!a.isFeatured);
   if (sort === "orders") {

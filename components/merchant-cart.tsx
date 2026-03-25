@@ -47,7 +47,7 @@ export function MerchantCart({ initial, lineTitles }: Props) {
 
   useEffect(() => {
     setCart(initial);
-  }, [initial.updatedAt, initial.id, initial.totalAmount]);
+  }, [initial]);
 
   async function remove(productId: string) {
     const res = await fetch(

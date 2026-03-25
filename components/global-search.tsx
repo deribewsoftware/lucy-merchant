@@ -299,7 +299,7 @@ function SearchFiltersMenu({
                 const active = scope === s.id;
                 const Icon = s.Icon;
                 return (
-                  <li key={s.id} role="option">
+                  <li key={s.id} role="option" aria-selected={active}>
                     <button
                       type="button"
                       className={clsx(
@@ -359,7 +359,7 @@ function SearchFiltersMenu({
                 role="listbox"
                 aria-label="Catalog category"
               >
-                <li role="option">
+                <li role="option" aria-selected={narrowCategoryId === ""}>
                   <button
                     type="button"
                     className={clsx(
@@ -383,7 +383,7 @@ function SearchFiltersMenu({
                 {filteredCats.map((c) => {
                   const active = narrowCategoryId === c.id;
                   return (
-                    <li key={c.id} role="option">
+                    <li key={c.id} role="option" aria-selected={active}>
                       <button
                         type="button"
                         className={clsx(

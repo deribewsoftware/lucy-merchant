@@ -7,7 +7,7 @@ import { isEphemeralServerHost } from "@/lib/server/ephemeral-host";
  * Use `/tmp` + `/api/uploads/...` instead of `public/uploads` (read-only on serverless).
  * Override: `LUCY_UPLOADS_TO_TMP=1` | `0`
  */
-export function useTmpForUploads(): boolean {
+export function shouldUseTmpUploads(): boolean {
   if (process.env.LUCY_UPLOADS_TO_TMP === "1") return true;
   if (process.env.LUCY_UPLOADS_TO_TMP === "0") return false;
   return isEphemeralServerHost();
@@ -37,7 +37,7 @@ export function getUploadTarget(subdir: string): {
   /** Prefix for URLs stored on orders (e.g. `/uploads/foo` or `/api/uploads/foo`) */
   urlPrefix: string;
 } {
-  if (useTmpForUploads()) {
+  if (shouldUseTmpUploads()) {
     const dir = path.join(tmpdir(), "lucy-merchant", "uploads", subdir);
     return { dir, urlPrefix: `/api/uploads/${subdir}` };
   }

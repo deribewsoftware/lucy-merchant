@@ -5,7 +5,6 @@ import { useId, useState } from "react";
 import {
   HiOutlineCube,
   HiOutlineCurrencyDollar,
-  HiOutlineMapPin,
   HiOutlinePhoto,
   HiOutlineSparkles,
   HiOutlineTag,
@@ -24,8 +23,6 @@ import {
   supplierSectionClass,
   supplierSelectClass,
 } from "@/components/supplier/form-styles";
-import { isRichTextEmpty } from "@/lib/rich-text";
-
 type Props = {
   product: Product;
   categories: Category[];

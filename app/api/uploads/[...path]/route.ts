@@ -2,7 +2,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { tmpdir } from "os";
 import { NextResponse } from "next/server";
-import { useTmpForUploads } from "@/lib/server/upload-path";
+import { shouldUseTmpUploads } from "@/lib/server/upload-path";
 
 export const runtime = "nodejs";
 
@@ -23,7 +23,7 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ path: string[] }> },
 ) {
-  if (!useTmpForUploads()) {
+  if (!shouldUseTmpUploads()) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

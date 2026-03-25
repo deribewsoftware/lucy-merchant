@@ -1,3 +1,5 @@
+"use client";
+
 import clsx from "clsx";
 import { isRichTextEmpty, sanitizeRichHtml } from "@/lib/rich-text";
 

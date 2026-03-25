@@ -133,7 +133,6 @@ function main() {
 
   const pwd = "LucyDemo2025!";
   const hash = bcrypt.hashSync(pwd, 10);
-  const now = new Date().toISOString();
   const daysAgo = (n) =>
     new Date(Date.now() - n * 86400000).toISOString();
 

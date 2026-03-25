@@ -125,7 +125,12 @@ export function NavCategoryDropdown({ categories, className = "" }: Props) {
             className="max-h-[min(50vh,16rem)] overflow-y-auto overscroll-contain py-1.5"
             role="listbox"
           >
-            <li role="option">
+            <li
+              role="option"
+              aria-selected={
+                pathname === "/browse" && browseCategoryId === ""
+              }
+            >
               <Link
                 href="/browse"
                 onClick={close}
@@ -142,7 +147,7 @@ export function NavCategoryDropdown({ categories, className = "" }: Props) {
             {filtered.map((c) => {
               const active = browseCategoryId === c.id;
               return (
-                <li key={c.id} role="option">
+                <li key={c.id} role="option" aria-selected={active}>
                   <Link
                     href={`/browse?category=${encodeURIComponent(c.id)}`}
                     onClick={close}
