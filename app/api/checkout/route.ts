@@ -7,7 +7,10 @@ import {
   updateProductStock,
 } from "@/lib/db/catalog";
 import { clearCart, createOrder, getCart } from "@/lib/db/commerce";
-import { notifySuppliersNewOrder } from "@/lib/db/notifications";
+import {
+  notifyMerchantOrderPlaced,
+  notifySuppliersNewOrder,
+} from "@/lib/db/notifications";
 import { createPayment } from "@/lib/db/payments";
 import { groupOrderLinesByCompany } from "@/lib/domain/order-split";
 import { API_MERCHANT_COMMISSION_SUSPENDED } from "@/lib/domain/commission-hold-copy";
@@ -154,6 +157,7 @@ export async function POST(request: Request) {
 
     createOrder(order);
     notifySuppliersNewOrder(order);
+    notifyMerchantOrderPlaced(order);
     const payment = createPayment({
       orderId: order.id,
       method: paymentMethod,

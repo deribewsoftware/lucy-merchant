@@ -32,7 +32,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email already registered" }, { status: 409 });
   }
 
-  const user = await createUser({ email, password, name, role: "admin" });
+  const { user } = await createUser({
+    email,
+    password,
+    name,
+    role: "admin",
+    skipEmailVerification: true,
+  });
   const token = await signToken({
     sub: user.id,
     email: user.email,

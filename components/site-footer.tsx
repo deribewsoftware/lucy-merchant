@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode, SVGProps } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Mail,
   MapPin,
@@ -73,6 +76,13 @@ function FooterLink({
 }
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  const isAuthRoute = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/change-password"].some(
+    (r) => pathname === r || pathname.startsWith(`${r}/`)
+  );
+
+  if (isAuthRoute) return null;
+
   const year = new Date().getFullYear();
 
   return (

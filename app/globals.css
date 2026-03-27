@@ -599,3 +599,130 @@ body {
     padding-inline: 3.25rem;
   }
 }
+
+/* ====================================================================
+   AUTH SYSTEM — Split-screen layout, gradient mesh, animations
+   ==================================================================== */
+
+/* Animated gradient mesh on brand panel */
+.lm-auth-mesh-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 30%, oklch(0.45 0.15 200 / 0.3), transparent),
+    radial-gradient(ellipse 50% 60% at 80% 70%, oklch(0.40 0.18 285 / 0.25), transparent),
+    radial-gradient(ellipse 70% 40% at 50% 90%, oklch(0.35 0.10 220 / 0.2), transparent);
+  animation: authMeshShift 12s ease-in-out infinite alternate;
+}
+
+@keyframes authMeshShift {
+  0% {
+    background-position: 0% 0%, 100% 100%, 50% 50%;
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    background-position: 20% 20%, 80% 80%, 30% 70%;
+    filter: hue-rotate(15deg);
+  }
+}
+
+/* Floating orbs */
+.lm-auth-orb-1 {
+  top: 10%;
+  right: -15%;
+  animation: authOrbFloat1 8s ease-in-out infinite;
+}
+
+.lm-auth-orb-2 {
+  bottom: 20%;
+  left: -10%;
+  animation: authOrbFloat2 10s ease-in-out infinite;
+}
+
+.lm-auth-orb-3 {
+  top: 55%;
+  right: 20%;
+  animation: authOrbFloat3 7s ease-in-out infinite;
+}
+
+@keyframes authOrbFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-20px, 15px) scale(1.08); }
+}
+
+@keyframes authOrbFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(15px, -20px) scale(1.05); }
+}
+
+@keyframes authOrbFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-10px, -15px) scale(0.95); }
+}
+
+/* Shake animation for form errors */
+@keyframes authShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+.lm-auth-shake {
+  animation: authShake 0.4s ease-out;
+}
+
+/* Auth primary button */
+.lm-auth-btn {
+  @apply relative flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50;
+  background: linear-gradient(135deg, var(--color-primary), oklch(0.48 0.15 240));
+  color: var(--color-primary-content);
+  box-shadow:
+    0 4px 15px oklch(0.52 0.13 200 / 0.3),
+    0 1px 3px oklch(0 0 0 / 0.1);
+  overflow: hidden;
+}
+
+.lm-auth-btn:hover:not(:disabled) {
+  box-shadow:
+    0 6px 20px oklch(0.52 0.13 200 / 0.4),
+    0 2px 6px oklch(0 0 0 / 0.12);
+  transform: translateY(-1px);
+}
+
+.lm-auth-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Shine sweep on auth button */
+.lm-auth-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.12),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.lm-auth-btn:hover:not(:disabled)::after {
+  left: 100%;
+}
+
+/* Auth card glass */
+.lm-auth-card {
+  @apply rounded-2xl border border-border/50 bg-card/95 p-7 shadow-xl shadow-black/[0.06] backdrop-blur-sm;
+}
+
+@media (min-width: 640px) {
+  .lm-auth-card {
+    @apply p-8;
+  }
+}

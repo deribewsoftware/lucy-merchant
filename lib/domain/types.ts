@@ -1,5 +1,7 @@
 export type UserRole = "supplier" | "merchant" | "admin";
 
+export type VerificationStatus = "none" | "pending" | "approved" | "rejected";
+
 export type Permission =
   | "admin:dashboard"
   | "companies:verify"
@@ -23,8 +25,24 @@ export type UserRecord = {
   /** Supplier balance for posting products when points are enabled */
   points?: number;
   createdAt: string;
+  /** When `false`, merchant/supplier must verify email before login. Omitted = legacy verified. */
+  emailVerified?: boolean;
+  emailVerificationOtpHash?: string;
+  emailVerificationOtpExpiresAt?: string;
+  passwordResetTokenHash?: string;
+  passwordResetExpiresAt?: string;
   /** Admin-only: subtract permissions from the default admin set (e.g. revoke order completion). */
   adminPermissionDeny?: Permission[];
+  /** National ID verification */
+  nationalIdStatus?: VerificationStatus;
+  nationalIdNumber?: string;
+  nationalIdName?: string;
+  nationalIdFrontImage?: string;
+  nationalIdBackImage?: string;
+  nationalIdSubmittedAt?: string;
+  nationalIdReviewedAt?: string;
+  nationalIdRejectionReason?: string;
+  nationalIdReviewedBy?: string;
 };
 
 export type Category = {
@@ -52,6 +70,14 @@ export type Company = {
   settlementBankName?: string;
   settlementAccountName?: string;
   settlementAccountNumber?: string;
+  /** Company verification — TIN and Trade License */
+  tinNumber?: string;
+  tradeLicenseNumber?: string;
+  tradeLicenseDocument?: string;
+  verificationStatus?: VerificationStatus;
+  rejectionReason?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
 };
 
 export type Product = {
@@ -98,7 +124,8 @@ export type NotificationRecord = {
     | "commission_due"
     | "chat_message"
     | "review_company"
-    | "review_product";
+    | "review_product"
+    | "verification_status";
   title: string;
   body: string;
   href?: string;

@@ -8,6 +8,8 @@ import {
   HiOutlineMapPin,
   HiOutlinePencilSquare,
   HiOutlinePhoto,
+  HiOutlineFingerPrint,
+  HiOutlineDocumentCheck,
 } from "react-icons/hi2";
 import type { Company } from "@/lib/domain/types";
 import { GoogleLocationPicker } from "@/components/google-location-picker";
@@ -52,6 +54,13 @@ export function SupplierCompanyEditForm({ company }: { company: Company }) {
   const [settlementAccountNumber, setSettlementAccountNumber] = useState(
     company.settlementAccountNumber ?? "",
   );
+  const [tinNumber, setTinNumber] = useState(company.tinNumber ?? "");
+  const [tradeLicenseNumber, setTradeLicenseNumber] = useState(
+    company.tradeLicenseNumber ?? "",
+  );
+  const [tradeLicenseDoc, setTradeLicenseDoc] = useState(
+    company.tradeLicenseDocument ?? "",
+  );
   const [bankCustomMode, setBankCustomMode] = useState(() => {
     const n = (company.settlementBankName ?? "").trim();
     return Boolean(n && !ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(n));
@@ -82,6 +91,9 @@ export function SupplierCompanyEditForm({ company }: { company: Company }) {
         settlementBankName: settlementBankName.trim(),
         settlementAccountName: settlementAccountName.trim(),
         settlementAccountNumber: settlementAccountNumber.trim(),
+        tinNumber: tinNumber.trim(),
+        tradeLicenseNumber: tradeLicenseNumber.trim(),
+        tradeLicenseDocument: tradeLicenseDoc.trim(),
       }),
       credentials: "same-origin",
     });
@@ -116,6 +128,9 @@ export function SupplierCompanyEditForm({ company }: { company: Company }) {
             );
             setSettlementAccountName(company.settlementAccountName ?? "");
             setSettlementAccountNumber(company.settlementAccountNumber ?? "");
+            setTinNumber(company.tinNumber ?? "");
+            setTradeLicenseNumber(company.tradeLicenseNumber ?? "");
+            setTradeLicenseDoc(company.tradeLicenseDocument ?? "");
             setMsg(null);
           }}
           className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-100 dark:border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-950/60"
@@ -177,6 +192,54 @@ export function SupplierCompanyEditForm({ company }: { company: Company }) {
                 className={supplierInputClass}
               />
             </label>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 to-secondary/[0.04] p-4">
+            <SupplierFormSectionTitle
+              icon={<HiOutlineDocumentCheck className="h-5 w-5" />}
+              title="Business verification documents"
+              subtitle="TIN number and Trade License are reviewed by admins for company verification."
+            />
+            <div className="mt-3 space-y-3">
+              <label className={supplierLabelClass}>
+                <span className="inline-flex items-center gap-1.5 normal-case tracking-normal">
+                  <HiOutlineFingerPrint className="h-3.5 w-3.5" />
+                  TIN Number (Tax Identification)
+                </span>
+                <input
+                  placeholder="e.g. 0012345678"
+                  value={tinNumber}
+                  onChange={(e) => setTinNumber(e.target.value)}
+                  className={`${supplierInputClass} font-mono tabular-nums`}
+                  inputMode="numeric"
+                />
+              </label>
+              <label className={supplierLabelClass}>
+                <span className="inline-flex items-center gap-1.5 normal-case tracking-normal">
+                  <HiOutlineDocumentCheck className="h-3.5 w-3.5" />
+                  Trade License Number
+                </span>
+                <input
+                  placeholder="e.g. AA/TL/12345/2024"
+                  value={tradeLicenseNumber}
+                  onChange={(e) => setTradeLicenseNumber(e.target.value)}
+                  className={supplierInputClass}
+                />
+              </label>
+              <label className={supplierLabelClass}>
+                <span className="inline-flex items-center gap-1.5 normal-case tracking-normal">
+                  <HiOutlineDocumentText className="h-3.5 w-3.5" />
+                  Trade License Document URL
+                </span>
+                <input
+                  type="url"
+                  placeholder="https://… scanned license"
+                  value={tradeLicenseDoc}
+                  onChange={(e) => setTradeLicenseDoc(e.target.value)}
+                  className={supplierInputClass}
+                />
+              </label>
+            </div>
           </div>
 
           <div className="mt-6 rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 to-primary/[0.04] p-4">

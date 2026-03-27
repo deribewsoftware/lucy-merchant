@@ -82,3 +82,23 @@ export function validateRegisterPayload(input: {
   if (fe.confirmPassword) return fe.confirmPassword;
   return null;
 }
+
+export type ResetPasswordFieldErrors = {
+  password?: string;
+  confirmPassword?: string;
+};
+
+export function resetPasswordFieldErrors(input: {
+  password: string;
+  confirmPassword: string;
+}): ResetPasswordFieldErrors {
+  const out: ResetPasswordFieldErrors = {};
+  const pwErr = validatePasswordStrength(input.password);
+  if (pwErr) {
+    out.password = pwErr;
+  }
+  if (input.password !== input.confirmPassword) {
+    out.confirmPassword = "Must match password";
+  }
+  return out;
+}

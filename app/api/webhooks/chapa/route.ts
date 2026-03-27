@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { listOrders, patchOrder } from "@/lib/db/commerce";
+import { getOrder, listOrders, patchOrder } from "@/lib/db/commerce";
+import {
+  notifyAdminsGatewayCaptureRecorded,
+  notifyMerchantGatewayCaptureRecorded,
+} from "@/lib/db/notifications";
 import { verifyChapaTransaction } from "@/lib/payments/chapa-client";
 import {
   getChapaWebhookSecret,
@@ -56,10 +60,15 @@ export async function POST(request: Request) {
     .map((o) => o.id);
   const capturedAt = new Date().toISOString();
   for (const id of orderIds) {
-    patchOrder(id, {
+    const before = getOrder(id);
+    const updated = patchOrder(id, {
       gatewayPaymentCapturedAt: capturedAt,
       externalPaymentRef: txRef,
     });
+    if (updated && before && !before.gatewayPaymentCapturedAt) {
+      notifyMerchantGatewayCaptureRecorded(updated);
+      notifyAdminsGatewayCaptureRecorded(updated);
+    }
   }
 
   return NextResponse.json({ ok: true });

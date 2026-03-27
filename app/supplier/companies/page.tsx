@@ -75,18 +75,20 @@ export default async function SupplierCompaniesPage() {
                     </p>
                   </div>
                 </div>
-                <span
-                  className={
-                    c.isVerified
-                      ? "inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success"
-                      : "inline-flex items-center gap-1 rounded-full bg-warning/15 px-3 py-1 text-xs font-semibold text-warning"
-                  }
-                >
-                  {c.isVerified ? (
+                {c.verificationStatus === "approved" || c.isVerified ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">
                     <HiOutlineShieldCheck className="h-3.5 w-3.5" />
-                  ) : null}
-                  {c.isVerified ? "Verified" : "Pending verification"}
-                </span>
+                    Verified
+                  </span>
+                ) : c.verificationStatus === "rejected" ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-error/15 px-3 py-1 text-xs font-semibold text-error">
+                    Declined
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-3 py-1 text-xs font-semibold text-warning">
+                    Pending verification
+                  </span>
+                )}
               </div>
               <div className="px-5 py-4">
                 <p className="text-sm leading-relaxed text-base-content/75">
@@ -100,6 +102,31 @@ export default async function SupplierCompaniesPage() {
                     {c.businessAddress.trim()}
                   </p>
                 ) : null}
+
+                {/* TIN & Trade License */}
+                {(c.tinNumber || c.tradeLicenseNumber) && (
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    {c.tinNumber && (
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-base-200/50 px-2.5 py-1 text-xs font-medium text-base-content/60">
+                        TIN: <span className="font-mono text-base-content/80">{c.tinNumber}</span>
+                      </span>
+                    )}
+                    {c.tradeLicenseNumber && (
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-base-200/50 px-2.5 py-1 text-xs font-medium text-base-content/60">
+                        License: <span className="font-mono text-base-content/80">{c.tradeLicenseNumber}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Rejection reason */}
+                {c.verificationStatus === "rejected" && c.rejectionReason && (
+                  <div className="mt-3 rounded-lg border border-error/20 bg-error/5 px-3 py-2">
+                    <p className="text-xs font-semibold text-error/70">Decline reason</p>
+                    <p className="mt-0.5 text-xs text-base-content/70">{c.rejectionReason}</p>
+                  </div>
+                )}
+
                 <SupplierCompanyEditForm company={c} />
               </div>
             </li>

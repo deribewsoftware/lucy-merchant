@@ -6,6 +6,8 @@ import {
   HiOutlineBuildingOffice2,
   HiOutlineDocumentText,
   HiOutlineMapPin,
+  HiOutlineFingerPrint,
+  HiOutlineDocumentCheck,
 } from "react-icons/hi2";
 import { GoogleLocationPicker } from "@/components/google-location-picker";
 import { SupplierFormSectionTitle } from "@/components/supplier/form-section";
@@ -25,6 +27,9 @@ export function SupplierCompanyForm() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [licenseDocument, setLicenseDocument] = useState("");
+  const [tinNumber, setTinNumber] = useState("");
+  const [tradeLicenseNumber, setTradeLicenseNumber] = useState("");
+  const [tradeLicenseDocument, setTradeLicenseDocument] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -50,6 +55,9 @@ export function SupplierCompanyForm() {
         businessAddress: businessAddress.trim() || undefined,
         latitude: latitude ?? undefined,
         longitude: longitude ?? undefined,
+        tinNumber: tinNumber.trim() || undefined,
+        tradeLicenseNumber: tradeLicenseNumber.trim() || undefined,
+        tradeLicenseDocument: tradeLicenseDocument.trim() || undefined,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -64,6 +72,9 @@ export function SupplierCompanyForm() {
     setBusinessAddress("");
     setLatitude(null);
     setLongitude(null);
+    setTinNumber("");
+    setTradeLicenseNumber("");
+    setTradeLicenseDocument("");
     router.refresh();
   }
 
@@ -116,6 +127,56 @@ export function SupplierCompanyForm() {
           </label>
         </div>
 
+        <div className="mt-6 rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 to-secondary/[0.04] p-4">
+          <SupplierFormSectionTitle
+            icon={<HiOutlineDocumentCheck className="h-5 w-5" />}
+            title="Business verification"
+            subtitle="TIN number and Trade License are required for company verification."
+          />
+          <div className="mt-3 space-y-4">
+            <label className={supplierLabelClass}>
+              <span className="inline-flex items-center gap-1.5 normal-case tracking-normal">
+                <HiOutlineFingerPrint className="h-3.5 w-3.5" />
+                TIN Number (Tax Identification)
+              </span>
+              <input
+                required
+                placeholder="e.g. 0012345678"
+                value={tinNumber}
+                onChange={(e) => setTinNumber(e.target.value)}
+                className={`${supplierInputClass} font-mono tabular-nums`}
+                inputMode="numeric"
+              />
+            </label>
+            <label className={supplierLabelClass}>
+              <span className="inline-flex items-center gap-1.5 normal-case tracking-normal">
+                <HiOutlineDocumentCheck className="h-3.5 w-3.5" />
+                Trade License Number
+              </span>
+              <input
+                required
+                placeholder="e.g. AA/TL/12345/2024"
+                value={tradeLicenseNumber}
+                onChange={(e) => setTradeLicenseNumber(e.target.value)}
+                className={supplierInputClass}
+              />
+            </label>
+            <label className={supplierLabelClass}>
+              <span className="inline-flex items-center gap-1.5 normal-case tracking-normal">
+                <HiOutlineDocumentText className="h-3.5 w-3.5" />
+                Trade License Document URL (optional)
+              </span>
+              <input
+                type="url"
+                placeholder="https://… scanned trade license"
+                value={tradeLicenseDocument}
+                onChange={(e) => setTradeLicenseDocument(e.target.value)}
+                className={supplierInputClass}
+              />
+            </label>
+          </div>
+        </div>
+
         <div className="mt-6 rounded-2xl border border-base-300 p-4">
           <SupplierFormSectionTitle
             icon={<HiOutlineMapPin className="h-5 w-5" />}
@@ -162,6 +223,9 @@ export function SupplierCompanyForm() {
               setBusinessAddress("");
               setLatitude(null);
               setLongitude(null);
+              setTinNumber("");
+              setTradeLicenseNumber("");
+              setTradeLicenseDocument("");
               setMsg(null);
             }}
           >

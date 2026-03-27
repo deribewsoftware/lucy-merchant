@@ -3,6 +3,7 @@ import {
   HiOutlineBuildingOffice2,
   HiOutlineClipboardDocumentList,
   HiOutlineCog6Tooth,
+  HiOutlineFingerPrint,
   HiOutlineHome,
   HiOutlineRectangleStack,
   HiOutlineShieldExclamation,
@@ -32,6 +33,16 @@ export default async function AdminLayout({
       icon: <HiOutlineClipboardDocumentList className="h-5 w-5" />,
     },
     {
+      href: "/admin/verifications",
+      label: "Verifications",
+      icon: <HiOutlineFingerPrint className="h-5 w-5" />,
+    },
+    {
+      href: "/admin/companies",
+      label: "Companies",
+      icon: <HiOutlineBuildingOffice2 className="h-5 w-5" />,
+    },
+    {
       href: "/admin/moderation",
       label: "Moderation",
       icon: <HiOutlineShieldExclamation className="h-5 w-5" />,
@@ -40,11 +51,6 @@ export default async function AdminLayout({
       href: "/admin/categories",
       label: "Categories",
       icon: <HiOutlineRectangleStack className="h-5 w-5" />,
-    },
-    {
-      href: "/admin/companies",
-      label: "Verify companies",
-      icon: <HiOutlineBuildingOffice2 className="h-5 w-5" />,
     },
     {
       href: "/admin/system",

@@ -5,6 +5,7 @@ import {
   HiOutlineClipboardDocumentList,
   HiOutlinePresentationChartLine,
   HiOutlineShoppingBag,
+  HiOutlineShieldCheck,
 } from "react-icons/hi2";
 import { SidebarLayout } from "@/components/portal/sidebar-layout";
 import { MERCHANT_COMMISSION_SUSPENSION_BANNER } from "@/lib/domain/commission-hold-copy";
@@ -28,6 +29,11 @@ export default async function MerchantLayout({
       href: "/merchant/dashboard",
       label: "Overview",
       icon: <HiOutlinePresentationChartLine className="h-5 w-5" />,
+    },
+    {
+      href: "/merchant/verification",
+      label: "Verification",
+      icon: <HiOutlineShieldCheck className="h-5 w-5" />,
     },
     {
       href: "/merchant/cart",

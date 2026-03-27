@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { signToken } from "@/lib/auth/jwt";
+import { isEmailVerified } from "@/lib/auth/email-verification";
 import { verifyPassword } from "@/lib/auth/password";
 import { findUserByEmail } from "@/lib/db/users";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
@@ -27,6 +28,16 @@ export async function POST(request: Request) {
   const user = findUserByEmail(email);
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+  }
+
+  if (!isEmailVerified(user)) {
+    return NextResponse.json(
+      {
+        error: "Verify your email before signing in. Check your inbox for a code.",
+        code: "EMAIL_NOT_VERIFIED",
+      },
+      { status: 403 },
+    );
   }
 
   const token = await signToken({

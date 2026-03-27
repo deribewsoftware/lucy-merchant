@@ -7,6 +7,7 @@ import {
   HiOutlineClipboardDocumentList,
   HiOutlineCube,
   HiOutlinePlusCircle,
+  HiOutlineShieldCheck,
 } from "react-icons/hi2";
 import { SidebarLayout } from "@/components/portal/sidebar-layout";
 import { SUPPLIER_COMMISSION_SUSPENSION_BANNER } from "@/lib/domain/commission-hold-copy";
@@ -30,6 +31,11 @@ export default async function SupplierLayout({
       href: "/supplier/dashboard",
       label: "Overview",
       icon: <HiOutlineChartBarSquare className="h-5 w-5" />,
+    },
+    {
+      href: "/supplier/verification",
+      label: "Verification",
+      icon: <HiOutlineShieldCheck className="h-5 w-5" />,
     },
     {
       href: "/supplier/companies",

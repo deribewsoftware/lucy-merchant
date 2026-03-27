@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "verify": "npm run lint && npm run build",
+    "test:sendgrid": "node scripts/test-sendgrid.mjs",
     "seed:demo": "node scripts/seed-demo-data.mjs",
     "sync:deploy-seed": "node scripts/sync-deploy-seed.mjs",
     "seed:mongodb": "node scripts/seed-mongodb.mjs",
@@ -15,6 +16,7 @@
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
+    "@sendgrid/mail": "^8.1.6",
     "@tanstack/react-query": "^5.95.2",
     "@tiptap/extension-link": "^3.20.5",
     "@tiptap/extension-placeholder": "^3.20.5",

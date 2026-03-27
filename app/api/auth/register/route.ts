@@ -6,6 +6,7 @@ import {
 import { createUser, findUserByEmail } from "@/lib/db/users";
 import type { UserRole } from "@/lib/domain/types";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
+import { isSendGridConfigured, sendVerificationOtpEmail } from "@/lib/email/sendgrid";
 
 export async function POST(request: Request) {
   const ip = clientIp(request);
@@ -48,8 +49,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email already registered" }, { status: 409 });
     }
 
-    await createUser({ email, password, name: name.trim(), role });
-    return NextResponse.json({ ok: true });
+    const { user, verificationOtp } = await createUser({
+      email,
+      password,
+      name: name.trim(),
+      role,
+    });
+
+    let emailSent = false;
+    if (verificationOtp) {
+      if (isSendGridConfigured()) {
+        try {
+          await sendVerificationOtpEmail({
+            to: user.email,
+            name: user.name,
+            code: verificationOtp,
+          });
+          emailSent = true;
+        } catch (e) {
+          console.error("[auth/register] SendGrid error:", e);
+        }
+      } else if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          `[auth/register] SENDGRID_* not configured. Dev OTP for ${user.email}: ${verificationOtp}`,
+        );
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      emailSent,
+      needsVerification: Boolean(verificationOtp),
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Registration failed";
     return NextResponse.json({ error: msg }, { status: 400 });

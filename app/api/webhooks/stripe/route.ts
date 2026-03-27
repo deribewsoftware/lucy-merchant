@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { patchOrder } from "@/lib/db/commerce";
+import { getOrder, patchOrder } from "@/lib/db/commerce";
+import {
+  notifyAdminsGatewayCaptureRecorded,
+  notifyMerchantGatewayCaptureRecorded,
+} from "@/lib/db/notifications";
 import { getStripe } from "@/lib/payments/stripe-checkout";
 
 export const runtime = "nodejs";
@@ -33,10 +37,15 @@ export async function POST(request: Request) {
       .filter(Boolean);
     const capturedAt = new Date().toISOString();
     for (const orderId of ids) {
-      patchOrder(orderId, {
+      const before = getOrder(orderId);
+      const updated = patchOrder(orderId, {
         gatewayPaymentCapturedAt: capturedAt,
         externalPaymentRef: session.id,
       });
+      if (updated && before && !before.gatewayPaymentCapturedAt) {
+        notifyMerchantGatewayCaptureRecorded(updated);
+        notifyAdminsGatewayCaptureRecorded(updated);
+      }
     }
   }
 

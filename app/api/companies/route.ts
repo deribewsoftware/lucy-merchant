@@ -4,6 +4,7 @@ import {
   createCompany,
   listCompanies,
 } from "@/lib/db/catalog";
+import { notifyAdminsNewVerificationRequest } from "@/lib/db/notifications";
 import { requireSession } from "@/lib/server/require-session";
 import { getSessionUser } from "@/lib/server/session";
 
@@ -47,6 +48,15 @@ export async function POST(request: Request) {
   const businessAddress = body?.businessAddress
     ? String(body.businessAddress).trim()
     : undefined;
+  const tinNumber = body?.tinNumber
+    ? String(body.tinNumber).trim()
+    : undefined;
+  const tradeLicenseNumber = body?.tradeLicenseNumber
+    ? String(body.tradeLicenseNumber).trim()
+    : undefined;
+  const tradeLicenseDocument = body?.tradeLicenseDocument
+    ? String(body.tradeLicenseDocument).trim()
+    : undefined;
   const latRaw = body?.latitude;
   const lngRaw = body?.longitude;
   const latitude =
@@ -75,6 +85,12 @@ export async function POST(request: Request) {
       longitude !== undefined && Number.isFinite(longitude)
         ? longitude
         : undefined,
+    tinNumber,
+    tradeLicenseNumber,
+    tradeLicenseDocument,
   });
+
+  notifyAdminsNewVerificationRequest(auth.user.id, "company", name);
+
   return NextResponse.json({ company });
 }

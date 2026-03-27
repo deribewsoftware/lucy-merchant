@@ -4,6 +4,7 @@ import {
   setCompanyVerified,
   updateCompany,
 } from "@/lib/db/catalog";
+import { notifySupplierCompanyVerificationResult } from "@/lib/db/notifications";
 import { requireSession } from "@/lib/server/require-session";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 
@@ -32,10 +33,20 @@ export async function PATCH(request: Request, context: Params) {
         { status: 400 },
       );
     }
-    const updated = setCompanyVerified(id, body.isVerified);
+    if (!body.isVerified && !body.rejectionReason) {
+      return NextResponse.json(
+        { error: "A rejection reason is required when declining" },
+        { status: 400 },
+      );
+    }
+    const rejectionReason = body.rejectionReason
+      ? String(body.rejectionReason).trim()
+      : undefined;
+    const updated = setCompanyVerified(id, body.isVerified, auth.user.id, rejectionReason);
     if (!updated) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+    notifySupplierCompanyVerificationResult(id, body.isVerified, rejectionReason);
     return NextResponse.json({ company: updated });
   }
 
@@ -92,6 +103,15 @@ export async function PATCH(request: Request, context: Params) {
   }
   if (body?.settlementAccountNumber !== undefined) {
     patch.settlementAccountNumber = String(body.settlementAccountNumber ?? "");
+  }
+  if (body?.tinNumber !== undefined) {
+    patch.tinNumber = String(body.tinNumber ?? "");
+  }
+  if (body?.tradeLicenseNumber !== undefined) {
+    patch.tradeLicenseNumber = String(body.tradeLicenseNumber ?? "");
+  }
+  if (body?.tradeLicenseDocument !== undefined) {
+    patch.tradeLicenseDocument = String(body.tradeLicenseDocument ?? "");
   }
 
   if (Object.keys(patch).length === 0) {

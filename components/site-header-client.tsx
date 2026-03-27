@@ -150,15 +150,17 @@ export function SiteHeaderClient({
 }: {
   user: HeaderUser;
   categories: NavCategory[];
-  /** Unpaid buyer platform fee on a delivered order — surfaces near search on public pages */
   merchantCommissionHold?: boolean;
-  /** Unpaid supplier platform fee — surfaces near search on public pages */
   supplierCommissionHold?: boolean;
 }) {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const isAuthRoute = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/change-password"].some(
+    (r) => pathname === r || pathname.startsWith(`${r}/`)
+  );
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
@@ -194,6 +196,8 @@ export function SiteHeaderClient({
 
   const avatarInitials = user ? initialsFromName(user.name) : "";
   const { selfIsOnline } = usePresenceSelf();
+
+  if (isAuthRoute) return null;
 
   return (
     <>

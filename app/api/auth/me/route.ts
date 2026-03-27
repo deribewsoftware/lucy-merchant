@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isEmailVerified } from "@/lib/auth/email-verification";
 import { findUserById } from "@/lib/db/users";
 import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
 import { requireSession } from "@/lib/server/require-session";
@@ -25,6 +26,7 @@ export async function GET() {
       role: auth.user.role,
       name: auth.user.name,
       points: row?.points,
+      emailVerified: row ? isEmailVerified(row) : true,
       merchantCommissionHold,
       supplierCommissionHold,
     },

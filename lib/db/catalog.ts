@@ -117,6 +117,9 @@ export function createCompany(input: {
   businessAddress?: string;
   latitude?: number;
   longitude?: number;
+  tinNumber?: string;
+  tradeLicenseNumber?: string;
+  tradeLicenseDocument?: string;
 }): Company {
   const all = listCompanies();
   const addr = input.businessAddress?.trim();
@@ -141,6 +144,10 @@ export function createCompany(input: {
     ratingAverage: 0,
     totalReviews: 0,
     createdAt: new Date().toISOString(),
+    tinNumber: input.tinNumber?.trim() || undefined,
+    tradeLicenseNumber: input.tradeLicenseNumber?.trim() || undefined,
+    tradeLicenseDocument: input.tradeLicenseDocument?.trim() || undefined,
+    verificationStatus: "pending",
   };
   all.push(company);
   writeJsonFile(COMPANIES, all);
@@ -150,11 +157,20 @@ export function createCompany(input: {
 export function setCompanyVerified(
   companyId: string,
   isVerified: boolean,
+  adminId?: string,
+  rejectionReason?: string,
 ): Company | undefined {
   const all = listCompanies();
   const i = all.findIndex((c) => c.id === companyId);
   if (i === -1) return undefined;
-  all[i] = { ...all[i], isVerified };
+  all[i] = {
+    ...all[i],
+    isVerified,
+    verificationStatus: isVerified ? "approved" : "rejected",
+    reviewedAt: new Date().toISOString(),
+    reviewedBy: adminId,
+    rejectionReason: isVerified ? undefined : (rejectionReason?.trim() || undefined),
+  };
   writeJsonFile(COMPANIES, all);
   return all[i];
 }
@@ -172,6 +188,9 @@ export function updateCompany(
       | "settlementBankName"
       | "settlementAccountName"
       | "settlementAccountNumber"
+      | "tinNumber"
+      | "tradeLicenseNumber"
+      | "tradeLicenseDocument"
     >
   > & { latitude?: number | null; longitude?: number | null },
 ): Company | undefined {
@@ -234,6 +253,18 @@ export function updateCompany(
   if (patch.settlementAccountNumber !== undefined) {
     const v = String(patch.settlementAccountNumber ?? "").trim();
     next.settlementAccountNumber = v || undefined;
+  }
+  if (patch.tinNumber !== undefined) {
+    const v = String(patch.tinNumber ?? "").trim();
+    next.tinNumber = v || undefined;
+  }
+  if (patch.tradeLicenseNumber !== undefined) {
+    const v = String(patch.tradeLicenseNumber ?? "").trim();
+    next.tradeLicenseNumber = v || undefined;
+  }
+  if (patch.tradeLicenseDocument !== undefined) {
+    const v = String(patch.tradeLicenseDocument ?? "").trim();
+    next.tradeLicenseDocument = v || undefined;
   }
 
   all[i] = next;
