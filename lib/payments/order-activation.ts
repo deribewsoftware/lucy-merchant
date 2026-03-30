@@ -1,6 +1,9 @@
 import { getOrder, patchOrder } from "@/lib/db/commerce";
 import { markPendingPaymentPaid } from "@/lib/db/payments";
-import { notifySuppliersNewOrder } from "@/lib/db/notifications";
+import {
+  notifyMerchantPaymentVerified,
+  notifySuppliersNewOrder,
+} from "@/lib/db/notifications";
 import type { Order } from "@/lib/domain/types";
 
 /**
@@ -29,6 +32,7 @@ export function activatePaidOrder(
 
   if (awaiting) {
     notifySuppliersNewOrder(updated);
+    notifyMerchantPaymentVerified(updated);
   }
   return updated;
 }

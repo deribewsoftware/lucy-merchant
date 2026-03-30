@@ -16,7 +16,6 @@ export async function GET() {
     name: u.name,
     email: u.email,
     role: u.role,
-    nationalIdNumber: u.nationalIdNumber,
     nationalIdName: u.nationalIdName,
     nationalIdFrontImage: u.nationalIdFrontImage,
     nationalIdBackImage: u.nationalIdBackImage,

@@ -28,6 +28,10 @@ export function deleteReviewsForProduct(productId: string): void {
   save(rows.filter((r) => r.productId !== productId));
 }
 
+export function getProductReviewById(reviewId: string): ProductReview | undefined {
+  return load().find((r) => r.id === reviewId);
+}
+
 export function deleteProductReviewById(reviewId: string): boolean {
   const rows = load();
   const hit = rows.find((r) => r.id === reviewId);

@@ -3,7 +3,7 @@ import { isEmailVerified } from "@/lib/auth/email-verification";
 import { normalizeEmail } from "@/lib/auth/register-validation";
 import { verifyPassword } from "@/lib/auth/password";
 import { findUserByEmail, markUserEmailVerified } from "@/lib/db/users";
-import { isSendGridConfigured, sendWelcomeEmail } from "@/lib/email/sendgrid";
+import { isNodemailerConfigured, sendWelcomeEmail } from "@/lib/email/nodemailer";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
 
 export async function POST(request: Request) {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   markUserEmailVerified(user.id);
 
   if (
-    isSendGridConfigured() &&
+    isNodemailerConfigured() &&
     (user.role === "merchant" || user.role === "supplier")
   ) {
     void sendWelcomeEmail({

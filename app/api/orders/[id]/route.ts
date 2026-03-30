@@ -6,6 +6,7 @@ import {
   updateOrderStatus,
 } from "@/lib/db/commerce";
 import {
+  notifyAdminsOrderCompletedByBuyer,
   notifyAdminsOrderDelivered,
   notifyCommissionDueOnDelivery,
   notifyMerchantOrderStatus,
@@ -111,7 +112,8 @@ export async function PATCH(request: Request, context: Params) {
       status: "completed",
     });
     if (updated) {
-      notifySuppliersOrderStatus(updated, "completed");
+      notifySuppliersOrderStatus(updated, "completed", { completedBy: "merchant" });
+      notifyAdminsOrderCompletedByBuyer(updated);
     }
     return NextResponse.json({ order: updated });
   }

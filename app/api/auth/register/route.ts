@@ -6,7 +6,7 @@ import {
 import { createUser, findUserByEmail } from "@/lib/db/users";
 import type { UserRole } from "@/lib/domain/types";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
-import { isSendGridConfigured, sendVerificationOtpEmail } from "@/lib/email/sendgrid";
+import { isNodemailerConfigured, sendVerificationOtpEmail } from "@/lib/email/nodemailer";
 
 export async function POST(request: Request) {
   const ip = clientIp(request);
@@ -57,8 +57,9 @@ export async function POST(request: Request) {
     });
 
     let emailSent = false;
+    let emailSendFailed = false;
     if (verificationOtp) {
-      if (isSendGridConfigured()) {
+      if (isNodemailerConfigured()) {
         try {
           await sendVerificationOtpEmail({
             to: user.email,
@@ -67,11 +68,12 @@ export async function POST(request: Request) {
           });
           emailSent = true;
         } catch (e) {
-          console.error("[auth/register] SendGrid error:", e);
+          emailSendFailed = true;
+          console.error("[auth/register] Nodemailer error:", e);
         }
       } else if (process.env.NODE_ENV !== "production") {
         console.warn(
-          `[auth/register] SENDGRID_* not configured. Dev OTP for ${user.email}: ${verificationOtp}`,
+          `[auth/register] Nodemailer not configured (NODEMAILER_FROM_EMAIL, NODEMAILER_PASSWORD). Dev OTP for ${user.email}: ${verificationOtp}`,
         );
       }
     }
@@ -79,6 +81,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       emailSent,
+      ...(emailSendFailed ? { emailSendFailed: true } : {}),
       needsVerification: Boolean(verificationOtp),
     });
   } catch (e) {

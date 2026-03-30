@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getOrder, patchOrder } from "@/lib/db/commerce";
+import { notifyCommissionProofsAcknowledged } from "@/lib/db/notifications";
 import { requireSession } from "@/lib/server/require-session";
 import { adminMayCompleteOrders } from "@/lib/server/admin-permissions";
 
@@ -24,5 +25,8 @@ export async function POST(_request: Request, context: Params) {
     adminCommissionProofsAcknowledgedAt: new Date().toISOString(),
     adminCommissionProofsAcknowledgedBy: auth.user.id,
   });
+  if (updated) {
+    notifyCommissionProofsAcknowledged(updated);
+  }
   return NextResponse.json({ order: updated });
 }

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { isEmailVerified } from "@/lib/auth/email-verification";
 import { normalizeEmail } from "@/lib/auth/register-validation";
-import { isSendGridConfigured, sendVerificationOtpEmail } from "@/lib/email/sendgrid";
+import {
+  formatNodemailerErrorForClient,
+  isNodemailerConfigured,
+  sendVerificationOtpEmail,
+} from "@/lib/email/nodemailer";
 import { findUserByEmail, issueNewVerificationOtp } from "@/lib/db/users";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
 
@@ -31,16 +35,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "This email is already verified" }, { status: 400 });
   }
 
-  if (!isSendGridConfigured()) {
+  if (!isNodemailerConfigured()) {
     const otp = await issueNewVerificationOtp(user.id);
     if (process.env.NODE_ENV !== "production") {
-      console.warn(`[resend-verification] SENDGRID_* not set. Dev OTP for ${email}: ${otp}`);
+      console.warn(
+        `[resend-verification] Nodemailer not configured. Dev OTP for ${email}: ${otp}`,
+      );
       return NextResponse.json({ ok: true, devOnly: true });
     }
     return NextResponse.json(
       {
         error:
-          "Email is not configured on the server. Set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL.",
+          "Email is not configured on the server. Set NODEMAILER_FROM_EMAIL and NODEMAILER_PASSWORD (e.g. Gmail app password).",
       },
       { status: 503 },
     );
@@ -55,9 +61,16 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error("[resend-verification] SendGrid:", e);
+    console.error("[resend-verification] Nodemailer:", e);
+    const detail =
+      process.env.NODE_ENV !== "production" && e instanceof Error
+        ? e.message
+        : undefined;
     return NextResponse.json(
-      { error: "Could not send email. Try again later." },
+      {
+        error: formatNodemailerErrorForClient(e),
+        ...(detail ? { detail } : {}),
+      },
       { status: 502 },
     );
   }

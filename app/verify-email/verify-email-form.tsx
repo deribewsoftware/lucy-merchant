@@ -22,6 +22,7 @@ export function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const initialEmail = searchParams.get("email") ?? "";
   const noEmailHint = searchParams.get("hint") === "no-email";
+  const sendFailedHint = searchParams.get("hint") === "send-failed";
 
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState("");
@@ -30,6 +31,42 @@ export function VerifyEmailForm() {
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  /** From server — URL `hint=no-email` can be stale after NODEMAILER_* is added */
+  const [emailDeliveryConfigured, setEmailDeliveryConfigured] = useState<
+    boolean | null
+  >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/health/email", { cache: "no-store" })
+      .then((r) => r.json().catch(() => ({})))
+      .then((data: {
+        email?: { configured?: boolean };
+        nodemailer?: { configured?: boolean };
+      }) => {
+        if (cancelled) return;
+        const ok =
+          Boolean(data?.email?.configured) ||
+          Boolean(data?.nodemailer?.configured);
+        setEmailDeliveryConfigured(ok);
+      })
+      .catch(() => {
+        if (!cancelled) setEmailDeliveryConfigured(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Drop stale `hint=no-email` from the URL once we know email is configured */
+  useEffect(() => {
+    if (emailDeliveryConfigured !== true) return;
+    if (searchParams.get("hint") !== "no-email") return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("hint");
+    const qs = params.toString();
+    router.replace(`/verify-email${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [emailDeliveryConfigured, router, searchParams]);
 
   // Cooldown timer
   useEffect(() => {
@@ -105,12 +142,23 @@ export function VerifyEmailForm() {
     const data = await res.json().catch(() => ({}));
     setResendLoading(false);
     if (!res.ok) {
-      setMessage(data.error ?? "Could not resend code");
+      const base = data.error ?? "Could not resend code";
+      const detail =
+        typeof data.detail === "string" && data.detail.trim()
+          ? ` (${data.detail})`
+          : "";
+      setMessage(`${base}${detail}`);
       return;
     }
     setMessage("A new code has been sent. Check your inbox.");
     setResendCooldown(60);
-  }, [email]);
+    if (searchParams.get("hint") === "send-failed") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("hint");
+      const qs = params.toString();
+      router.replace(`/verify-email${qs ? `?${qs}` : ""}`, { scroll: false });
+    }
+  }, [email, router, searchParams]);
 
   return (
     <AuthLayout>
@@ -124,22 +172,33 @@ export function VerifyEmailForm() {
             Verify your email
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {noEmailHint
+            {noEmailHint && emailDeliveryConfigured === false
               ? "Enter the 6-digit code (check your server console if email wasn't sent)"
-              : "Enter the 6-digit code we sent to your inbox"}
+              : sendFailedHint && emailDeliveryConfigured === true
+                ? "We couldn't send the first verification email. Use Resend code below, then enter the new code."
+                : "Enter the 6-digit code we sent to your inbox"}
           </p>
-          {noEmailHint && (
+          {sendFailedHint && emailDeliveryConfigured === true && (
+            <div className="mt-3 rounded-xl border border-border/50 bg-muted/30 p-3 text-left text-xs leading-relaxed text-muted-foreground">
+              <p>
+                Outbound email is configured, but the first send failed (rate limits, sender
+                approval, or a temporary mail error). Try{" "}
+                <span className="font-semibold text-foreground">Resend code</span>.
+              </p>
+            </div>
+          )}
+          {emailDeliveryConfigured === false && (
             <div className="mt-3 rounded-xl border border-warning/30 bg-warning/10 p-3 text-left text-xs leading-relaxed text-muted-foreground">
               <p>
                 Email delivery is not configured. Set{" "}
                 <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">
-                  SENDGRID_API_KEY
+                  NODEMAILER_FROM_EMAIL
                 </code>{" "}
                 and{" "}
                 <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">
-                  SENDGRID_FROM_EMAIL
+                  NODEMAILER_PASSWORD
                 </code>{" "}
-                on the server.
+                (e.g. Gmail app password).
               </p>
             </div>
           )}

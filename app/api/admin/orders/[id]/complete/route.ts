@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOrder, patchOrder } from "@/lib/db/commerce";
 import {
+  notifyAdminsOrderCompletedByAdmin,
   notifyMerchantOrderStatus,
   notifySuppliersOrderStatus,
 } from "@/lib/db/notifications";
@@ -35,8 +36,9 @@ export async function POST(_request: Request, context: Params) {
 
   const updated = patchOrder(id, { status: "completed" });
   if (updated) {
-    notifyMerchantOrderStatus(updated, "completed");
-    notifySuppliersOrderStatus(updated, "completed");
+    notifyMerchantOrderStatus(updated, "completed", { completedBy: "admin" });
+    notifySuppliersOrderStatus(updated, "completed", { completedBy: "admin" });
+    notifyAdminsOrderCompletedByAdmin(updated, auth.user.id);
   }
   return NextResponse.json({ order: updated });
 }

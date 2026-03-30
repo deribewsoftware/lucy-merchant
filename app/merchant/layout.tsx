@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import {
   HiOutlineClipboardDocumentList,
+  HiOutlineCog6Tooth,
   HiOutlinePresentationChartLine,
   HiOutlineShoppingBag,
   HiOutlineShieldCheck,
@@ -44,6 +45,11 @@ export default async function MerchantLayout({
       href: "/merchant/orders",
       label: "Orders",
       icon: <HiOutlineClipboardDocumentList className="h-5 w-5" />,
+    },
+    {
+      href: "/merchant/settings",
+      label: "Settings",
+      icon: <HiOutlineCog6Tooth className="h-5 w-5" />,
     },
   ];
 

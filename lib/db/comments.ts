@@ -23,6 +23,12 @@ export function listAllProductComments(): ProductComment[] {
   return readJsonFile<ProductComment[]>(FILE, []).map(normalizeComment);
 }
 
+export function getProductCommentById(commentId: string): ProductComment | undefined {
+  const all = readJsonFile<ProductComment[]>(FILE, []);
+  const c = all.find((x) => x.id === commentId);
+  return c ? normalizeComment(c) : undefined;
+}
+
 export function deleteCommentsForProduct(productId: string): void {
   const all = readJsonFile<ProductComment[]>(FILE, []);
   const next = all.filter((c) => c.productId !== productId);

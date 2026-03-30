@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
-import { isSendGridConfigured } from "@/lib/email/sendgrid";
+import { isNodemailerConfigured } from "@/lib/email/nodemailer";
 
 /**
  * No secrets. Use to confirm outbound email is configured (e.g. after deploy).
  */
 export async function GET() {
+  const configured = isNodemailerConfigured();
   return NextResponse.json({
     ok: true,
-    sendgrid: {
-      configured: isSendGridConfigured(),
+    email: {
+      provider: "nodemailer",
+      configured,
+    },
+    nodemailer: {
+      configured,
     },
     time: new Date().toISOString(),
   });

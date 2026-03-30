@@ -13,7 +13,7 @@ import {
   Trash2,
   Truck,
 } from "lucide-react";
-import { GoogleLocationPicker } from "@/components/google-location-picker";
+import { EthiopianDeliveryLocation } from "@/components/ethiopian-delivery-location";
 import type { Cart, PaymentMethod } from "@/lib/domain/types";
 
 type Props = {
@@ -61,6 +61,10 @@ export function MerchantCart({ initial, lineTitles }: Props) {
   async function checkout(e: React.FormEvent) {
     e.preventDefault();
     if (checkoutInFlight.current) return;
+    if (!location.trim()) {
+      setMsg("Enter a delivery location (search or fill region, town, city, street).");
+      return;
+    }
     checkoutInFlight.current = true;
     setLoading(true);
     setMsg(null);
@@ -225,7 +229,7 @@ export function MerchantCart({ initial, lineTitles }: Props) {
           </div>
 
           <form onSubmit={checkout} className="flex flex-col gap-5 p-5">
-            <GoogleLocationPicker
+            <EthiopianDeliveryLocation
               inputId={deliveryFieldId}
               label="Delivery location"
               required
@@ -233,8 +237,6 @@ export function MerchantCart({ initial, lineTitles }: Props) {
               onChange={setLocation}
               helperText="Search for your address, then refine if needed."
               variant="daisy"
-              addressMode="full"
-              mapHeightPx={200}
             />
 
             <fieldset className="space-y-3">

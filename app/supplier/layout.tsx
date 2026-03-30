@@ -5,6 +5,7 @@ import {
   HiOutlineBuildingOffice2,
   HiOutlineChartBarSquare,
   HiOutlineClipboardDocumentList,
+  HiOutlineCog6Tooth,
   HiOutlineCube,
   HiOutlinePlusCircle,
   HiOutlineShieldCheck,
@@ -56,6 +57,11 @@ export default async function SupplierLayout({
       href: "/supplier/orders",
       label: "Orders",
       icon: <HiOutlineClipboardDocumentList className="h-5 w-5" />,
+    },
+    {
+      href: "/supplier/settings",
+      label: "Settings",
+      icon: <HiOutlineCog6Tooth className="h-5 w-5" />,
     },
   ];
 

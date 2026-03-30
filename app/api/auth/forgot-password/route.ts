@@ -5,7 +5,7 @@ import {
   normalizeEmail,
 } from "@/lib/auth/register-validation";
 import { findUserByEmail, setPasswordResetToken } from "@/lib/db/users";
-import { isSendGridConfigured, sendPasswordResetEmail } from "@/lib/email/sendgrid";
+import { isNodemailerConfigured, sendPasswordResetEmail } from "@/lib/email/nodemailer";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
 
 function generateResetToken(): string {
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       token,
     }).toString()}`;
 
-    if (isSendGridConfigured()) {
+    if (isNodemailerConfigured()) {
       try {
         await sendPasswordResetEmail({
           to: user.email,
@@ -54,11 +54,11 @@ export async function POST(request: Request) {
           resetUrl,
         });
       } catch (e) {
-        console.error("[auth/forgot-password] SendGrid:", e);
+        console.error("[auth/forgot-password] Nodemailer:", e);
       }
     } else if (process.env.NODE_ENV !== "production") {
       console.warn(
-        `[auth/forgot-password] SENDGRID_* not set. Dev reset link for ${email}:\n${resetUrl}`,
+        `[auth/forgot-password] Nodemailer not configured (NODEMAILER_FROM_EMAIL, NODEMAILER_PASSWORD). Dev reset link for ${email}:\n${resetUrl}`,
       );
     }
   }

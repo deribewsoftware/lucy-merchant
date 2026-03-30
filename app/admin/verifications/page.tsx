@@ -12,10 +12,15 @@ export default function AdminVerificationsPage() {
     name: u.name,
     email: u.email,
     role: u.role,
-    nationalIdNumber: u.nationalIdNumber,
+    nationalIdFan: u.nationalIdFan,
     nationalIdName: u.nationalIdName,
     nationalIdFrontImage: u.nationalIdFrontImage,
     nationalIdBackImage: u.nationalIdBackImage,
+    nationalIdCity: u.nationalIdCity,
+    nationalIdSubcity: u.nationalIdSubcity,
+    nationalIdWoreda: u.nationalIdWoreda,
+    nationalIdPhoneOnId: u.nationalIdPhoneOnId,
+    nationalIdAddressLine: u.nationalIdAddressLine,
     nationalIdSubmittedAt: u.nationalIdSubmittedAt,
   }));
 
@@ -38,7 +43,7 @@ export default function AdminVerificationsPage() {
               Verification Center
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-base-content/60">
-              Review and approve National ID verifications and company registrations.
+              Review Fayda (Ethiopian Digital ID) submissions and company registrations.
               Process during business hours (Mon–Fri, 9 AM – 5 PM EAT).
             </p>
           </div>
@@ -46,7 +51,7 @@ export default function AdminVerificationsPage() {
         <div className="flex flex-wrap gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/15 px-3 py-1.5 text-xs font-semibold text-warning ring-1 ring-warning/20">
             <HiOutlineFingerPrint className="h-3.5 w-3.5" />
-            {pendingUsers.length} ID{pendingUsers.length !== 1 ? "s" : ""} pending
+            {pendingUsers.length} Fayda submission{pendingUsers.length !== 1 ? "s" : ""} pending
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary ring-1 ring-primary/20">
             <HiOutlineBuildingOffice2 className="h-3.5 w-3.5" />

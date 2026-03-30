@@ -16,16 +16,22 @@ import {
 } from "react-icons/hi2";
 import type { Company } from "@/lib/domain/types";
 import { stripHtmlToPlainText } from "@/lib/rich-text";
+import { formatFanDisplay } from "@/lib/validation/fayda-fcn";
 
 type PendingUser = {
   id: string;
   name: string;
   email: string;
   role: string;
-  nationalIdNumber?: string;
+  nationalIdFan?: string;
   nationalIdName?: string;
   nationalIdFrontImage?: string;
   nationalIdBackImage?: string;
+  nationalIdCity?: string;
+  nationalIdSubcity?: string;
+  nationalIdWoreda?: string;
+  nationalIdPhoneOnId?: string;
+  nationalIdAddressLine?: string;
   nationalIdSubmittedAt?: string;
 };
 
@@ -56,7 +62,7 @@ export function AdminVerificationsDashboard({
           }`}
         >
           <HiOutlineFingerPrint className="h-4 w-4" />
-          National IDs
+          Fayda (ID)
           {pendingUsers.length > 0 && (
             <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-bold text-warning">
               {pendingUsers.length}
@@ -154,7 +160,7 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
         </span>
         <p className="mt-4 text-base font-medium text-base-content">All clear</p>
         <p className="mt-1 max-w-sm text-sm text-base-content/55">
-          No National ID verifications are waiting for review.
+          No Fayda identity verifications are waiting for review.
         </p>
       </div>
     );
@@ -203,10 +209,10 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
               <div className="rounded-xl border border-base-300/50 bg-base-200/20 px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-base-content/40">
                   <HiOutlineFingerPrint className="mr-1 inline h-3 w-3" />
-                  ID Number
+                  FAN (16 digits)
                 </p>
-                <p className="mt-1 font-mono text-sm font-medium text-base-content">
-                  {u.nationalIdNumber ?? "—"}
+                <p className="mt-1 font-mono text-sm font-medium tracking-wide text-base-content">
+                  {formatFanDisplay(u.nationalIdFan)}
                 </p>
               </div>
               <div className="rounded-xl border border-base-300/50 bg-base-200/20 px-4 py-3">
@@ -220,53 +226,100 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
               </div>
             </div>
 
+            <div className="mt-3 rounded-xl border border-base-300/50 bg-base-200/15 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-base-content/40">
+                Address on submission
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-base-content">
+                {[u.nationalIdCity, u.nationalIdSubcity, u.nationalIdWoreda].filter(Boolean).join(" · ") ||
+                  "—"}
+              </p>
+              {u.nationalIdAddressLine && (
+                <p className="mt-1 text-sm text-base-content/80">{u.nationalIdAddressLine}</p>
+              )}
+              {u.nationalIdPhoneOnId && (
+                <p className="mt-2 text-xs text-base-content/55">
+                  <span className="font-medium text-base-content/70">Phone on ID:</span>{" "}
+                  {u.nationalIdPhoneOnId}
+                </p>
+              )}
+            </div>
+
             {/* ID Images */}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-base-300/50 bg-base-200/20 p-3">
-                <p className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">
-                  <HiOutlinePhoto className="h-3 w-3" /> Front Side
-                </p>
-                {u.nationalIdFrontImage ? (
-                  <a
-                    href={u.nationalIdFrontImage}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block overflow-hidden rounded-lg border border-base-300"
-                  >
-                    <img
-                      src={u.nationalIdFrontImage}
-                      alt="ID Front"
-                      className="h-36 w-full object-cover transition hover:scale-105"
-                    />
-                  </a>
-                ) : (
-                  <div className="flex h-36 items-center justify-center rounded-lg border border-dashed border-base-300 text-xs text-base-content/40">
-                    No image
-                  </div>
-                )}
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="overflow-hidden rounded-2xl border border-base-300/60 bg-base-200/20">
+                <div className="flex items-center justify-between border-b border-base-300/40 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-base-content/50">
+                    <HiOutlinePhoto className="mr-1 inline h-3 w-3" /> Front
+                  </p>
+                  {u.nationalIdFrontImage && (
+                    <a
+                      href={u.nationalIdFrontImage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Open
+                    </a>
+                  )}
+                </div>
+                <div className="flex min-h-[240px] items-center justify-center bg-base-300/10 p-2 sm:min-h-[300px]">
+                  {u.nationalIdFrontImage ? (
+                    <a
+                      href={u.nationalIdFrontImage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block max-h-[min(480px,70vh)] w-full"
+                    >
+                      <img
+                        src={u.nationalIdFrontImage}
+                        alt="ID Front"
+                        className="mx-auto max-h-[min(480px,70vh)] w-full rounded-lg object-contain shadow-md ring-1 ring-black/5"
+                      />
+                    </a>
+                  ) : (
+                    <div className="flex min-h-[200px] items-center justify-center text-xs text-base-content/40">
+                      No image
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="rounded-xl border border-base-300/50 bg-base-200/20 p-3">
-                <p className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">
-                  <HiOutlinePhoto className="h-3 w-3" /> Back Side
-                </p>
-                {u.nationalIdBackImage ? (
-                  <a
-                    href={u.nationalIdBackImage}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block overflow-hidden rounded-lg border border-base-300"
-                  >
-                    <img
-                      src={u.nationalIdBackImage}
-                      alt="ID Back"
-                      className="h-36 w-full object-cover transition hover:scale-105"
-                    />
-                  </a>
-                ) : (
-                  <div className="flex h-36 items-center justify-center rounded-lg border border-dashed border-base-300 text-xs text-base-content/40">
-                    No image
-                  </div>
-                )}
+              <div className="overflow-hidden rounded-2xl border border-base-300/60 bg-base-200/20">
+                <div className="flex items-center justify-between border-b border-base-300/40 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-base-content/50">
+                    <HiOutlinePhoto className="mr-1 inline h-3 w-3" /> Back (QR &amp; FAN)
+                  </p>
+                  {u.nationalIdBackImage && (
+                    <a
+                      href={u.nationalIdBackImage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Open
+                    </a>
+                  )}
+                </div>
+                <div className="flex min-h-[240px] items-center justify-center bg-base-300/10 p-2 sm:min-h-[300px]">
+                  {u.nationalIdBackImage ? (
+                    <a
+                      href={u.nationalIdBackImage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block max-h-[min(480px,70vh)] w-full"
+                    >
+                      <img
+                        src={u.nationalIdBackImage}
+                        alt="ID Back"
+                        className="mx-auto max-h-[min(480px,70vh)] w-full rounded-lg object-contain shadow-md ring-1 ring-black/5"
+                      />
+                    </a>
+                  ) : (
+                    <div className="flex min-h-[200px] items-center justify-center text-xs text-base-content/40">
+                      No image
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -21,6 +21,10 @@ export function listAllCompanyReviews(): CompanyReview[] {
   return load().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
+export function getCompanyReviewById(reviewId: string): CompanyReview | undefined {
+  return load().find((r) => r.id === reviewId);
+}
+
 export function deleteCompanyReviewById(reviewId: string): boolean {
   const rows = load();
   const hit = rows.find((r) => r.id === reviewId);

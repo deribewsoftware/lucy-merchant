@@ -19,16 +19,37 @@ export async function GET() {
       ? supplierHasOutstandingCommission(auth.user.id)
       : false;
 
+  const base = {
+    id: auth.user.id,
+    email: auth.user.email,
+    role: auth.user.role,
+    name: auth.user.name,
+    points: row?.points,
+    emailVerified: row ? isEmailVerified(row) : true,
+    merchantCommissionHold,
+    supplierCommissionHold,
+  };
+
+  const fayda =
+    row && (row.role === "merchant" || row.role === "supplier")
+      ? {
+          nationalIdStatus: row.nationalIdStatus,
+          nationalIdFan: row.nationalIdFan,
+          nationalIdName: row.nationalIdName,
+          nationalIdFrontImage: row.nationalIdFrontImage,
+          nationalIdBackImage: row.nationalIdBackImage,
+          nationalIdCity: row.nationalIdCity,
+          nationalIdSubcity: row.nationalIdSubcity,
+          nationalIdWoreda: row.nationalIdWoreda,
+          nationalIdPhoneOnId: row.nationalIdPhoneOnId,
+          nationalIdAddressLine: row.nationalIdAddressLine,
+          nationalIdSubmittedAt: row.nationalIdSubmittedAt,
+          nationalIdRejectionReason: row.nationalIdRejectionReason,
+          nationalIdReviewedAt: row.nationalIdReviewedAt,
+        }
+      : {};
+
   return NextResponse.json({
-    user: {
-      id: auth.user.id,
-      email: auth.user.email,
-      role: auth.user.role,
-      name: auth.user.name,
-      points: row?.points,
-      emailVerified: row ? isEmailVerified(row) : true,
-      merchantCommissionHold,
-      supplierCommissionHold,
-    },
+    user: { ...base, ...fayda },
   });
 }

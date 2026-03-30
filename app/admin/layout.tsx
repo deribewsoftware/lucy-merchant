@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import {
+  HiOutlineAdjustmentsHorizontal,
   HiOutlineBuildingOffice2,
   HiOutlineClipboardDocumentList,
   HiOutlineCog6Tooth,
@@ -56,6 +57,11 @@ export default async function AdminLayout({
       href: "/admin/system",
       label: "System config",
       icon: <HiOutlineCog6Tooth className="h-5 w-5" />,
+    },
+    {
+      href: "/admin/settings",
+      label: "Settings",
+      icon: <HiOutlineAdjustmentsHorizontal className="h-5 w-5" />,
     },
   ];
 

@@ -87,7 +87,9 @@ export default function RegisterPage() {
     }
     if (data.needsVerification) {
       const q = new URLSearchParams({ email });
-      if (data.emailSent === false) q.set("hint", "no-email");
+      if (data.emailSent === false) {
+        q.set("hint", data.emailSendFailed ? "send-failed" : "no-email");
+      }
       router.push(`/verify-email?${q.toString()}`);
       return;
     }

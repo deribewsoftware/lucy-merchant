@@ -1,11 +1,29 @@
 import { randomUUID } from "crypto";
-import type { NotificationRecord, Order } from "@/lib/domain/types";
+import type {
+  CompanyReview,
+  NotificationRecord,
+  Order,
+  ProductComment,
+  ProductReview,
+} from "@/lib/domain/types";
 import { getCompany, getProduct } from "@/lib/db/catalog";
 import { findUserById, listUsers } from "@/lib/db/users";
+import { queueInAppNotificationEmail } from "@/lib/email/mirror-in-app-notification";
+import type { EmailMirrorCategory } from "@/lib/user/email-preferences";
 import {
-  isSendGridMirrorChatEnabled,
-  queueInAppNotificationEmail,
-} from "@/lib/email/mirror-in-app-notification";
+  adminCopyBankReceiptPendingFirstUpload,
+  adminCopyOrderCompletedByBuyer,
+  adminCopyOrderCompletedByPlatform,
+  copyCommissionProofsAcknowledged,
+  merchantCopyBankProofSavedPending,
+  merchantCopyBankProofSubmittedForReview,
+  merchantCopyBankProofUpdated,
+  merchantCopyForSupplierStatusChange,
+  merchantCopyPaymentVerified,
+  merchantCopySupplierConfirmedPayment,
+  supplierCopyBuyerBankReceiptFirstUpload,
+  supplierCopyForOrderCompleted,
+} from "@/lib/domain/order-notification-copy";
 import {
   isMerchantPlatformCommissionPaid,
   isSupplierPlatformCommissionPaid,
@@ -93,7 +111,9 @@ export function notifyAdmins(input: {
   title: string;
   body: string;
   href?: string;
+  emailCategory?: EmailMirrorCategory;
 }): void {
+  const cat = input.emailCategory ?? "orders";
   for (const u of listUsers()) {
     if (u.role !== "admin") continue;
     createNotification({
@@ -103,7 +123,9 @@ export function notifyAdmins(input: {
       body: input.body,
       href: input.href,
     });
-    queueInAppNotificationEmail(u.id, input.title, input.body, input.href);
+    queueInAppNotificationEmail(u.id, input.title, input.body, input.href, {
+      emailCategory: cat,
+    });
   }
 }
 
@@ -189,24 +211,134 @@ export function notifyMerchantOrderPlaced(order: Order): void {
   );
 }
 
+/**
+ * Merchant is notified when the supplier changes fulfillment status (or when an admin marks completed).
+ */
 export function notifyMerchantOrderStatus(
   order: Order,
   status: Order["status"],
+  options?: { completedBy?: "admin" },
 ): void {
-  const line = `Status: ${status.replace(/_/g, " ")}`;
+  const { title, body } = merchantCopyForSupplierStatusChange(
+    order,
+    status,
+    options,
+  );
   createNotification({
     userId: order.merchantId,
     kind: "order_status",
-    title: "Order update",
-    body: `Your order was updated. ${line}.`,
+    title,
+    body,
     href: `/merchant/orders/${order.id}`,
   });
   queueInAppNotificationEmail(
     order.merchantId,
-    "Order update",
-    `Your order was updated. ${line}.`,
+    title,
+    body,
     `/merchant/orders/${order.id}`,
   );
+}
+
+/** After bank/gateway payment is verified and the order becomes `pending` for suppliers. */
+export function notifyMerchantPaymentVerified(order: Order): void {
+  const { title, body } = merchantCopyPaymentVerified(order);
+  createNotification({
+    userId: order.merchantId,
+    kind: "order_status",
+    title,
+    body,
+    href: `/merchant/orders/${order.id}`,
+  });
+  queueInAppNotificationEmail(
+    order.merchantId,
+    title,
+    body,
+    `/merchant/orders/${order.id}`,
+  );
+}
+
+/** Supplier marked buyer payment as received (COD / bank). */
+export function notifyMerchantSupplierConfirmedPaymentReceived(order: Order): void {
+  const { title, body } = merchantCopySupplierConfirmedPayment(order);
+  createNotification({
+    userId: order.merchantId,
+    kind: "order_status",
+    title,
+    body,
+    href: `/merchant/orders/${order.id}`,
+  });
+  queueInAppNotificationEmail(
+    order.merchantId,
+    title,
+    body,
+    `/merchant/orders/${order.id}`,
+  );
+}
+
+/** All admins: buyer marked the order completed (audit / visibility). */
+export function notifyAdminsOrderCompletedByBuyer(order: Order): void {
+  const { title, body } = adminCopyOrderCompletedByBuyer(order);
+  notifyAdmins({
+    title,
+    body,
+    href: `/admin/orders/${order.id}`,
+  });
+}
+
+/** Other admins (not the actor): audit when an administrator closes the order. */
+export function notifyAdminsOrderCompletedByAdmin(
+  order: Order,
+  actingAdminUserId?: string,
+): void {
+  const admin = actingAdminUserId ? findUserById(actingAdminUserId) : undefined;
+  const { title, body } = adminCopyOrderCompletedByPlatform(order, admin?.name);
+  const href = `/admin/orders/${order.id}`;
+  for (const u of listUsers()) {
+    if (u.role !== "admin") continue;
+    if (actingAdminUserId && u.id === actingAdminUserId) continue;
+    createNotification({
+      userId: u.id,
+      kind: "order_admin",
+      title,
+      body,
+      href,
+    });
+    queueInAppNotificationEmail(u.id, title, body, href);
+  }
+}
+
+/** Merchant + involved suppliers: admin acknowledged commission proof uploads. */
+export function notifyCommissionProofsAcknowledged(order: Order): void {
+  const { title, body } = copyCommissionProofsAcknowledged(order);
+  const hrefM = `/merchant/orders/${order.id}`;
+  createNotification({
+    userId: order.merchantId,
+    kind: "order_status",
+    title,
+    body,
+    href: hrefM,
+  });
+  queueInAppNotificationEmail(
+    order.merchantId,
+    title,
+    body,
+    hrefM,
+  );
+  const seen = new Set<string>();
+  for (const line of order.items) {
+    const co = getCompany(line.companyId);
+    if (!co || seen.has(co.ownerId)) continue;
+    seen.add(co.ownerId);
+    const hrefS = `/supplier/orders/${order.id}`;
+    createNotification({
+      userId: co.ownerId,
+      kind: "order_status",
+      title,
+      body,
+      href: hrefS,
+    });
+    queueInAppNotificationEmail(co.ownerId, title, body, hrefS);
+  }
 }
 
 /** When merchant completes (or other merchant-side events), ping involved suppliers */
@@ -275,6 +407,67 @@ export function notifyAdminsBankProofSubmitted(order: Order): void {
   });
 }
 
+/** Merchant confirmation after uploading a bank receipt (in-app + email). */
+/** Involved suppliers: buyer attached the first bank receipt on a pending bank-transfer order. */
+export function notifySuppliersBuyerBankReceiptUploaded(order: Order): void {
+  const merchant = findUserById(order.merchantId);
+  const name = merchant?.name ?? "The buyer";
+  const { title, body } = supplierCopyBuyerBankReceiptFirstUpload(order, name);
+  const seen = new Set<string>();
+  for (const line of order.items) {
+    const co = getCompany(line.companyId);
+    if (!co || seen.has(co.ownerId)) continue;
+    seen.add(co.ownerId);
+    createNotification({
+      userId: co.ownerId,
+      kind: "order_status",
+      title,
+      body,
+      href: `/supplier/orders/${order.id}`,
+    });
+    queueInAppNotificationEmail(
+      co.ownerId,
+      title,
+      body,
+      `/supplier/orders/${order.id}`,
+    );
+  }
+}
+
+/** Admins: first bank receipt on a pending order (parallel to legacy “awaiting review” admin ping). */
+export function notifyAdminsBankReceiptOnPendingOrder(order: Order): void {
+  const { title, body } = adminCopyBankReceiptPendingFirstUpload(order);
+  notifyAdmins({
+    title,
+    body,
+    href: `/admin/orders/${order.id}`,
+  });
+}
+
+export function notifyMerchantBankProofUploaded(
+  order: Order,
+  variant:
+    | "submitted_for_review"
+    | "receipt_saved_pending"
+    | "receipt_updated",
+): void {
+  const { title, body } =
+    variant === "submitted_for_review"
+      ? merchantCopyBankProofSubmittedForReview(order)
+      : variant === "receipt_saved_pending"
+        ? merchantCopyBankProofSavedPending(order)
+        : merchantCopyBankProofUpdated(order);
+  const href = `/merchant/orders/${order.id}`;
+  createNotification({
+    userId: order.merchantId,
+    kind: "order_status",
+    title,
+    body,
+    href,
+  });
+  queueInAppNotificationEmail(order.merchantId, title, body, href);
+}
+
 /** After buyer → platform commission is recorded (before merchant completes). */
 export function notifyMerchantSupplierPayoutReleased(order: Order): void {
   const short = order.id.slice(0, 8);
@@ -341,11 +534,17 @@ export function notifySuppliersPayoutRecorded(order: Order): void {
   }
 }
 
+/**
+ * Notifies suppliers when the order reaches `completed` (buyer or admin).
+ */
 export function notifySuppliersOrderStatus(
   order: Order,
   status: Order["status"],
+  options?: { completedBy?: "merchant" | "admin" },
 ): void {
-  const line = status.replace(/_/g, " ");
+  if (status !== "completed") return;
+  const completedBy = options?.completedBy ?? "merchant";
+  const { title, body } = supplierCopyForOrderCompleted(order, { completedBy });
   const seen = new Set<string>();
   for (const item of order.items) {
     const co = getCompany(item.companyId);
@@ -354,14 +553,14 @@ export function notifySuppliersOrderStatus(
     createNotification({
       userId: co.ownerId,
       kind: "order_status",
-      title: "Order update",
-      body: `Order status is now: ${line}.`,
+      title,
+      body,
       href: `/supplier/orders/${order.id}`,
     });
     queueInAppNotificationEmail(
       co.ownerId,
-      "Order update",
-      `Order status is now: ${line}.`,
+      title,
+      body,
       `/supplier/orders/${order.id}`,
     );
   }
@@ -382,14 +581,13 @@ export function notifyOrderChatRecipients(
       body: snippet,
       href: `/merchant/orders/${order.id}`,
     });
-    if (isSendGridMirrorChatEnabled()) {
-      queueInAppNotificationEmail(
-        order.merchantId,
-        "New order message",
-        snippet,
-        `/merchant/orders/${order.id}`,
-      );
-    }
+    queueInAppNotificationEmail(
+      order.merchantId,
+      "New order message",
+      snippet,
+      `/merchant/orders/${order.id}`,
+      { emailCategory: "chat" },
+    );
     return;
   }
   const seen = new Set<string>();
@@ -404,14 +602,13 @@ export function notifyOrderChatRecipients(
       body: snippet,
       href: `/supplier/orders/${order.id}`,
     });
-    if (isSendGridMirrorChatEnabled()) {
-      queueInAppNotificationEmail(
-        co.ownerId,
-        "New order message",
-        snippet,
-        `/supplier/orders/${order.id}`,
-      );
-    }
+    queueInAppNotificationEmail(
+      co.ownerId,
+      "New order message",
+      snippet,
+      `/supplier/orders/${order.id}`,
+      { emailCategory: "chat" },
+    );
   }
 }
 
@@ -436,6 +633,7 @@ export function notifyCompanyReviewPosted(
     `New ${rating}★ company review`,
     body,
     `/supplier/companies`,
+    { emailCategory: "reviews" },
   );
 }
 
@@ -462,7 +660,134 @@ export function notifyProductReviewPosted(
     `New ${rating}★ product review`,
     body,
     `/products/${productId}`,
+    { emailCategory: "reviews" },
   );
+}
+
+/** Supplier: someone commented on a product they own (not when the supplier comments on their own listing). */
+export function notifySupplierProductCommentPosted(input: {
+  productId: string;
+  authorUserId: string;
+  preview: string;
+}): void {
+  const p = getProduct(input.productId);
+  if (!p) return;
+  const co = getCompany(p.companyId);
+  if (!co) return;
+  if (co.ownerId === input.authorUserId) return;
+  const body =
+    input.preview.length > 120
+      ? `${input.preview.slice(0, 117)}…`
+      : input.preview;
+  const label =
+    p.name.length > 48 ? `${p.name.slice(0, 45)}…` : p.name;
+  const title = `New comment — ${label}`;
+  createNotification({
+    userId: co.ownerId,
+    kind: "review_product",
+    title,
+    body,
+    href: `/supplier/products/${input.productId}/edit`,
+  });
+  queueInAppNotificationEmail(
+    co.ownerId,
+    title,
+    body,
+    `/supplier/products/${input.productId}/edit`,
+    { emailCategory: "reviews" },
+  );
+}
+
+/** Parent comment author: someone replied in the thread (product page). */
+export function notifyUserProductCommentReplied(input: {
+  productId: string;
+  parentAuthorUserId: string;
+  replierUserId: string;
+  preview: string;
+}): void {
+  if (input.parentAuthorUserId === input.replierUserId) return;
+  const p = getProduct(input.productId);
+  if (!p) return;
+  const body =
+    input.preview.length > 120
+      ? `${input.preview.slice(0, 117)}…`
+      : input.preview;
+  const label =
+    p.name.length > 40 ? `${p.name.slice(0, 37)}…` : p.name;
+  const title = `Reply on ${label}`;
+  const href = `/products/${input.productId}`;
+  createNotification({
+    userId: input.parentAuthorUserId,
+    kind: "review_product",
+    title,
+    body,
+    href,
+  });
+  queueInAppNotificationEmail(
+    input.parentAuthorUserId,
+    title,
+    body,
+    href,
+    { emailCategory: "reviews" },
+  );
+}
+
+/** Admin moderation: product review deleted. */
+export function notifyMerchantProductReviewRemovedByModeration(
+  review: ProductReview,
+): void {
+  const title = "Product review removed";
+  const body = `Your ${review.rating}★ product review was removed by a moderator.`;
+  const href = `/products/${review.productId}`;
+  createNotification({
+    userId: review.merchantId,
+    kind: "review_product",
+    title,
+    body,
+    href,
+  });
+  queueInAppNotificationEmail(review.merchantId, title, body, href, {
+    emailCategory: "reviews",
+  });
+}
+
+/** Admin moderation: company review deleted. */
+export function notifyMerchantCompanyReviewRemovedByModeration(
+  review: CompanyReview,
+): void {
+  const title = "Company review removed";
+  const body = `Your ${review.rating}★ company review was removed by a moderator.`;
+  const href = `/companies/${review.companyId}`;
+  createNotification({
+    userId: review.merchantId,
+    kind: "review_company",
+    title,
+    body,
+    href,
+  });
+  queueInAppNotificationEmail(review.merchantId, title, body, href, {
+    emailCategory: "reviews",
+  });
+}
+
+/** Admin moderation: product comment (or thread root) deleted. */
+export function notifyUserProductCommentRemovedByModeration(
+  comment: ProductComment,
+): void {
+  const title = "Comment removed";
+  const body =
+    "A comment you posted on a product was removed by a moderator. Related replies may have been removed as well.";
+  const href = `/products/${comment.productId}`;
+  createNotification({
+    userId: comment.userId,
+    kind: "review_product",
+    title,
+    body,
+    href,
+  });
+  queueInAppNotificationEmail(comment.userId, title, body, href, {
+    emailCategory: "reviews",
+  });
 }
 
 /* ──────────────── Verification Notifications ──────────────── */
@@ -476,8 +801,8 @@ export function notifyUserVerificationResult(
     ? "Identity verified ✓"
     : "Identity verification declined";
   const body = approved
-    ? "Your National ID has been verified. You now have full access to the platform."
-    : `Your National ID verification was declined. Reason: ${reason ?? "Not specified"}. You may re-submit with corrected information.`;
+    ? "Your Fayda (Ethiopian Digital ID) verification is complete. You now have full access where identity checks apply."
+    : `Your Fayda verification was declined. Reason: ${reason ?? "Not specified"}. You may re-submit with corrected information.`;
   const href = `/merchant/verification`;
   const user = findUserById(userId);
   const actualHref = user?.role === "supplier" ? "/supplier/verification" : href;
@@ -488,7 +813,9 @@ export function notifyUserVerificationResult(
     body,
     href: actualHref,
   });
-  queueInAppNotificationEmail(userId, title, body, actualHref);
+  queueInAppNotificationEmail(userId, title, body, actualHref, {
+    emailCategory: "account",
+  });
 }
 
 export function notifySupplierCompanyVerificationResult(
@@ -511,7 +838,9 @@ export function notifySupplierCompanyVerificationResult(
     body,
     href: "/supplier/companies",
   });
-  queueInAppNotificationEmail(co.ownerId, title, body, "/supplier/companies");
+  queueInAppNotificationEmail(co.ownerId, title, body, "/supplier/companies", {
+    emailCategory: "account",
+  });
 }
 
 export function notifyAdminsNewVerificationRequest(
@@ -524,12 +853,12 @@ export function notifyAdminsNewVerificationRequest(
   const roleLabel = user?.role === "supplier" ? "Supplier" : "Merchant";
   const title =
     type === "national_id"
-      ? `New ID verification request`
+      ? `New Fayda verification request`
       : `New company verification request`;
   const body =
     type === "national_id"
-      ? `${roleLabel} "${name}" submitted their National ID for verification.`
+      ? `${roleLabel} "${name}" submitted their Ethiopian Digital ID (Fayda) for verification.`
       : `${roleLabel} "${name}" registered company "${label ?? "Unknown"}" for verification.`;
   const href = "/admin/verifications";
-  notifyAdmins({ title, body, href });
+  notifyAdmins({ title, body, href, emailCategory: "account" });
 }

@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import { getProduct } from "@/lib/db/catalog";
-import { addProductComment, listCommentsForProduct } from "@/lib/db/comments";
+import { getCompany, getProduct } from "@/lib/db/catalog";
+import {
+  addProductComment,
+  getProductCommentById,
+  listCommentsForProduct,
+} from "@/lib/db/comments";
+import {
+  notifySupplierProductCommentPosted,
+  notifyUserProductCommentReplied,
+} from "@/lib/db/notifications";
 import { requireSession } from "@/lib/server/require-session";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 
@@ -46,6 +54,36 @@ export async function POST(request: Request, context: Params) {
       comment,
       parentId,
     });
+    const product = getProduct(id);
+    const co = product ? getCompany(product.companyId) : undefined;
+    if (!parentId) {
+      notifySupplierProductCommentPosted({
+        productId: id,
+        authorUserId: auth.user.id,
+        preview: row.comment,
+      });
+    } else {
+      const parent = getProductCommentById(parentId);
+      if (parent && parent.userId !== auth.user.id) {
+        notifyUserProductCommentReplied({
+          productId: id,
+          parentAuthorUserId: parent.userId,
+          replierUserId: auth.user.id,
+          preview: row.comment,
+        });
+      }
+      if (
+        co &&
+        co.ownerId !== auth.user.id &&
+        (!parent || co.ownerId !== parent.userId)
+      ) {
+        notifySupplierProductCommentPosted({
+          productId: id,
+          authorUserId: auth.user.id,
+          preview: row.comment,
+        });
+      }
+    }
     return NextResponse.json({ comment: row });
   } catch (e) {
     const m = e instanceof Error ? e.message : "Failed to post";

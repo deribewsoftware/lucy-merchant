@@ -1,5 +1,5 @@
 import { randomInt, randomUUID } from "crypto";
-import type { UserRecord, UserRole } from "@/lib/domain/types";
+import type { UserPreferences, UserRecord, UserRole } from "@/lib/domain/types";
 import { readJsonFile, writeJsonFile } from "@/lib/store/json-file";
 import { hashPassword } from "@/lib/auth/password";
 import {
@@ -160,22 +160,34 @@ export async function updateUserPassword(userId: string, newPlainPassword: strin
 export function submitNationalIdVerification(
   userId: string,
   data: {
-    nationalIdNumber: string;
+    nationalIdFan: string;
     nationalIdName: string;
     nationalIdFrontImage: string;
     nationalIdBackImage: string;
+    nationalIdCity: string;
+    nationalIdSubcity?: string;
+    nationalIdWoreda?: string;
+    nationalIdPhoneOnId?: string;
+    nationalIdAddressLine?: string;
   },
 ): UserRecord | undefined {
   const users = load();
   const i = users.findIndex((u) => u.id === userId);
   if (i === -1) return undefined;
+  const prev = users[i] as UserRecord & { nationalIdNumber?: string };
+  const { nationalIdNumber: _legacyFcn, ...base } = prev;
   users[i] = {
-    ...users[i],
+    ...base,
     nationalIdStatus: "pending",
-    nationalIdNumber: data.nationalIdNumber.trim(),
+    nationalIdFan: data.nationalIdFan.trim(),
     nationalIdName: data.nationalIdName.trim(),
     nationalIdFrontImage: data.nationalIdFrontImage.trim(),
     nationalIdBackImage: data.nationalIdBackImage.trim(),
+    nationalIdCity: data.nationalIdCity.trim(),
+    nationalIdSubcity: data.nationalIdSubcity?.trim() || undefined,
+    nationalIdWoreda: data.nationalIdWoreda?.trim() || undefined,
+    nationalIdPhoneOnId: data.nationalIdPhoneOnId?.trim() || undefined,
+    nationalIdAddressLine: data.nationalIdAddressLine?.trim() || undefined,
     nationalIdSubmittedAt: new Date().toISOString(),
     nationalIdRejectionReason: undefined,
     nationalIdReviewedAt: undefined,
@@ -183,6 +195,19 @@ export function submitNationalIdVerification(
   };
   save(users);
   return users[i];
+}
+
+/** Another user already has this FAN with pending or approved verification. */
+export function findActiveUserWithSameFaydaFan(
+  fan: string,
+  excludeUserId: string,
+): UserRecord | undefined {
+  return load().find(
+    (u) =>
+      u.id !== excludeUserId &&
+      u.nationalIdFan === fan &&
+      (u.nationalIdStatus === "pending" || u.nationalIdStatus === "approved"),
+  );
 }
 
 export function reviewNationalId(
@@ -207,4 +232,35 @@ export function reviewNationalId(
 
 export function listPendingNationalIdUsers(): UserRecord[] {
   return load().filter((u) => u.nationalIdStatus === "pending");
+}
+
+export function updateUserProfile(
+  userId: string,
+  input: {
+    name?: string;
+    preferences?: UserPreferences;
+  },
+): UserRecord | undefined {
+  const users = load();
+  const i = users.findIndex((u) => u.id === userId);
+  if (i === -1) return undefined;
+  const cur = users[i];
+  let next: UserRecord = { ...cur };
+  if (input.name !== undefined) {
+    const name = input.name.trim();
+    if (!name) return undefined;
+    next = { ...next, name };
+  }
+  if (input.preferences !== undefined) {
+    next = {
+      ...next,
+      preferences: {
+        ...cur.preferences,
+        ...input.preferences,
+      },
+    };
+  }
+  users[i] = next;
+  save(users);
+  return next;
 }

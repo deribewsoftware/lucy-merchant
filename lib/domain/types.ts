@@ -16,12 +16,25 @@ export type Permission =
   | "orders:merchant"
   | "reviews:create";
 
+/** Optional per-user preferences (defaults applied when omitted). */
+export type UserPreferences = {
+  /** Mirror order/payment/commission in-app alerts to email (default: true). */
+  emailOrderUpdates?: boolean;
+  /** Reviews, product/company comments, moderation notices (default: true). */
+  emailReviewsAndComments?: boolean;
+  /** Mirror order chat to email; also requires NODEMAILER_MIRROR_CHAT on server (default: false). */
+  emailChatMirrors?: boolean;
+  /** Verification results, welcome, etc. (default: true). */
+  emailAccountAlerts?: boolean;
+};
+
 export type UserRecord = {
   id: string;
   email: string;
   passwordHash: string;
   role: UserRole;
   name: string;
+  preferences?: UserPreferences;
   /** Supplier balance for posting products when points are enabled */
   points?: number;
   createdAt: string;
@@ -33,12 +46,20 @@ export type UserRecord = {
   passwordResetExpiresAt?: string;
   /** Admin-only: subtract permissions from the default admin set (e.g. revoke order completion). */
   adminPermissionDeny?: Permission[];
-  /** National ID verification */
+  /** National ID verification (Ethiopian Digital ID / Fayda) */
   nationalIdStatus?: VerificationStatus;
-  nationalIdNumber?: string;
+  /** FAN (Fayda Alias Number) — 16 digits (often shown in groups) */
+  nationalIdFan?: string;
   nationalIdName?: string;
   nationalIdFrontImage?: string;
   nationalIdBackImage?: string;
+  /** Address as on card / residence (city, subcity, woreda per Digital ID) */
+  nationalIdCity?: string;
+  nationalIdSubcity?: string;
+  nationalIdWoreda?: string;
+  nationalIdPhoneOnId?: string;
+  /** Optional extra line (street, kebele, etc.) */
+  nationalIdAddressLine?: string;
   nationalIdSubmittedAt?: string;
   nationalIdReviewedAt?: string;
   nationalIdRejectionReason?: string;

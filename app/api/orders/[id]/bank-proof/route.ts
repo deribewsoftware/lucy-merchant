@@ -2,7 +2,12 @@ import path from "path";
 import { NextResponse } from "next/server";
 import { writeBufferToUpload } from "@/lib/server/upload-path";
 import { getOrder, patchOrder } from "@/lib/db/commerce";
-import { notifyAdminsBankProofSubmitted } from "@/lib/db/notifications";
+import {
+  notifyAdminsBankProofSubmitted,
+  notifyAdminsBankReceiptOnPendingOrder,
+  notifyMerchantBankProofUploaded,
+  notifySuppliersBuyerBankReceiptUploaded,
+} from "@/lib/db/notifications";
 import { requireSession } from "@/lib/server/require-session";
 
 export const runtime = "nodejs";
@@ -63,6 +68,7 @@ export async function POST(request: Request, context: Params) {
     return NextResponse.json({ error: saved.error }, { status: 500 });
   }
   const publicPath = saved.publicPath;
+  const hadProof = Boolean(order.bankProofImagePath);
 
   if (legacyAwaiting) {
     const updated = patchOrder(id, {
@@ -71,6 +77,7 @@ export async function POST(request: Request, context: Params) {
     });
     if (updated) {
       notifyAdminsBankProofSubmitted(updated);
+      notifyMerchantBankProofUploaded(updated, "submitted_for_review");
     }
     return NextResponse.json({ ok: true, order: updated, imagePath: publicPath });
   }
@@ -78,5 +85,15 @@ export async function POST(request: Request, context: Params) {
   const updated = patchOrder(id, {
     bankProofImagePath: publicPath,
   });
+  if (updated) {
+    notifyMerchantBankProofUploaded(
+      updated,
+      hadProof ? "receipt_updated" : "receipt_saved_pending",
+    );
+    if (!hadProof) {
+      notifySuppliersBuyerBankReceiptUploaded(updated);
+      notifyAdminsBankReceiptOnPendingOrder(updated);
+    }
+  }
   return NextResponse.json({ ok: true, order: updated, imagePath: publicPath });
 }

@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useCallback, type KeyboardEvent, type ClipboardEvent } from "react";
+import {
+  useRef,
+  useCallback,
+  useEffect,
+  type KeyboardEvent,
+  type ClipboardEvent,
+} from "react";
 import clsx from "clsx";
 
 interface OtpInputProps {
@@ -9,6 +15,8 @@ interface OtpInputProps {
   onChange: (value: string) => void;
   error?: boolean;
   disabled?: boolean;
+  /** Focus the first cell on mount (set false to avoid mobile keyboard until tap) */
+  autoFocusFirst?: boolean;
   id?: string;
 }
 
@@ -18,10 +26,18 @@ export default function OtpInput({
   onChange,
   error = false,
   disabled = false,
+  autoFocusFirst = true,
   id = "otp",
 }: OtpInputProps) {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
-  const digits = value.padEnd(length, "").split("").slice(0, length);
+  /** `padEnd(n, "")` does not extend the string — empty value would yield [] and render no boxes */
+  const digits = Array.from({ length }, (_, i) => value[i] ?? "");
+
+  useEffect(() => {
+    if (!autoFocusFirst || disabled) return;
+    const raf = requestAnimationFrame(() => inputsRef.current[0]?.focus());
+    return () => cancelAnimationFrame(raf);
+  }, [autoFocusFirst, disabled]);
 
   const focusInput = useCallback(
     (idx: number) => {
@@ -72,7 +88,7 @@ export default function OtpInput({
       e.preventDefault();
       const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, length);
       if (pasted.length > 0) {
-        onChange(pasted.padEnd(length, "").slice(0, length).replace(/ /g, ""));
+        onChange(pasted.slice(0, length));
         focusInput(Math.min(pasted.length, length - 1));
       }
     },
@@ -80,7 +96,11 @@ export default function OtpInput({
   );
 
   return (
-    <div className="flex items-center justify-center gap-2 sm:gap-3" role="group" aria-label="Verification code">
+    <div
+      className="flex min-w-0 flex-wrap items-center justify-center gap-2 sm:flex-nowrap sm:gap-3"
+      role="group"
+      aria-label="Verification code"
+    >
       {digits.map((digit, idx) => (
         <input
           key={idx}
@@ -98,7 +118,7 @@ export default function OtpInput({
           onFocus={(e) => e.target.select()}
           aria-label={`Digit ${idx + 1}`}
           className={clsx(
-            "h-14 w-11 rounded-xl border-2 bg-base-100 text-center font-mono text-xl font-semibold text-foreground transition-all duration-200 sm:h-16 sm:w-13 sm:text-2xl",
+            "h-14 w-11 shrink-0 rounded-xl border-2 bg-base-100 text-center font-mono text-xl font-semibold text-foreground transition-all duration-200 sm:h-16 sm:w-14 sm:text-2xl",
             "focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-base-100",
             error
               ? "border-error/60 focus:border-error focus:ring-error/25"

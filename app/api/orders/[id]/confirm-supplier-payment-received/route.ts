@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { companiesByOwner } from "@/lib/db/catalog";
 import { getOrder, patchOrder } from "@/lib/db/commerce";
+import { notifyMerchantSupplierConfirmedPaymentReceived } from "@/lib/db/notifications";
 import { markPendingPaymentPaid } from "@/lib/db/payments";
 import { isSingleSupplierOrder } from "@/lib/domain/order-split";
 import { requireSession } from "@/lib/server/require-session";
@@ -37,5 +38,8 @@ export async function POST(_request: Request, context: Params) {
 
   markPendingPaymentPaid(id, "supplier-confirmed");
   const updated = patchOrder(id, { paymentStatus: "paid" });
+  if (updated) {
+    notifyMerchantSupplierConfirmedPaymentReceived(updated);
+  }
   return NextResponse.json({ order: updated });
 }
