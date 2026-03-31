@@ -49,18 +49,23 @@ import { SearchBox } from "@/components/search-box";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { UserRole } from "@/lib/domain/types";
+import { roleDisplayLabel } from "@/lib/admin-staff";
 import { brandCopy } from "@/lib/brand/copy";
 
 export type HeaderUser = {
   name: string;
   email: string;
   role: UserRole;
+  /** Admin portal home; set when permissions are locked so header matches `/admin/pending-access`. */
+  staffAdminHomeHref?: string;
 } | null;
 
 export type NavCategory = { id: string; name: string };
 
-function portalHome(role: UserRole) {
-  if (role === "admin") return "/admin/dashboard";
+function portalHome(role: UserRole, staffAdminHomeHref?: string) {
+  if (role === "admin" || role === "system_admin") {
+    return staffAdminHomeHref ?? "/admin/dashboard";
+  }
   if (role === "supplier") return "/supplier/dashboard";
   return "/merchant/dashboard";
 }
@@ -192,7 +197,9 @@ export function SiteHeaderClient({
     };
   }, [mobileOpen]);
 
-  const dashHref = user ? portalHome(user.role) : "/";
+  const dashHref = user
+    ? portalHome(user.role, user.staffAdminHomeHref)
+    : "/";
 
   const avatarInitials = user ? initialsFromName(user.name) : "";
   const { selfIsOnline } = usePresenceSelf();
@@ -332,8 +339,8 @@ export function SiteHeaderClient({
                         <div className="mt-1.5">
                           <PresenceStatusLine selfOnline={selfIsOnline} />
                         </div>
-                        <span className="mt-2 inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium capitalize text-primary">
-                          {user.role}
+                        <span className="mt-2 inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                          {roleDisplayLabel(user.role)}
                         </span>
                       </div>
                       
@@ -476,8 +483,8 @@ export function SiteHeaderClient({
                           <p className="truncate text-xs text-muted-foreground">
                             {user.email}
                           </p>
-                          <span className="mt-1.5 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                            {user.role}
+                          <span className="mt-1.5 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-primary">
+                            {roleDisplayLabel(user.role)}
                           </span>
                         </div>
                       </div>

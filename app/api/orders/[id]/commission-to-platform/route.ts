@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getOrder } from "@/lib/db/commerce";
+import { isStaffAdminRole } from "@/lib/admin-staff";
 import { recordMerchantPlatformCommission } from "@/lib/payments/record-platform-commission";
 import { saveCommissionProofImage } from "@/lib/server/commission-proof-upload";
 import { requireSession } from "@/lib/server/require-session";
@@ -11,7 +12,7 @@ type Params = { params: Promise<{ id: string }> };
 
 /** Merchant records buyer → platform commission; requires payment proof image (multipart). Admin may POST without file. */
 export async function POST(request: Request, context: Params) {
-  const auth = await requireSession(["merchant", "admin"]);
+  const auth = await requireSession(["merchant", "admin", "system_admin"]);
   if (!auth.ok) return auth.response;
 
   const ip = clientIp(request);
@@ -62,7 +63,7 @@ export async function POST(request: Request, context: Params) {
         return NextResponse.json({ error: saved.error }, { status: 400 });
       }
       proofImagePath = saved.publicPath;
-    } else if (auth.user.role === "admin") {
+    } else if (isStaffAdminRole(auth.user.role)) {
       if (file instanceof Blob && file.size > 0) {
         const origName =
           typeof (file as File).name === "string"
@@ -75,7 +76,7 @@ export async function POST(request: Request, context: Params) {
         proofImagePath = saved.publicPath;
       }
     }
-  } else if (auth.user.role === "admin") {
+  } else if (isStaffAdminRole(auth.user.role)) {
     proofImagePath = undefined;
   } else {
     return NextResponse.json(

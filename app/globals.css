@@ -376,6 +376,23 @@ body {
   outline: none;
 }
 
+/* TipTap placeholder (node decoration + data-placeholder) */
+.lm-rich-editor .ProseMirror p.is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: color-mix(in oklch, var(--color-base-content) 42%, transparent);
+  font-style: normal;
+  font-weight: 400;
+}
+[data-rich-variant="zinc"] .lm-rich-editor .ProseMirror p.is-empty::before {
+  color: oklch(0.52 0.02 265);
+}
+.dark [data-rich-variant="zinc"] .lm-rich-editor .ProseMirror p.is-empty::before {
+  color: oklch(0.62 0.02 265);
+}
+
 /* Badge Styles */
 .lm-badge {
   @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;

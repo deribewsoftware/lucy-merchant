@@ -13,6 +13,7 @@ import {
   Plus,
   BarChart3,
 } from "lucide-react"
+import { PaginatedSupplierTopProducts } from "@/components/dashboard-paginated-lists"
 import { SupplierDashboardCharts } from "@/components/supplier-dashboard-charts"
 import { findUserById } from "@/lib/db/users"
 import { companiesByOwner } from "@/lib/db/catalog"
@@ -258,34 +259,15 @@ export default async function SupplierDashboardPage() {
               </div>
               
               <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm">
-                <ul className="divide-y divide-border/50">
-                  {analytics.topProducts.map((p, index) => (
-                    <li
-                      key={p.productId}
-                      className="group flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-primary/5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/50 text-xs font-bold text-muted-foreground">
-                          #{index + 1}
-                        </span>
-                        <Link
-                          href={`/products/${p.productId}`}
-                          className="font-medium text-foreground transition-colors group-hover:text-primary"
-                        >
-                          {p.name}
-                        </Link>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="font-semibold text-foreground">
-                          {p.revenueEtb.toLocaleString()} ETB
-                        </span>
-                        <span className="rounded-full bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
-                          {p.unitsSold} units
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <PaginatedSupplierTopProducts
+                  items={analytics.topProducts.map((p, i) => ({
+                    rank: i + 1,
+                    productId: p.productId,
+                    name: p.name,
+                    revenueEtb: p.revenueEtb,
+                    unitsSold: p.unitsSold,
+                  }))}
+                />
               </div>
             </section>
           )}

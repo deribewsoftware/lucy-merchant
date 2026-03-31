@@ -8,12 +8,31 @@ import { ProductOrderSpecs } from "@/components/product-order-specs";
 import { ProductUnitPrice } from "@/components/product-unit-price";
 import { SupplierDeleteProductButton } from "@/components/supplier-delete-product-button";
 import { SupplierHeroBackdrop } from "@/components/supplier/supplier-portal-graphics";
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar";
 import { getCompany, productsForOwner } from "@/lib/db/catalog";
 import { getSessionUser } from "@/lib/server/session";
+import { clampPage, pageStartIndex } from "@/lib/utils/pagination";
 
-export default async function SupplierProductsPage() {
+type Props = {
+  searchParams: Promise<{ page?: string }>;
+};
+
+const PAGE_SIZE = 12;
+
+export default async function SupplierProductsPage({ searchParams }: Props) {
+  const sp = await searchParams;
   const user = await getSessionUser();
-  const rows = user ? productsForOwner(user.id) : [];
+  const allRows = user ? productsForOwner(user.id) : [];
+
+  const pageRaw = parseInt(sp.page ?? "1", 10);
+  const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1;
+  const total = allRows.length;
+  const safePage = clampPage(page, total, PAGE_SIZE);
+  const start = pageStartIndex(safePage, total, PAGE_SIZE);
+  const rows = allRows.slice(start, start + PAGE_SIZE);
+
+  const href = (p: number) =>
+    p > 1 ? `/supplier/products?page=${p}` : "/supplier/products";
 
   return (
     <div className="space-y-10">
@@ -44,8 +63,17 @@ export default async function SupplierProductsPage() {
         </div>
       </header>
 
+      {total > 0 && (
+        <PaginationSummary
+          page={safePage}
+          pageSize={PAGE_SIZE}
+          total={total}
+          className="text-sm text-base-content/60"
+        />
+      )}
+
       <ul className="space-y-4">
-        {rows.length === 0 && (
+        {rows.length === 0 && total === 0 && (
           <li className="rounded-2xl border border-dashed border-base-300 bg-base-200/20 px-6 py-12 text-center">
             <p className="text-sm text-base-content/70">
               No products yet.{" "}
@@ -115,6 +143,13 @@ export default async function SupplierProductsPage() {
           );
         })}
       </ul>
+
+      <PaginationBar
+        page={safePage}
+        pageSize={PAGE_SIZE}
+        total={total}
+        buildHref={href}
+      />
     </div>
   );
 }

@@ -8,7 +8,6 @@ import {
   HiOutlineExclamationCircle,
   HiOutlineKey,
   HiOutlineEnvelope,
-  HiOutlineCheckCircle,
 } from "react-icons/hi2";
 import AuthLayout, { childVariants } from "@/components/auth/AuthLayout";
 import { AuthEmailInput } from "@/components/auth-credential-inputs";

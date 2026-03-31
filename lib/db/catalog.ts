@@ -276,6 +276,15 @@ export function companiesByOwner(ownerId: string): Company[] {
   return listCompanies().filter((c) => c.ownerId === ownerId);
 }
 
+/** Remove a company row only — delete products and related data before calling. */
+export function removeCompanyRecord(companyId: string): boolean {
+  const all = listCompanies();
+  const next = all.filter((c) => c.id !== companyId);
+  if (next.length === all.length) return false;
+  writeJsonFile(COMPANIES, next);
+  return true;
+}
+
 /** Products belonging to any company owned by this supplier (newest first). */
 export function productsForOwner(ownerId: string): Product[] {
   const mine = new Set(companiesByOwner(ownerId).map((c) => c.id));
@@ -422,11 +431,16 @@ export function createProduct(input: Omit<Product, "id" | "createdAt">): Product
 export function updateProduct(
   productId: string,
   patch: Partial<Omit<Product, "id" | "createdAt">>,
+  options?: { removeKeys?: (keyof Product)[] },
 ): Product | undefined {
   const all = listProducts();
   const i = all.findIndex((p) => p.id === productId);
   if (i === -1) return undefined;
-  all[i] = { ...all[i], ...patch };
+  const merged = { ...all[i], ...patch };
+  for (const k of options?.removeKeys ?? []) {
+    delete (merged as Record<string, unknown>)[k as string];
+  }
+  all[i] = merged;
   writeJsonFile(PRODUCTS, all);
   return all[i];
 }

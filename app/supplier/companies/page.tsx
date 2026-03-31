@@ -1,138 +1,99 @@
+import Link from "next/link";
 import {
+  HiOutlineArrowRight,
   HiOutlineBuildingOffice2,
+  HiOutlinePlusCircle,
   HiOutlineShieldCheck,
+  HiOutlineSparkles,
 } from "react-icons/hi2";
-import { SupplierCompanyEditForm } from "@/components/supplier-company-edit-form";
-import { SupplierCompanyForm } from "@/components/supplier-company-form";
+import { SupplierCompaniesBoard } from "@/components/supplier-companies-board";
 import { SupplierHeroBackdrop } from "@/components/supplier/supplier-portal-graphics";
-import { companiesByOwner } from "@/lib/db/catalog";
-import { stripHtmlToPlainText } from "@/lib/rich-text";
+import { companyApprovedOrVerified } from "@/lib/domain/types";
+import { companiesByOwner, listProducts } from "@/lib/db/catalog";
 import { getSessionUser } from "@/lib/server/session";
 
 export default async function SupplierCompaniesPage() {
   const user = await getSessionUser();
   const list = user ? companiesByOwner(user.id) : [];
 
+  const productCountByCompanyId: Record<string, number> = {};
+  for (const p of listProducts()) {
+    productCountByCompanyId[p.companyId] = (productCountByCompanyId[p.companyId] ?? 0) + 1;
+  }
+
+  const verified = list.filter((c) => companyApprovedOrVerified(c)).length;
+  const pending = list.filter(
+    (c) => !c.isVerified && c.verificationStatus !== "rejected",
+  ).length;
+  const declined = list.filter((c) => c.verificationStatus === "rejected").length;
+
   return (
     <div className="space-y-10">
-      <header className="relative overflow-hidden rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 via-secondary/[0.06] to-primary/[0.07] p-6 shadow-sm ring-1 ring-base-300/25 sm:p-8">
+      <header className="relative overflow-hidden rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 via-primary/[0.06] to-secondary/[0.09] p-6 shadow-lg ring-1 ring-base-300/30 sm:p-8">
         <SupplierHeroBackdrop />
-        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <HiOutlineBuildingOffice2 className="h-7 w-7" />
+        <div className="relative flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 gap-4">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-inner ring-1 ring-primary/20">
+              <HiOutlineBuildingOffice2 className="h-9 w-9" />
             </span>
             <div>
-              <h1 className="font-display text-2xl font-bold tracking-tight text-base-content sm:text-3xl">
-                Companies
-              </h1>
-              <p className="mt-1 max-w-xl text-sm leading-relaxed text-base-content/70">
-                Register brands or legal entities. Each profile must be verified by
-                an admin before you can publish products under it.
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-base-100/90 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary ring-1 ring-primary/15">
+                <HiOutlineSparkles className="h-3.5 w-3.5" />
+                Company workspace
               </p>
+              <h1 className="font-display mt-3 text-2xl font-bold tracking-tight text-base-content sm:text-3xl">
+                Your organizations
+              </h1>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-base-content/70">
+                Each brand or legal entity is verified once by an admin. Register new companies on a dedicated
+                page. You can edit details until verification; after that the profile is locked for buyers,
+                and you can remove the company only after deleting all of its product listings.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link
+                  href="/supplier/companies/new"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-content shadow-lg shadow-primary/25 transition hover:bg-primary/90"
+                >
+                  <HiOutlinePlusCircle className="h-5 w-5" />
+                  Register new company
+                  <HiOutlineArrowRight className="h-4 w-4 opacity-90" />
+                </Link>
+                <Link
+                  href="/supplier/verification"
+                  className="inline-flex items-center gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-2.5 text-sm font-semibold text-base-content transition hover:bg-base-200/80"
+                >
+                  <HiOutlineShieldCheck className="h-5 w-5 text-success" />
+                  Identity (Fayda)
+                </Link>
+              </div>
             </div>
           </div>
-          <div className="flex max-w-sm items-center gap-2 rounded-xl border border-success/35 bg-success/10 px-3 py-2.5">
-            <HiOutlineShieldCheck className="h-5 w-5 shrink-0 text-success" />
-            <span className="text-xs font-medium text-base-content">
-              Verification required for listings
-            </span>
+
+          <div className="grid w-full min-w-0 gap-3 sm:grid-cols-3 lg:w-auto lg:max-w-md">
+            <div className="rounded-2xl border border-base-300/70 bg-base-100/80 px-4 py-3 text-center shadow-sm backdrop-blur-sm ring-1 ring-base-300/20">
+              <p className="text-2xl font-bold tabular-nums text-base-content">{list.length}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/45">Total</p>
+            </div>
+            <div className="rounded-2xl border border-success/30 bg-success/[0.08] px-4 py-3 text-center shadow-sm">
+              <p className="text-2xl font-bold tabular-nums text-success">{verified}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-success/80">Verified</p>
+            </div>
+            <div className="rounded-2xl border border-warning/35 bg-warning/[0.08] px-4 py-3 text-center shadow-sm">
+              <p className="text-2xl font-bold tabular-nums text-warning">{pending}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-warning/90">Pending</p>
+            </div>
           </div>
         </div>
+        {declined > 0 ? (
+          <p className="relative mt-6 rounded-xl border border-error/25 bg-error/5 px-4 py-2 text-center text-xs text-base-content/75">
+            <span className="font-semibold text-error">{declined}</span> profile
+            {declined === 1 ? "" : "s"} need attention — open each company to read the reason and update
+            documents.
+          </p>
+        ) : null}
       </header>
 
-      <SupplierCompanyForm />
-
-      <section>
-        <h2 className="text-lg font-semibold text-base-content">
-          Your organizations
-        </h2>
-        <p className="mt-1 text-sm text-base-content/60">
-          Edit details anytime; verification badges update when admins approve.
-        </p>
-        <ul className="mt-6 space-y-4">
-          {list.length === 0 && (
-            <li className="rounded-2xl border border-dashed border-base-300 bg-base-200/20 px-6 py-10 text-center text-sm text-base-content/60">
-              No companies yet — use the form above to register your first one.
-            </li>
-          )}
-          {list.map((c) => (
-            <li
-              key={c.id}
-              className="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm ring-1 ring-base-300/15"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-base-300 bg-base-200/25 px-5 py-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-base-100 text-primary shadow-sm ring-1 ring-base-300/40">
-                    <HiOutlineBuildingOffice2 className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-base-content">
-                      {c.name}
-                    </p>
-                    <p className="mt-0.5 text-xs text-base-content/50">
-                      ID <span className="font-mono">{c.id}</span>
-                    </p>
-                  </div>
-                </div>
-                {c.verificationStatus === "approved" || c.isVerified ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">
-                    <HiOutlineShieldCheck className="h-3.5 w-3.5" />
-                    Verified
-                  </span>
-                ) : c.verificationStatus === "rejected" ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-error/15 px-3 py-1 text-xs font-semibold text-error">
-                    Declined
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-3 py-1 text-xs font-semibold text-warning">
-                    Pending verification
-                  </span>
-                )}
-              </div>
-              <div className="px-5 py-4">
-                <p className="text-sm leading-relaxed text-base-content/75">
-                  {stripHtmlToPlainText(c.description)}
-                </p>
-                {c.businessAddress?.trim() ? (
-                  <p className="mt-3 text-sm text-base-content/60">
-                    <span className="font-medium text-base-content/80">
-                      Location:{" "}
-                    </span>
-                    {c.businessAddress.trim()}
-                  </p>
-                ) : null}
-
-                {/* TIN & Trade License */}
-                {(c.tinNumber || c.tradeLicenseNumber) && (
-                  <div className="mt-3 flex flex-wrap gap-3">
-                    {c.tinNumber && (
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-base-200/50 px-2.5 py-1 text-xs font-medium text-base-content/60">
-                        TIN: <span className="font-mono text-base-content/80">{c.tinNumber}</span>
-                      </span>
-                    )}
-                    {c.tradeLicenseNumber && (
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-base-200/50 px-2.5 py-1 text-xs font-medium text-base-content/60">
-                        License: <span className="font-mono text-base-content/80">{c.tradeLicenseNumber}</span>
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Rejection reason */}
-                {c.verificationStatus === "rejected" && c.rejectionReason && (
-                  <div className="mt-3 rounded-lg border border-error/20 bg-error/5 px-3 py-2">
-                    <p className="text-xs font-semibold text-error/70">Decline reason</p>
-                    <p className="mt-0.5 text-xs text-base-content/70">{c.rejectionReason}</p>
-                  </div>
-                )}
-
-                <SupplierCompanyEditForm company={c} />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <SupplierCompaniesBoard companies={list} productCountByCompanyId={productCountByCompanyId} />
     </div>
   );
 }

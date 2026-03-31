@@ -1,68 +1,44 @@
-import { NextRequest, NextResponse } from "next/server";
-import { compare, hash } from "bcryptjs";
-import { getMongoDb } from "@/lib/mongodb";
-import { verifyToken } from "@/lib/auth/jwt";
+import { NextResponse } from "next/server";
 import { validatePasswordStrength } from "@/lib/auth/register-validation";
+import { verifyPassword } from "@/lib/auth/password";
+import { findUserById, updateUserPassword } from "@/lib/db/users";
+import { requireSession } from "@/lib/server/require-session";
 
-export async function POST(req: NextRequest) {
-  try {
-    /* ── Authenticate ───────────────────────────────────── */
-    const token = req.cookies.get("token")?.value;
-    if (!token) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+export async function POST(request: Request) {
+  const auth = await requireSession();
+  if (!auth.ok) return auth.response;
 
-    const payload = await verifyToken(token).catch(() => null);
-    if (!payload || !payload.email) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
-    }
+  const body = await request.json().catch(() => null);
+  const { currentPassword, password, confirmPassword } = body as {
+    currentPassword?: string;
+    password?: string;
+    confirmPassword?: string;
+  };
 
-    /* ── Parse body ─────────────────────────────────────── */
-    const body = await req.json().catch(() => null);
-    if (!body) {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-    }
-
-    const { currentPassword, password, confirmPassword } = body as {
-      currentPassword?: string;
-      password?: string;
-      confirmPassword?: string;
-    };
-
-    if (!currentPassword || !password || !confirmPassword) {
-      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
-    }
-
-    if (password !== confirmPassword) {
-      return NextResponse.json({ error: "Passwords do not match" }, { status: 400 });
-    }
-
-    const strengthErr = validatePasswordStrength(password);
-    if (strengthErr) {
-      return NextResponse.json({ error: strengthErr }, { status: 400 });
-    }
-
-    /* ── Verify current password ────────────────────────── */
-    const db = await getMongoDb();
-    const user = await db.collection("users").findOne({ email: payload.email });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const match = await compare(currentPassword, user.password);
-    if (!match) {
-      return NextResponse.json({ error: "Current password is incorrect" }, { status: 403 });
-    }
-
-    /* ── Update password ────────────────────────────────── */
-    const hashed = await hash(password, 12);
-    await db.collection("users").updateOne(
-      { email: payload.email },
-      { $set: { password: hashed, updatedAt: new Date() } },
-    );
-
-    return NextResponse.json({ message: "Password updated successfully" });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (!currentPassword || !password || !confirmPassword) {
+    return NextResponse.json({ error: "All fields are required" }, { status: 400 });
   }
+
+  if (password !== confirmPassword) {
+    return NextResponse.json({ error: "Passwords do not match" }, { status: 400 });
+  }
+
+  const strengthErr = validatePasswordStrength(password);
+  if (strengthErr) {
+    return NextResponse.json({ error: strengthErr }, { status: 400 });
+  }
+
+  const row = findUserById(auth.user.id);
+  if (!row) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  const match = await verifyPassword(currentPassword, row.passwordHash);
+  if (!match) {
+    return NextResponse.json({ error: "Current password is incorrect" }, { status: 403 });
+  }
+
+  await updateUserPassword(auth.user.id, password);
+
+  return NextResponse.json({ ok: true, message: "Password updated successfully" });
 }

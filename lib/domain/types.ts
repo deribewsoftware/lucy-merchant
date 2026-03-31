@@ -1,4 +1,4 @@
-export type UserRole = "supplier" | "merchant" | "admin";
+export type UserRole = "supplier" | "merchant" | "admin" | "system_admin";
 
 export type VerificationStatus = "none" | "pending" | "approved" | "rejected";
 
@@ -7,6 +7,10 @@ export type Permission =
   | "companies:verify"
   | "categories:manage"
   | "system:configure"
+  | "moderation:manage"
+  | "orders:admin"
+  | "system:manage-admins"
+  | "system:audit-read"
   | "companies:manage"
   | "products:manage"
   | "orders:supplier"
@@ -44,8 +48,17 @@ export type UserRecord = {
   emailVerificationOtpExpiresAt?: string;
   passwordResetTokenHash?: string;
   passwordResetExpiresAt?: string;
-  /** Admin-only: subtract permissions from the default admin set (e.g. revoke order completion). */
+  /** Legacy: subtract from the full admin cap when `adminPermissionAllow` is omitted AND this list is non-empty. */
   adminPermissionDeny?: Permission[];
+  /**
+   * Whitelist: only these permissions apply (empty = no access until a system administrator grants some).
+   * When omitted with an empty deny list, the user has no effective permissions.
+   */
+  adminPermissionAllow?: Permission[];
+  /** Throttle emails to super admins (“no permission yet”). */
+  lastAccessRequestEmailAt?: string;
+  /** Invited admin used the default password — must change before using admin tools (see proxy + login). */
+  mustChangePassword?: boolean;
   /** National ID verification (Ethiopian Digital ID / Fayda) */
   nationalIdStatus?: VerificationStatus;
   /** FAN (Fayda Alias Number) — 16 digits (often shown in groups) */
@@ -101,6 +114,11 @@ export type Company = {
   reviewedBy?: string;
 };
 
+/** Admin-approved or legacy verified flag — supplier cannot edit profile fields while true. */
+export function companyApprovedOrVerified(c: Company): boolean {
+  return c.verificationStatus === "approved" || c.isVerified;
+}
+
 export type Product = {
   id: string;
   companyId: string;
@@ -113,7 +131,8 @@ export type Product = {
   compareAtPrice?: number;
   availableQuantity: number;
   minOrderQuantity: number;
-  maxDeliveryQuantity: number;
+  /** If unset, max per delivery is effectively limited only by stock. */
+  maxDeliveryQuantity?: number;
   deliveryTime: string;
   /** Pieces per carton — optional; enables min-carton display from MOQ */
   itemsPerCarton?: number;
@@ -146,7 +165,8 @@ export type NotificationRecord = {
     | "chat_message"
     | "review_company"
     | "review_product"
-    | "verification_status";
+    | "verification_status"
+    | "admin_staff";
   title: string;
   body: string;
   href?: string;
@@ -190,12 +210,22 @@ export type PaymentMethod =
   | "chapa"
   | "telebirr";
 
+/**
+ * Optional at checkout — how the buyer and supplier coordinate physical handoff.
+ * Does not replace payment rules; it clarifies who moves the goods and where they meet.
+ */
+export type OrderFulfillmentHandoff =
+  | "supplier_delivers_to_shop"
+  | "merchant_pickup_at_supplier";
+
 export type Order = {
   id: string;
   merchantId: string;
   items: OrderItem[];
   totalPrice: number;
   deliveryLocation: string;
+  /** How delivery / pickup is arranged (optional; older orders may omit). */
+  fulfillmentHandoff?: OrderFulfillmentHandoff;
   status: OrderStatus;
   /** Merchant (buyer) platform commission fee → platform: % of order total from system config. */
   commissionAmount: number;
@@ -231,6 +261,19 @@ export type Order = {
   /** Admin confirmed they reviewed commission payment screenshots before completing the order. */
   adminCommissionProofsAcknowledgedAt?: string;
   adminCommissionProofsAcknowledgedBy?: string;
+  /**
+   * Upper bound of stated lead time across line items (business days), set at checkout.
+   * Used with `fulfillmentAcceptedAt` for delivery SLA and merchant disputes.
+   */
+  deliveryCommitmentBusinessDays?: number;
+  /** When the supplier first set the order to `accepted` — delivery SLA clock starts. */
+  fulfillmentAcceptedAt?: string;
+  /** Required when supplier rejects — shown to buyer and admins. */
+  supplierRejectionReason?: string;
+  supplierRejectedAt?: string;
+  /** Merchant opened a late-delivery dispute — admins and supplier are notified. */
+  merchantDisputeOpenedAt?: string;
+  merchantDisputeReason?: string;
   createdAt: string;
 };
 
@@ -258,6 +301,39 @@ export type SessionUser = {
   email: string;
   role: UserRole;
   name: string;
+};
+
+/**
+ * Extra fields on GET /api/auth/me `user` beyond the JWT session payload.
+ * Merchant/supplier responses may also include `nationalId*` (Fayda) fields.
+ */
+export type AuthMeUser = SessionUser & {
+  points?: number;
+  emailVerified?: boolean;
+  merchantCommissionHold?: boolean;
+  supplierCommissionHold?: boolean;
+  staffPermissions?: Permission[];
+  /** Present when `role` is `admin`: no capabilities granted yet. */
+  adminAccessPending?: boolean;
+  /** True when the account still uses the default invited password — change password to continue. */
+  mustChangePassword?: boolean;
+};
+
+/** Successful POST /api/auth/login JSON body */
+export type LoginSuccessResponse = {
+  ok: true;
+  adminAccessPending: boolean;
+  /** Invited admin must change password (default invite password) before using admin UI. */
+  mustChangePassword?: boolean;
+  /** When role is `admin` or `system_admin`: first admin URL the user may open (by permission priority). */
+  staffHomePath?: string;
+  user: {
+    id: string;
+    email: string;
+    role: UserRole;
+    name: string;
+    points?: number;
+  };
 };
 
 /** Order-scoped negotiation chat (PDF: linked to order) */

@@ -5,28 +5,29 @@ export type EthiopiaSearchHit = {
   address: Record<string, string>;
 };
 
-/** Map Nominatim address parts to region / town / city / street (Ethiopia). */
+/** Map Nominatim address parts to region / city / woreda / kebele / street (Ethiopia). Town-level OSM tags are folded into city. */
 export function nominatimToParts(addr: Record<string, string>): {
   region: string;
-  town: string;
   city: string;
+  woreda: string;
+  kebele: string;
   street: string;
 } {
   const region =
     addr.state || addr.region || addr["ISO3166-2-lvl4"] || "";
-  const city =
+  const cityCore =
     addr.city || addr.municipality || addr.county || "";
-  const town =
-    addr.town ||
-    addr.village ||
-    addr.suburb ||
-    addr.city_district ||
-    addr.neighbourhood ||
-    addr.hamlet ||
-    "";
+  const townLevel =
+    addr.town || addr.village || addr.city_district || "";
+  const city = [cityCore, townLevel]
+    .map((s) => String(s).trim())
+    .filter(Boolean)
+    .join(", ");
+  const woreda = (addr.district || addr.quarter || "").trim();
+  const kebele = (addr.neighbourhood || addr.suburb || addr.hamlet || "").trim();
   const street = [addr.road, addr.pedestrian, addr.house_number]
     .filter(Boolean)
     .join(" ")
     .trim();
-  return { region, town, city, street };
+  return { region, city, woreda, kebele, street };
 }

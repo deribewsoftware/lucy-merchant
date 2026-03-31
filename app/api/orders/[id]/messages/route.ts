@@ -4,6 +4,10 @@ import { getOrder } from "@/lib/db/commerce";
 import { getCompany } from "@/lib/db/catalog";
 import { getPresenceForUsers, touchPresence } from "@/lib/db/presence";
 import { notifyOrderChatRecipients } from "@/lib/db/notifications";
+import {
+  isStaffAdminRole,
+  MERCHANT_SUPPLIER_STAFF_ROLES,
+} from "@/lib/admin-staff";
 import { canAccessOrder } from "@/lib/server/order-access";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { requireSession } from "@/lib/server/require-session";
@@ -24,7 +28,7 @@ function orderParticipantUserIds(order: Order): string[] {
 }
 
 export async function GET(_request: Request, context: Params) {
-  const auth = await requireSession(["merchant", "supplier", "admin"]);
+  const auth = await requireSession(MERCHANT_SUPPLIER_STAFF_ROLES);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
@@ -39,7 +43,7 @@ export async function GET(_request: Request, context: Params) {
   if (
     (order.status === "awaiting_payment" ||
       order.status === "awaiting_bank_review") &&
-    auth.user.role !== "admin"
+    !isStaffAdminRole(auth.user.role)
   ) {
     return NextResponse.json(
       { error: "Chat opens after payment is confirmed." },
@@ -59,7 +63,7 @@ export async function GET(_request: Request, context: Params) {
 }
 
 export async function POST(request: Request, context: Params) {
-  const auth = await requireSession(["merchant", "supplier", "admin"]);
+  const auth = await requireSession(MERCHANT_SUPPLIER_STAFF_ROLES);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
@@ -74,7 +78,7 @@ export async function POST(request: Request, context: Params) {
   if (
     (order.status === "awaiting_payment" ||
       order.status === "awaiting_bank_review") &&
-    auth.user.role !== "admin"
+    !isStaffAdminRole(auth.user.role)
   ) {
     return NextResponse.json(
       { error: "Chat opens after payment is confirmed." },

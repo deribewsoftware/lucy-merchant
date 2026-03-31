@@ -3,6 +3,7 @@ import { companiesByOwner } from "@/lib/db/catalog";
 import {
   getOrder,
   patchOrder,
+  supplierRejectionsInLastDays,
   updateOrderStatus,
 } from "@/lib/db/commerce";
 import {
@@ -21,12 +22,13 @@ import {
   isSupplierPlatformCommissionPaid,
 } from "@/lib/domain/platform-commission";
 import type { OrderStatus } from "@/lib/domain/types";
+import { MERCHANT_SUPPLIER_STAFF_ROLES } from "@/lib/admin-staff";
 import { requireSession } from "@/lib/server/require-session";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Params) {
-  const auth = await requireSession(["merchant", "supplier", "admin"]);
+  const auth = await requireSession(MERCHANT_SUPPLIER_STAFF_ROLES);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
@@ -149,6 +151,63 @@ export async function PATCH(request: Request, context: Params) {
   if (order.status === "completed" || order.status === "rejected") {
     return NextResponse.json({ error: "Order is closed" }, { status: 400 });
   }
+
+  const rejectionReasonRaw =
+    typeof body?.rejectionReason === "string" ? body.rejectionReason : "";
+  const rejectionReason = rejectionReasonRaw.trim();
+
+  if (status === "rejected") {
+    if (order.paymentStatus === "paid") {
+      return NextResponse.json(
+        {
+          error:
+            "You confirmed payment for this order — it can no longer be rejected. Contact support if there is a problem.",
+        },
+        { status: 400 },
+      );
+    }
+    if (rejectionReason.length < 20) {
+      return NextResponse.json(
+        {
+          error:
+            "Write a clear rejection reason for the buyer (at least 20 characters).",
+        },
+        { status: 400 },
+      );
+    }
+    if (rejectionReason.length > 2000) {
+      return NextResponse.json(
+        { error: "Rejection reason is too long (max 2000 characters)." },
+        { status: 400 },
+      );
+    }
+    if (supplierRejectionsInLastDays(auth.user.id, 7) >= 3) {
+      return NextResponse.json(
+        {
+          error:
+            "You can reject at most 3 orders per rolling 7-day week. Try again later or contact support.",
+        },
+        { status: 429 },
+      );
+    }
+    if (!isValidSupplierStatusTransition(order, status)) {
+      return NextResponse.json(
+        {
+          error: `Cannot move from ${order.status.replace("_", " ")} to rejected`,
+        },
+        { status: 400 },
+      );
+    }
+    const updated = updateOrderStatus(id, "rejected", {
+      supplierRejectionReason: rejectionReason,
+      supplierRejectedAt: new Date().toISOString(),
+    });
+    if (updated) {
+      notifyMerchantOrderStatus(updated, "rejected");
+    }
+    return NextResponse.json({ order: updated });
+  }
+
   if (order.status === "delivered") {
     const buyerDone = isMerchantPlatformCommissionPaid(order);
     const supplierDone = isSupplierPlatformCommissionPaid(order);

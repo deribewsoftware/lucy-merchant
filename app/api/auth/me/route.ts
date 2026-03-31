@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { isEmailVerified } from "@/lib/auth/email-verification";
 import { findUserById } from "@/lib/db/users";
+import type { AuthMeUser } from "@/lib/domain/types";
 import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
+import { isStaffAdminRole } from "@/lib/admin-staff";
+import { effectiveStaffPermissions } from "@/lib/server/admin-permissions";
 import { requireSession } from "@/lib/server/require-session";
 import { supplierHasOutstandingCommission } from "@/lib/server/supplier-commission";
 
@@ -19,6 +22,11 @@ export async function GET() {
       ? supplierHasOutstandingCommission(auth.user.id)
       : false;
 
+  const staffPermissions =
+    row && isStaffAdminRole(row.role)
+      ? effectiveStaffPermissions(auth.user.id)
+      : undefined;
+
   const base = {
     id: auth.user.id,
     email: auth.user.email,
@@ -26,8 +34,15 @@ export async function GET() {
     name: auth.user.name,
     points: row?.points,
     emailVerified: row ? isEmailVerified(row) : true,
+    mustChangePassword: row?.mustChangePassword === true,
     merchantCommissionHold,
     supplierCommissionHold,
+    staffPermissions,
+    ...(auth.user.role === "admin"
+      ? {
+          adminAccessPending: (staffPermissions?.length ?? 0) === 0,
+        }
+      : {}),
   };
 
   const fayda =
@@ -49,7 +64,8 @@ export async function GET() {
         }
       : {};
 
+  const userPayload = { ...base, ...fayda } as AuthMeUser & typeof fayda;
   return NextResponse.json({
-    user: { ...base, ...fayda },
+    user: userPayload,
   });
 }

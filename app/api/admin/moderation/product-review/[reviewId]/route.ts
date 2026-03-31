@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
+import { ADMIN_STAFF_ROLES } from "@/lib/admin-staff";
 import {
   deleteProductReviewById,
   getProductReviewById,
 } from "@/lib/db/product-reviews";
 import { notifyMerchantProductReviewRemovedByModeration } from "@/lib/db/notifications";
+import { logStaffAction } from "@/lib/server/admin-audit-log";
+import { requireStaffPermission } from "@/lib/server/admin-permissions";
 import { requireSession } from "@/lib/server/require-session";
 
 type Params = { params: Promise<{ reviewId: string }> };
 
-export async function DELETE(_request: Request, context: Params) {
-  const auth = await requireSession(["admin"]);
+export async function DELETE(request: Request, context: Params) {
+  const auth = await requireSession(ADMIN_STAFF_ROLES);
   if (!auth.ok) return auth.response;
+  const perm = requireStaffPermission(auth.user.id, "moderation:manage");
+  if (!perm.ok) return perm.response;
 
   const { reviewId } = await context.params;
   const before = getProductReviewById(reviewId);
@@ -21,5 +26,10 @@ export async function DELETE(_request: Request, context: Params) {
   if (before) {
     notifyMerchantProductReviewRemovedByModeration(before);
   }
+  logStaffAction(request, {
+    actorId: auth.user.id,
+    action: "moderation.delete_product_review",
+    resource: reviewId,
+  });
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProduct } from "@/lib/db/catalog";
 import { listAllProductComments, toggleCommentLike } from "@/lib/db/comments";
+import { MERCHANT_SUPPLIER_STAFF_ROLES } from "@/lib/admin-staff";
 import { requireSession } from "@/lib/server/require-session";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 
@@ -9,7 +10,7 @@ type Params = {
 };
 
 export async function POST(_request: Request, context: Params) {
-  const auth = await requireSession(["merchant", "supplier", "admin"]);
+  const auth = await requireSession(MERCHANT_SUPPLIER_STAFF_ROLES);
   if (!auth.ok) return auth.response;
 
   const { id: productId, commentId } = await context.params;

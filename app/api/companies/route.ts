@@ -5,6 +5,7 @@ import {
   listCompanies,
 } from "@/lib/db/catalog";
 import { notifyAdminsNewVerificationRequest } from "@/lib/db/notifications";
+import { isStaffAdminRole } from "@/lib/admin-staff";
 import { requireSession } from "@/lib/server/require-session";
 import { getSessionUser } from "@/lib/server/session";
 
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const pending = searchParams.get("pending") === "true";
 
-  if (user.role === "admin") {
+  if (isStaffAdminRole(user.role)) {
     if (pending) {
       return NextResponse.json({
         companies: listCompanies().filter((c) => !c.isVerified),

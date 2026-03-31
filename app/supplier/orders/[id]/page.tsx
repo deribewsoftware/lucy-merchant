@@ -6,14 +6,16 @@ import {
   HiOutlineShoppingBag,
   HiOutlineUserCircle,
 } from "react-icons/hi2";
+import { FulfillmentHandoffDisplay } from "@/components/fulfillment-handoff-display";
 import { OrderChat } from "@/components/order-chat";
 import { OrderFulfillmentTracker } from "@/components/order-fulfillment-tracker";
+import { SupplierOrderLineItemsPaginated } from "@/components/supplier-order-line-items-paginated";
 import { OrderPaymentSummary } from "@/components/order-payment-summary";
 import { SupplierOrderActions } from "@/components/supplier-order-actions";
 import { SupplierPaymentActions } from "@/components/supplier-payment-actions";
 import { SupplierPlatformCommissionPanel } from "@/components/supplier-platform-commission";
-import { companiesByOwner, getProduct } from "@/lib/db/catalog";
-import { getOrder } from "@/lib/db/commerce";
+import { companiesByOwner, getCompany, getProduct } from "@/lib/db/catalog";
+import { getOrder, supplierRejectionsInLastDays } from "@/lib/db/commerce";
 import {
   ensureLegacyPaymentForOrder,
   listPaymentsForOrder,
@@ -28,6 +30,7 @@ import {
   isPlatformCommissionPaid,
   isSupplierPlatformCommissionPaid,
 } from "@/lib/domain/platform-commission";
+import { orderFulfillmentDeliveryDeadline } from "@/lib/domain/order-dispute";
 import { getSessionUser } from "@/lib/server/session";
 
 type Params = { params: Promise<{ id: string }> };
@@ -68,6 +71,31 @@ export default async function SupplierOrderDetailPage({ params }: Params) {
   const guidance = supplierOrderGuidance(order);
   const supplierCommOwed = Math.round((order.supplierCommissionAmount ?? 0) * 100) / 100;
   const supplierCommPaid = isSupplierPlatformCommissionPaid(order);
+
+  const rejectionsThisWeek = supplierRejectionsInLastDays(user.id, 7);
+  const supplierCompany = order.items[0]
+    ? getCompany(order.items[0].companyId)
+    : undefined;
+
+  const slaDays = order.deliveryCommitmentBusinessDays ?? 7;
+  const deliveryDeadline = orderFulfillmentDeliveryDeadline(order);
+  const showSlaBanner =
+    (order.status === "accepted" || order.status === "in_progress") &&
+    Boolean(deliveryDeadline);
+
+  const supplierLineItemsVm = order.items.map((i) => {
+    const p = getProduct(i.productId);
+    return {
+      key: `${i.productId}-${i.companyId}`,
+      productId: i.productId,
+      companyId: i.companyId,
+      quantity: i.quantity,
+      subtotal: i.subtotal,
+      title: p?.name ?? i.productId,
+      desc: p?.description?.trim() ?? "",
+      isYours: mine.has(i.companyId),
+    };
+  });
 
   return (
     <div className="space-y-8 pb-10">
@@ -160,9 +188,54 @@ export default async function SupplierOrderDetailPage({ params }: Params) {
         </div>
       </header>
 
+      <FulfillmentHandoffDisplay
+        fulfillmentHandoff={order.fulfillmentHandoff}
+        audience="supplier"
+      />
+
       <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
         <div className="space-y-6 lg:col-span-8">
           <OrderFulfillmentTracker order={order} role="supplier" />
+
+          {order.merchantDisputeOpenedAt ? (
+            <div
+              role="status"
+              className="rounded-2xl border border-amber-500/35 bg-amber-500/10 px-4 py-4 text-sm shadow-sm"
+            >
+              <p className="font-display font-bold text-amber-900 dark:text-amber-200">
+                Buyer opened a delivery dispute
+              </p>
+              <p className="mt-1 text-xs text-base-content/65">
+                {order.merchantDisputeOpenedAt
+                  ? new Date(order.merchantDisputeOpenedAt).toLocaleString()
+                  : ""}
+              </p>
+              {order.merchantDisputeReason ? (
+                <p className="mt-3 whitespace-pre-wrap rounded-xl border border-amber-500/25 bg-base-100/80 p-3 text-base-content/90">
+                  {order.merchantDisputeReason}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {showSlaBanner && deliveryDeadline ? (
+            <div className="rounded-2xl border border-base-300/80 bg-base-200/30 p-4 text-sm shadow-sm sm:p-5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-base-content/50">
+                Delivery window (buyer-facing)
+              </p>
+              <p className="mt-2 text-base-content/85">
+                Listing lead (upper bound):{" "}
+                <span className="font-semibold tabular-nums">{slaDays}</span> business days from
+                acceptance.
+              </p>
+              <p className="mt-1 text-xs text-base-content/60">
+                Stated “not after” target:{" "}
+                <span className="font-medium text-base-content">
+                  {deliveryDeadline.toLocaleString()}
+                </span>
+              </p>
+            </div>
+          ) : null}
 
           <section className="overflow-hidden rounded-3xl border border-base-300 bg-base-100 shadow-md ring-1 ring-base-300/20">
             <div className="flex items-center gap-2 border-b border-base-300 bg-base-200/40 px-5 py-4 sm:px-6">
@@ -171,48 +244,10 @@ export default async function SupplierOrderDetailPage({ params }: Params) {
                 Line items
               </h2>
             </div>
-            <ul className="divide-y divide-base-200">
-              {order.items.map((i) => {
-                const p = getProduct(i.productId);
-                const isYours = mine.has(i.companyId);
-                const title = p?.name ?? i.productId;
-                const desc = p?.description?.trim() ?? "";
-                return (
-                  <li
-                    key={`${i.productId}-${i.companyId}`}
-                    className="flex flex-wrap items-start justify-between gap-3 px-5 py-4 sm:px-6"
-                  >
-                    <div className="min-w-0 max-w-xl flex-1">
-                      <Link
-                        href={`/products/${i.productId}`}
-                        className="group block"
-                      >
-                        <span className="font-semibold text-base-content underline-offset-2 group-hover:text-primary group-hover:underline">
-                          {title}
-                        </span>
-                        {desc ? (
-                          <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-base-content/65">
-                            {desc}
-                          </p>
-                        ) : null}
-                      </Link>
-                      <p className="mt-2 text-sm tabular-nums text-base-content/65">
-                        Qty {i.quantity}
-                      </p>
-                      {!isYours ? (
-                        <p className="mt-1 text-xs text-warning">
-                          Another supplier on this checkout — you only control
-                          status for your catalog.
-                        </p>
-                      ) : null}
-                    </div>
-                    <p className="shrink-0 font-semibold tabular-nums text-base-content">
-                      {i.subtotal.toLocaleString()} ETB
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
+            <SupplierOrderLineItemsPaginated
+              items={supplierLineItemsVm}
+              resetKey={order.id}
+            />
           </section>
 
           <section className="rounded-3xl border border-base-300 bg-base-100 p-5 shadow-md ring-1 ring-base-300/20 sm:p-6">
@@ -299,6 +334,7 @@ export default async function SupplierOrderDetailPage({ params }: Params) {
                 platformCommissionPaid={isPlatformCommissionPaid(order)}
                 supplierCommissionPaid={supplierCommPaid}
                 supplierCommissionOwed={supplierCommOwed}
+                rejectionsThisWeek={rejectionsThisWeek}
               />
             </div>
           </div>
@@ -309,7 +345,9 @@ export default async function SupplierOrderDetailPage({ params }: Params) {
               status: order.status,
               paymentMethod: order.paymentMethod,
               paymentStatus: order.paymentStatus,
+              totalPrice: order.totalPrice,
             }}
+            company={supplierCompany ?? null}
           />
 
           <SupplierPlatformCommissionPanel

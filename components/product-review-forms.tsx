@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { PaginatedClientList } from "@/components/paginated-client-list";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { isRichTextEmpty } from "@/lib/rich-text";
 
@@ -17,6 +18,10 @@ export function ProductReviewForms({ orderId, products }: Props) {
   const router = useRouter();
   const [msg, setMsg] = useState<Record<string, string | null>>({});
 
+  const clearErrorsOnPaging = useCallback(() => {
+    setMsg({});
+  }, []);
+
   if (products.length === 0) return null;
 
   return (
@@ -27,22 +32,37 @@ export function ProductReviewForms({ orderId, products }: Props) {
       <p className="text-sm text-zinc-500">
         One review per SKU per order after completion (verified purchase).
       </p>
-      {products.map((p) =>
-        p.alreadyReviewed ? (
-          <p key={p.id} className="text-sm text-zinc-500">
-            You already reviewed <strong>{p.name}</strong> for this order.
-          </p>
-        ) : (
-          <ReviewForm
-            key={p.id}
-            orderId={orderId}
-            product={p}
-            onDone={() => router.refresh()}
-            onError={(m) => setMsg((s) => ({ ...s, [p.id]: m }))}
-            error={msg[p.id]}
-          />
-        ),
-      )}
+      <PaginatedClientList
+        items={products}
+        pageSize={5}
+        resetKey={products.map((p) => p.id).join(",")}
+        summaryClassName="mb-3"
+        summarySuffix="products"
+        barClassName="mt-4"
+        onReset={clearErrorsOnPaging}
+        onPageSelect={clearErrorsOnPaging}
+      >
+        {(pageItems) => (
+          <div className="space-y-6">
+            {pageItems.map((p) =>
+              p.alreadyReviewed ? (
+                <p key={p.id} className="text-sm text-zinc-500">
+                  You already reviewed <strong>{p.name}</strong> for this order.
+                </p>
+              ) : (
+                <ReviewForm
+                  key={p.id}
+                  orderId={orderId}
+                  product={p}
+                  onDone={() => router.refresh()}
+                  onError={(m) => setMsg((s) => ({ ...s, [p.id]: m }))}
+                  error={msg[p.id]}
+                />
+              ),
+            )}
+          </div>
+        )}
+      </PaginatedClientList>
     </div>
   );
 }

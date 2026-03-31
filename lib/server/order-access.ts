@@ -1,8 +1,9 @@
 import { companiesByOwner } from "@/lib/db/catalog";
+import { isStaffAdminRole } from "@/lib/admin-staff";
 import type { Order, SessionUser } from "@/lib/domain/types";
 
 export function canAccessOrder(user: SessionUser, order: Order): boolean {
-  if (user.role === "admin") return true;
+  if (isStaffAdminRole(user.role)) return true;
   if (user.role === "merchant") return order.merchantId === user.id;
   if (user.role === "supplier") {
     if (

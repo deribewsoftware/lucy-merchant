@@ -4,10 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
 
-type Props = { orderId: string };
+type Props = { orderId: string; canProcessOrders?: boolean };
 
 /** Admin records supplier → platform commission (same as supplier self-confirm). */
-export function AdminRecordSupplierPlatformFee({ orderId }: Props) {
+export function AdminRecordSupplierPlatformFee({
+  orderId,
+  canProcessOrders = true,
+}: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -48,17 +51,24 @@ export function AdminRecordSupplierPlatformFee({ orderId }: Props) {
                 {msg}
               </p>
             ) : null}
-            <button
-              type="button"
-              onClick={record}
-              disabled={loading}
-              className="btn btn-sm mt-1 border-violet-500/40 bg-violet-500/10 text-violet-900 hover:bg-violet-500/20 dark:text-violet-200"
-            >
-              {loading ? (
-                <span className="loading loading-spinner loading-xs" />
-              ) : null}
-              Record supplier commission received
-            </button>
+            {!canProcessOrders ? (
+              <p className="mt-2 text-xs text-base-content/60">
+                Recording requires the{" "}
+                <span className="font-mono">orders:admin</span> permission.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={record}
+                disabled={loading}
+                className="btn btn-sm mt-1 border-violet-500/40 bg-violet-500/10 text-violet-900 hover:bg-violet-500/20 dark:text-violet-200"
+              >
+                {loading ? (
+                  <span className="loading loading-spinner loading-xs" />
+                ) : null}
+                Record supplier commission received
+              </button>
+            )}
           </div>
         </div>
       </div>

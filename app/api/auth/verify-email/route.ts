@@ -48,6 +48,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid code" }, { status: 400 });
   }
 
+  const staffRole = user.role === "admin" || user.role === "system_admin";
+  const defaultPasswordPending = user.mustChangePassword === true;
+
   markUserEmailVerified(user.id);
 
   if (
@@ -61,5 +64,9 @@ export async function POST(request: Request) {
     }).catch((e) => console.error("[auth/verify-email] welcome email:", e));
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    staffRole,
+    defaultPasswordPending,
+  });
 }

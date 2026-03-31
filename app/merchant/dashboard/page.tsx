@@ -4,16 +4,19 @@ import {
   ArrowRight,
   ArrowUpRight,
   ClipboardList,
-  Package,
   Search,
   ShoppingCart,
-  TrendingUp,
   Truck,
   Wallet,
 } from "lucide-react";
+import {
+  PaginatedMerchantRecentOrders,
+  PaginatedMerchantTopLines,
+} from "@/components/dashboard-paginated-lists";
 import { MerchantDashboardCharts } from "@/components/merchant-dashboard-charts";
 import { getProduct } from "@/lib/db/catalog";
 import { getCart, ordersForMerchant } from "@/lib/db/commerce";
+import { merchantMayOpenDeliveryDispute } from "@/lib/domain/order-dispute";
 import { getMerchantDashboardAnalytics } from "@/lib/merchant-analytics";
 import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
 import { getSessionUser } from "@/lib/server/session";
@@ -173,31 +176,15 @@ export default async function MerchantDashboardPage() {
                 Your most frequently ordered items
               </p>
               <div className="mt-4 lm-card p-0">
-                <div className="divide-y divide-border">
-                  {analytics.charts.topLines.map((line, i) => (
-                    <Link
-                      key={line.productId}
-                      href={`/products/${line.productId}`}
-                      className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-semibold text-muted-foreground">
-                          {i + 1}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-primary" />
-                          <span className="font-medium text-foreground">{line.name}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground">
-                          {line.spendEtb.toLocaleString()} ETB
-                        </p>
-                        <p className="text-sm text-muted-foreground">{line.units} units</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                <PaginatedMerchantTopLines
+                  items={analytics.charts.topLines.map((line, i) => ({
+                    rank: i + 1,
+                    productId: line.productId,
+                    name: line.name,
+                    spendEtb: line.spendEtb,
+                    units: line.units,
+                  }))}
+                />
               </div>
             </section>
           )}
@@ -222,44 +209,16 @@ export default async function MerchantDashboardPage() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {orders.slice(0, 6).map((o) => (
-              <Link
-                key={o.id}
-                href={`/merchant/orders/${o.id}`}
-                className="lm-card lm-card-interactive"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {o.id.slice(0, 12)}...
-                  </span>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
-                      o.status === "completed"
-                        ? "bg-success/15 text-success"
-                        : o.status === "rejected"
-                          ? "bg-destructive/15 text-destructive"
-                          : o.status === "delivered"
-                            ? "bg-info/15 text-info"
-                            : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {o.status.replace("_", " ")}
-                  </span>
-                </div>
-                <p className="mt-3 text-xl font-bold text-primary">
-                  {o.totalPrice.toLocaleString()} ETB
-                </p>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                  {o.deliveryLocation}
-                </p>
-                <div className="mt-3 flex items-center gap-1 text-sm text-primary">
-                  <TrendingUp className="h-4 w-4" />
-                  View details
-                </div>
-              </Link>
-            ))}
-          </div>
+          <PaginatedMerchantRecentOrders
+            orders={orders.map((o) => ({
+              id: o.id,
+              status: o.status,
+              totalPrice: o.totalPrice,
+              deliveryLocation: o.deliveryLocation,
+              disputeFiled: Boolean(o.merchantDisputeOpenedAt),
+              disputeAvailable: merchantMayOpenDeliveryDispute(o),
+            }))}
+          />
         </section>
       )}
     </div>

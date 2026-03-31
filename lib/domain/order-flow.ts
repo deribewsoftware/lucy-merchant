@@ -5,9 +5,18 @@ type OrderSlice = Pick<
   "status" | "paymentMethod" | "paymentStatus"
 >;
 
+function withoutRejectIfPaymentConfirmed(
+  order: OrderSlice,
+  statuses: OrderStatus[],
+): OrderStatus[] {
+  if (order.paymentStatus !== "paid") return statuses;
+  return statuses.filter((s) => s !== "rejected");
+}
+
 /**
  * Supplier may advance the order along this path after the buyer has paid (when bank transfer is required).
  * COD: accept while payment is still pending (cash collected on delivery).
+ * After the supplier confirms payment received, rejection is not allowed (buyer funds are committed).
  * After delivery, the merchant records buyer platform commission and the supplier records
  * their platform fee (when configured); the supplier confirms buyer payment; then the buyer
  * can complete and leave reviews.
@@ -25,12 +34,15 @@ export function supplierAllowedNextStatuses(order: OrderSlice): OrderStatus[] {
       ) {
         return [];
       }
-      return ["accepted", "rejected"];
+      return withoutRejectIfPaymentConfirmed(order, ["accepted", "rejected"]);
     }
     case "accepted":
-      return ["in_progress", "rejected"];
+      return withoutRejectIfPaymentConfirmed(order, [
+        "in_progress",
+        "rejected",
+      ]);
     case "in_progress":
-      return ["delivered", "rejected"];
+      return withoutRejectIfPaymentConfirmed(order, ["delivered", "rejected"]);
     default:
       return [];
   }

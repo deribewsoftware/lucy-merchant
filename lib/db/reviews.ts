@@ -25,6 +25,13 @@ export function getCompanyReviewById(reviewId: string): CompanyReview | undefine
   return load().find((r) => r.id === reviewId);
 }
 
+/** Remove all buyer reviews for a company (e.g. before deleting the company). */
+export function deleteAllReviewsForCompany(companyId: string): void {
+  const rows = load();
+  const next = rows.filter((r) => r.companyId !== companyId);
+  if (next.length !== rows.length) save(next);
+}
+
 export function deleteCompanyReviewById(reviewId: string): boolean {
   const rows = load();
   const hit = rows.find((r) => r.id === reviewId);

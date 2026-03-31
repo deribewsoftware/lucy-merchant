@@ -13,6 +13,7 @@ import { deleteReviewsForProduct } from "@/lib/db/product-reviews";
 import { findUserById, updateUserPoints } from "@/lib/db/users";
 import { normalizeCompareAtPrice } from "@/lib/domain/compare-at-price";
 import { packagingFromPatch } from "@/lib/domain/packaging-from-body";
+import { normalizeProductImageUrl } from "@/lib/server/product-image-url";
 import { requireSession } from "@/lib/server/require-session";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { API_SUPPLIER_COMMISSION_SUSPENDED } from "@/lib/domain/commission-hold-copy";
@@ -81,9 +82,24 @@ export async function PATCH(request: Request, context: Params) {
     1,
     Number(body.minOrderQuantity ?? existing.minOrderQuantity) || 1,
   );
-  const maxDeliveryQuantity = Number(
-    body.maxDeliveryQuantity ?? existing.maxDeliveryQuantity,
-  );
+  let nextMaxDelivery: number | undefined = existing.maxDeliveryQuantity;
+  let removeMaxDelivery = false;
+  if ("maxDeliveryQuantity" in body) {
+    const raw = (body as { maxDeliveryQuantity?: unknown }).maxDeliveryQuantity;
+    if (raw === null || raw === "") {
+      nextMaxDelivery = undefined;
+      removeMaxDelivery = true;
+    } else {
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 1) {
+        return NextResponse.json(
+          { error: "Invalid max delivery quantity" },
+          { status: 400 },
+        );
+      }
+      nextMaxDelivery = n;
+    }
+  }
   const deliveryTime = String(
     body.deliveryTime ?? existing.deliveryTime,
   ).trim();
@@ -117,22 +133,16 @@ export async function PATCH(request: Request, context: Params) {
   if (!Number.isFinite(availableQuantity) || availableQuantity < 0) {
     return NextResponse.json({ error: "Invalid stock" }, { status: 400 });
   }
-  if (!Number.isFinite(maxDeliveryQuantity) || maxDeliveryQuantity < 1) {
-    return NextResponse.json(
-      { error: "Invalid max delivery quantity" },
-      { status: 400 },
-    );
-  }
 
   const tags = Array.isArray(body.tags)
     ? body.tags.map(String)
     : existing.tags;
 
-  const imageUrlRaw = String(
-    body.imageUrl !== undefined ? body.imageUrl : (existing.imageUrl ?? ""),
-  ).trim();
-  const imageUrl =
-    imageUrlRaw && /^https?:\/\//i.test(imageUrlRaw) ? imageUrlRaw : undefined;
+  const imageUrl = normalizeProductImageUrl(
+    String(
+      body.imageUrl !== undefined ? body.imageUrl : (existing.imageUrl ?? ""),
+    ),
+  );
 
   const shipRaw = String(
     body.shipFromRegion !== undefined
@@ -140,7 +150,7 @@ export async function PATCH(request: Request, context: Params) {
       : (existing.shipFromRegion ?? ""),
   )
     .trim()
-    .slice(0, 80);
+    .slice(0, 256);
   const shipFromRegion = shipRaw || undefined;
 
   const cfg = getSystemConfig();
@@ -180,7 +190,11 @@ export async function PATCH(request: Request, context: Params) {
     compareAtPrice: nextCompareAt,
     availableQuantity,
     minOrderQuantity,
-    maxDeliveryQuantity,
+    ...(removeMaxDelivery
+      ? {}
+      : nextMaxDelivery !== undefined
+        ? { maxDeliveryQuantity: nextMaxDelivery }
+        : {}),
     deliveryTime,
     ...packaging,
     ...(imageUrl ? { imageUrl } : { imageUrl: undefined }),
@@ -188,7 +202,9 @@ export async function PATCH(request: Request, context: Params) {
     ...(shipFromRegion ? { shipFromRegion } : { shipFromRegion: undefined }),
   };
 
-  const product = updateProduct(id, patch);
+  const product = updateProduct(id, patch, {
+    removeKeys: removeMaxDelivery ? ["maxDeliveryQuantity"] : undefined,
+  });
   if (!product) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

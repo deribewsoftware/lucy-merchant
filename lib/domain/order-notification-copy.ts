@@ -43,11 +43,15 @@ export function merchantCopyForSupplierStatusChange(
         title: "Order completed",
         body: `Order ${s} (${total} ETB) is marked completed. Thank you for using the marketplace.`,
       };
-    case "rejected":
+    case "rejected": {
+      const why = order.supplierRejectionReason?.trim();
       return {
         title: "Order declined by supplier",
-        body: `Order ${s} (${total} ETB) was declined. Contact support if you need help or a refund.`,
+        body: why
+          ? `Order ${s} (${total} ETB) was declined.\n\nSupplier’s reason:\n${why}`
+          : `Order ${s} (${total} ETB) was declined. Contact support if you need help or a refund.`,
       };
+    }
     default:
       return {
         title: "Order update",

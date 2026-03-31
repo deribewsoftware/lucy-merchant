@@ -12,6 +12,9 @@ import {
   notifySuppliersNewOrder,
 } from "@/lib/db/notifications";
 import { createPayment } from "@/lib/db/payments";
+import { parseFulfillmentHandoff } from "@/lib/domain/fulfillment-handoff-copy";
+import { parseBusinessDaysUpperBoundFromLabel } from "@/lib/domain/delivery-business-days";
+import { effectiveMaxDeliveryPerOrder } from "@/lib/domain/max-delivery";
 import { groupOrderLinesByCompany } from "@/lib/domain/order-split";
 import { API_MERCHANT_COMMISSION_SUSPENDED } from "@/lib/domain/commission-hold-copy";
 import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
@@ -53,6 +56,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const deliveryLocation = String(body?.deliveryLocation ?? "").trim();
   const paymentMethod = parsePaymentMethod(body?.paymentMethod);
+  const fulfillmentHandoff = parseFulfillmentHandoff(body?.fulfillmentHandoff);
 
   if (!paymentMethod) {
     return NextResponse.json(
@@ -100,16 +104,18 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    if (line.quantity > product.availableQuantity) {
-      return NextResponse.json(
-        { error: `${product.name}: insufficient stock` },
-        { status: 400 },
-      );
-    }
-    if (line.quantity > product.maxDeliveryQuantity) {
+    const cap = effectiveMaxDeliveryPerOrder(product);
+    if (line.quantity > cap) {
+      if (line.quantity > product.availableQuantity) {
+        return NextResponse.json(
+          { error: `${product.name}: insufficient stock` },
+          { status: 400 },
+        );
+      }
+      const m = product.maxDeliveryQuantity;
       return NextResponse.json(
         {
-          error: `${product.name}: exceeds max delivery ${product.maxDeliveryQuantity}`,
+          error: `${product.name}: exceeds max delivery ${typeof m === "number" && m > 0 ? m : cap}`,
         },
         { status: 400 },
       );
@@ -130,7 +136,15 @@ export async function POST(request: Request) {
 
   for (const lines of byCompany.values()) {
     let total = 0;
-    for (const line of lines) total += line.subtotal;
+    let maxDeliveryCommitmentDays = 0;
+    for (const line of lines) {
+      total += line.subtotal;
+      const prod = getProduct(line.productId);
+      if (prod) {
+        const d = parseBusinessDaysUpperBoundFromLabel(prod.deliveryTime);
+        if (d > maxDeliveryCommitmentDays) maxDeliveryCommitmentDays = d;
+      }
+    }
     total = Math.round(total * 100) / 100;
     const commissionRaw = cfg.freeCommissionEnabled
       ? 0
@@ -147,11 +161,14 @@ export async function POST(request: Request) {
       items: lines,
       totalPrice: total,
       deliveryLocation,
+      fulfillmentHandoff,
       status: "pending",
       commissionAmount,
       supplierCommissionAmount,
       paymentStatus: "pending",
       paymentMethod,
+      deliveryCommitmentBusinessDays:
+        maxDeliveryCommitmentDays > 0 ? maxDeliveryCommitmentDays : 7,
       createdAt: new Date().toISOString(),
     };
 

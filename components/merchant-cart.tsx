@@ -14,7 +14,10 @@ import {
   Truck,
 } from "lucide-react";
 import { EthiopianDeliveryLocation } from "@/components/ethiopian-delivery-location";
-import type { Cart, PaymentMethod } from "@/lib/domain/types";
+import { FulfillmentHandoffPicker } from "@/components/fulfillment-handoff-picker";
+import { PaginatedClientList } from "@/components/paginated-client-list";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import type { Cart, OrderFulfillmentHandoff, PaymentMethod } from "@/lib/domain/types";
 
 type Props = {
   initial: Cart;
@@ -40,8 +43,16 @@ export function MerchantCart({ initial, lineTitles }: Props) {
   const [cart, setCart] = useState(initial);
   const [location, setLocation] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("cod");
+  const [fulfillmentHandoff, setFulfillmentHandoff] =
+    useState<OrderFulfillmentHandoff>("supplier_delivers_to_shop");
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkoutConfirmOpen, setCheckoutConfirmOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{
+    productId: string;
+    title: string;
+  } | null>(null);
+  const [removeBusy, setRemoveBusy] = useState(false);
   const checkoutInFlight = useRef(false);
   const deliveryFieldId = useId();
 
@@ -49,22 +60,36 @@ export function MerchantCart({ initial, lineTitles }: Props) {
     setCart(initial);
   }, [initial]);
 
-  async function remove(productId: string) {
-    const res = await fetch(
-      `/api/cart?productId=${encodeURIComponent(productId)}`,
-      { method: "DELETE" },
-    );
-    const data = await res.json();
-    if (res.ok) setCart(data.cart);
+  async function performRemoveLine() {
+    if (!removeTarget) return;
+    setRemoveBusy(true);
+    try {
+      const res = await fetch(
+        `/api/cart?productId=${encodeURIComponent(removeTarget.productId)}`,
+        { method: "DELETE" },
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setCart(data.cart);
+        setRemoveTarget(null);
+      }
+    } finally {
+      setRemoveBusy(false);
+    }
   }
 
   async function checkout(e: React.FormEvent) {
     e.preventDefault();
     if (checkoutInFlight.current) return;
     if (!location.trim()) {
-      setMsg("Enter a delivery location (search or fill region, town, city, street).");
+      setMsg("Enter a delivery location (search or fill region, city, woreda, kebele, and street).");
       return;
     }
+    setCheckoutConfirmOpen(true);
+  }
+
+  async function performCheckout() {
+    if (checkoutInFlight.current) return;
     checkoutInFlight.current = true;
     setLoading(true);
     setMsg(null);
@@ -77,6 +102,7 @@ export function MerchantCart({ initial, lineTitles }: Props) {
           setMsg(
             "Your cart is empty. Add items from the catalog, then try again.",
           );
+          setCheckoutConfirmOpen(false);
           return;
         }
       }
@@ -87,6 +113,7 @@ export function MerchantCart({ initial, lineTitles }: Props) {
         body: JSON.stringify({
           deliveryLocation: location,
           paymentMethod: method,
+          fulfillmentHandoff,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -94,6 +121,7 @@ export function MerchantCart({ initial, lineTitles }: Props) {
         setMsg(data.error ?? "Checkout failed");
         return;
       }
+      setCheckoutConfirmOpen(false);
       const firstId = data.orders?.[0]?.id as string | undefined;
       if (firstId) {
         router.push(`/merchant/orders/${firstId}`);
@@ -161,44 +189,60 @@ export function MerchantCart({ initial, lineTitles }: Props) {
           </div>
         </div>
 
-        <ul className="space-y-3">
-          {cart.items.map((line, index) => (
-            <li
-              key={line.productId}
-              className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <div className="relative flex flex-row flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-                    <Package className="h-6 w-6 text-muted-foreground" />
+        <PaginatedClientList
+          items={cart.items}
+          pageSize={8}
+          resetKey={cart.items.map((l) => l.productId).join(",")}
+          summaryClassName="mb-3"
+          summarySuffix="line items"
+          barClassName="mt-4"
+        >
+          {(pageItems) => (
+            <ul className="space-y-3">
+              {pageItems.map((line, index) => (
+                <li
+                  key={line.productId}
+                  className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="relative flex flex-row flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground">
+                          {titleFor(line.productId)}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {line.quantity} × {line.price.toLocaleString()} ETB
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-lg font-bold text-primary">
+                        {line.subtotal.toLocaleString()} ETB
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRemoveTarget({
+                            productId: line.productId,
+                            title: titleFor(line.productId),
+                          })
+                        }
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="Remove line"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-foreground">
-                      {titleFor(line.productId)}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {line.quantity} × {line.price.toLocaleString()} ETB
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-lg font-bold text-primary">
-                    {line.subtotal.toLocaleString()} ETB
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => remove(line.productId)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-                    aria-label="Remove line"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+                </li>
+              ))}
+            </ul>
+          )}
+        </PaginatedClientList>
       </div>
 
       <aside className="w-full shrink-0 lg:sticky lg:top-24 lg:min-w-[min(100%,20rem)] lg:w-[24rem]">
@@ -229,13 +273,26 @@ export function MerchantCart({ initial, lineTitles }: Props) {
           </div>
 
           <form onSubmit={checkout} className="flex flex-col gap-5 p-5">
+            <FulfillmentHandoffPicker
+              value={fulfillmentHandoff}
+              onChange={setFulfillmentHandoff}
+            />
+
             <EthiopianDeliveryLocation
               inputId={deliveryFieldId}
-              label="Delivery location"
+              label={
+                fulfillmentHandoff === "merchant_pickup_at_supplier"
+                  ? "Address & pickup notes"
+                  : "Delivery location"
+              }
               required
               value={location}
               onChange={setLocation}
-              helperText="Search for your address, then refine if needed."
+              helperText={
+                fulfillmentHandoff === "merchant_pickup_at_supplier"
+                  ? "Optional notes or the supplier’s address for your records. Lock the exact pickup point and time in order chat."
+                  : "Search for your shop or business address, then refine if needed—the supplier brings the order here."
+              }
               variant="daisy"
             />
 
@@ -303,6 +360,46 @@ export function MerchantCart({ initial, lineTitles }: Props) {
           </form>
         </div>
       </aside>
+
+      <ConfirmDialog
+        open={removeTarget !== null}
+        onOpenChange={(o) => !o && setRemoveTarget(null)}
+        title="Remove from cart?"
+        description={
+          removeTarget ? (
+            <>
+              <span className="font-medium text-foreground">
+                {removeTarget.title}
+              </span>{" "}
+              will be removed from your cart. You can add it again from the catalog.
+            </>
+          ) : null
+        }
+        variant="danger"
+        confirmLabel="Remove"
+        cancelLabel="Keep in cart"
+        loading={removeBusy}
+        onConfirm={performRemoveLine}
+      />
+      <ConfirmDialog
+        open={checkoutConfirmOpen}
+        onOpenChange={setCheckoutConfirmOpen}
+        title="Place order?"
+        description={
+          <>
+            You will create one order per supplier with a total of{" "}
+            <span className="font-semibold text-foreground">
+              {cart.totalAmount.toLocaleString()} ETB
+            </span>
+            . You pay suppliers directly using the method you chose. Continue?
+          </>
+        }
+        variant="primary"
+        confirmLabel="Place order"
+        cancelLabel="Not yet"
+        loading={loading}
+        onConfirm={performCheckout}
+      />
     </div>
   );
 }

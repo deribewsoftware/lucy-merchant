@@ -5,11 +5,15 @@ import {
   HiOutlineInboxStack,
   HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { PaginationBar } from "@/components/ui/pagination-bar";
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar";
 import { SupplierHeroBackdrop } from "@/components/supplier/supplier-portal-graphics";
+import { PaginatedOrderLineLinks } from "@/components/paginated-order-line-links";
 import { SupplierOrderActions } from "@/components/supplier-order-actions";
 import { companiesByOwner, getProduct } from "@/lib/db/catalog";
-import { ordersForSupplierCompanyIds } from "@/lib/db/commerce";
+import {
+  ordersForSupplierCompanyIds,
+  supplierRejectionsInLastDays,
+} from "@/lib/db/commerce";
 import { findUserById } from "@/lib/db/users";
 import {
   orderStatusBadgeClass,
@@ -116,6 +120,10 @@ export default async function SupplierOrdersPage({ searchParams }: Props) {
     done: all.filter((o) => supplierOrderTab(o) === "done").length,
   };
 
+  const rejectionsThisWeek = user?.id
+    ? supplierRejectionsInLastDays(user.id, 7)
+    : 0;
+
   return (
     <div className="space-y-8">
       <header className="relative overflow-hidden rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 via-base-200/40 to-primary/[0.05] p-6 shadow-sm ring-1 ring-base-300/25 sm:p-8">
@@ -187,6 +195,15 @@ export default async function SupplierOrdersPage({ searchParams }: Props) {
         </div>
       </div>
 
+      {total > 0 && (
+        <PaginationSummary
+          page={safePage}
+          pageSize={pageSize}
+          total={total}
+          className="text-sm text-base-content/60"
+        />
+      )}
+
       <ul className="space-y-4">
         {orders.length === 0 && (
           <li className="rounded-2xl border border-dashed border-base-300 bg-base-200/20 px-6 py-12 text-center">
@@ -224,6 +241,11 @@ export default async function SupplierOrdersPage({ searchParams }: Props) {
                     {bucket === "needs_you" ? (
                       <span className="badge badge-warning badge-sm badge-outline">
                         Action needed
+                      </span>
+                    ) : null}
+                    {o.merchantDisputeOpenedAt ? (
+                      <span className="badge badge-warning badge-sm badge-outline border-amber-500/40">
+                        Buyer dispute
                       </span>
                     ) : null}
                   </div>
@@ -278,26 +300,14 @@ export default async function SupplierOrdersPage({ searchParams }: Props) {
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-base-content/45">
                       Products
                     </p>
-                    <ul className="mt-2 space-y-1.5 text-sm">
-                      {o.items.map((i) => {
-                        const p = getProduct(i.productId);
-                        const title = p?.name ?? i.productId;
-                        return (
-                          <li key={`${i.productId}-${i.companyId}`}>
-                            <Link
-                              href={`/products/${i.productId}`}
-                              className="font-medium text-primary underline-offset-2 hover:underline"
-                            >
-                              {title}
-                            </Link>
-                            <span className="text-base-content/65">
-                              {" "}
-                              × {i.quantity}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    <PaginatedOrderLineLinks
+                      lines={o.items.map((i) => ({
+                        key: `${i.productId}-${i.companyId}`,
+                        productId: i.productId,
+                        title: getProduct(i.productId)?.name ?? i.productId,
+                        quantity: i.quantity,
+                      }))}
+                    />
                   </div>
                   <p>
                     <Link
@@ -324,6 +334,7 @@ export default async function SupplierOrdersPage({ searchParams }: Props) {
                     supplierCommissionOwed={
                       Math.round((o.supplierCommissionAmount ?? 0) * 100) / 100
                     }
+                    rejectionsThisWeek={rejectionsThisWeek}
                   />
                 </div>
               </div>

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebook, FaGithub } from "react-icons/fa6";
+import { FaFacebook } from "react-icons/fa6";
 import type { IconType } from "react-icons";
 
 interface Provider {

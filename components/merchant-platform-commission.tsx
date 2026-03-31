@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Building2, CheckCircle2 } from "lucide-react";
 import { CommissionReceiptUpload } from "@/components/commission-receipt-upload";
 import { PlatformBankAccountsPanel } from "@/components/platform-bank-accounts-panel";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { isPlatformCommissionPaid } from "@/lib/domain/platform-commission";
 import type { Order } from "@/lib/domain/types";
 
@@ -25,6 +26,7 @@ export function MerchantPlatformCommissionPanel({ order }: Props) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const memoRef = useMemo(
     () => `LM-COMM-${order.id.slice(0, 8).toUpperCase()}`,
@@ -57,6 +59,7 @@ export function MerchantPlatformCommissionPanel({ order }: Props) {
       setMsg(data.error ?? "Could not record commission");
       return;
     }
+    setConfirmOpen(false);
     router.refresh();
   }
 
@@ -68,9 +71,7 @@ export function MerchantPlatformCommissionPanel({ order }: Props) {
             <CheckCircle2 className="h-4 w-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-sm font-bold text-foreground">
-              Merchant platform commission recorded
-            </h2>
+            <h2 className="lm-heading-card text-base">Merchant platform commission recorded</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               {order.merchantCommissionPaidAt
                 ? "You recorded this payment. The supplier must also record their platform fee (if any) before you can complete."
@@ -93,7 +94,7 @@ export function MerchantPlatformCommissionPanel({ order }: Props) {
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-amber-500/35 bg-gradient-to-br from-amber-500/[0.06] to-orange-500/[0.05] p-4 shadow-sm ring-1 ring-amber-500/20 sm:p-5">
+    <section className="overflow-hidden rounded-xl border border-amber-500/35 bg-gradient-to-br from-amber-500/[0.06] to-orange-500/[0.05] p-4 shadow-sm ring-1 ring-amber-500/20 sm:p-5">
       <div className="flex flex-wrap items-start gap-2.5">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-800 dark:text-amber-200">
           <Building2 className="h-4 w-4" />
@@ -103,9 +104,7 @@ export function MerchantPlatformCommissionPanel({ order }: Props) {
             <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-900/80 dark:text-amber-200/80">
               After delivery · Pay platform
             </p>
-            <h2 className="font-display text-sm font-bold text-foreground">
-              Merchant platform commission
-            </h2>
+            <h2 className="lm-heading-card text-base">Merchant platform commission</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Transfer the fee, upload your receipt, then confirm. Same bank list as
               suppliers; include the memo.
@@ -147,18 +146,34 @@ export function MerchantPlatformCommissionPanel({ order }: Props) {
           <button
             type="button"
             disabled={loading || !proofFile}
-            onClick={recordPaid}
+            onClick={() => setConfirmOpen(true)}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:opacity-50 sm:w-auto sm:px-4 sm:text-sm"
           >
-            {loading ? (
-              <span className="loading loading-spinner loading-sm" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4" />
-            )}
-            {loading ? "Submitting…" : "Submit receipt & record payment"}
+            <CheckCircle2 className="h-4 w-4" />
+            Submit receipt & record payment
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Record merchant platform commission?"
+        description={
+          <>
+            You are about to submit your receipt for{" "}
+            <span className="font-semibold text-foreground tabular-nums">
+              {owed.toLocaleString()} ETB
+            </span>
+            . Make sure the transfer matches the memo and amount before confirming.
+          </>
+        }
+        variant="primary"
+        confirmLabel="Submit & record"
+        cancelLabel="Review again"
+        loading={loading}
+        onConfirm={recordPaid}
+      />
     </section>
   );
 }

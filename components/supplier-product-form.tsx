@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   HiOutlineCube,
   HiOutlineCurrencyDollar,
@@ -11,7 +12,9 @@ import {
   HiOutlineTruck,
 } from "react-icons/hi2";
 import type { Category, Company } from "@/lib/domain/types";
-import { GoogleLocationPicker } from "@/components/google-location-picker";
+import { EthiopianDeliveryLocation } from "@/components/ethiopian-delivery-location";
+import { SupplierCategorySearch } from "@/components/supplier-category-search";
+import { SupplierProductHeroMedia } from "@/components/supplier-product-hero-media";
 import { SupplierFormSectionTitle } from "@/components/supplier/form-section";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
@@ -55,63 +58,142 @@ export function SupplierProductForm({
   const [tags, setTags] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [featured, setFeatured] = useState(false);
-  const [shipFromRegion, setShipFromRegion] = useState("");
+  const [shipFromAddress, setShipFromAddress] = useState("");
   const [itemsPerCarton, setItemsPerCarton] = useState("");
   const [itemsPerRim, setItemsPerRim] = useState("");
   const [itemsPerDozen, setItemsPerDozen] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
   const shipFromFieldId = useId();
+  const feedbackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(t);
+  }, [toast]);
+
+  function showError(text: string) {
+    setMsg(text);
+    setToast({ kind: "error", text });
+    feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (isRichTextEmpty(description)) {
-      setMsg("Description is required");
-      return;
-    }
-    setLoading(true);
     setMsg(null);
-    const res = await fetch("/api/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        companyId,
-        categoryId,
-        name,
-        description,
-        price: Number(price),
-        compareAtPrice:
-          compareAtPrice.trim() === "" ? null : Number(compareAtPrice),
-        availableQuantity: Number(availableQuantity),
-        minOrderQuantity: Number(minOrderQuantity),
-        maxDeliveryQuantity: Number(maxDeliveryQuantity),
-        deliveryTime,
-        tags: tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        imageUrl: imageUrl.trim() || undefined,
-        featured,
-        shipFromRegion: shipFromRegion.trim() || undefined,
-        ...(itemsPerCarton.trim() !== ""
-          ? { itemsPerCarton: Number(itemsPerCarton) }
-          : {}),
-        ...(itemsPerRim.trim() !== ""
-          ? { itemsPerRim: Number(itemsPerRim) }
-          : {}),
-        ...(itemsPerDozen.trim() !== ""
-          ? { itemsPerDozen: Number(itemsPerDozen) }
-          : {}),
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setLoading(false);
-    if (!res.ok) {
-      setMsg(data.error ?? "Failed to create product");
+
+    if (!name.trim()) {
+      showError("Product name is required.");
       return;
     }
-    router.push("/supplier/products");
-    router.refresh();
+    if (!categoryId.trim()) {
+      showError("Choose a category.");
+      return;
+    }
+    if (isRichTextEmpty(description)) {
+      showError("Description is required — add text in the editor.");
+      return;
+    }
+    const priceN = Number(price);
+    if (!Number.isFinite(priceN) || priceN < 0) {
+      showError("Enter a valid sale price (0 or more).");
+      return;
+    }
+    const stockN = Number(availableQuantity);
+    if (!Number.isFinite(stockN) || stockN < 0) {
+      showError("Enter a valid available quantity (0 or more).");
+      return;
+    }
+    const moqN = Number(minOrderQuantity);
+    if (!Number.isFinite(moqN) || moqN < 1) {
+      showError("Min order quantity must be at least 1.");
+      return;
+    }
+    if (!deliveryTime.trim()) {
+      showError("Delivery time is required.");
+      return;
+    }
+    if (compareAtPrice.trim() !== "") {
+      const cmp = Number(compareAtPrice);
+      if (!Number.isFinite(cmp) || cmp < 0) {
+        showError("List price must be a valid number, or leave it empty.");
+        return;
+      }
+    }
+    const maxDelRaw = maxDeliveryQuantity.trim();
+    if (maxDelRaw !== "") {
+      const n = Number(maxDelRaw);
+      if (!Number.isFinite(n) || n < 1) {
+        showError(
+          "Max delivery must be at least 1, or leave the field empty.",
+        );
+        return;
+      }
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          companyId,
+          categoryId,
+          name: name.trim(),
+          description,
+          price: priceN,
+          compareAtPrice:
+            compareAtPrice.trim() === "" ? null : Number(compareAtPrice),
+          availableQuantity: stockN,
+          minOrderQuantity: moqN,
+          deliveryTime: deliveryTime.trim(),
+          tags: tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
+          imageUrl: imageUrl.trim() || undefined,
+          featured,
+          shipFromRegion: shipFromAddress.trim().slice(0, 256) || undefined,
+          maxDeliveryQuantity:
+            maxDeliveryQuantity.trim() === ""
+              ? null
+              : Number(maxDeliveryQuantity),
+          ...(itemsPerCarton.trim() !== ""
+            ? { itemsPerCarton: Number(itemsPerCarton) }
+            : {}),
+          ...(itemsPerRim.trim() !== ""
+            ? { itemsPerRim: Number(itemsPerRim) }
+            : {}),
+          ...(itemsPerDozen.trim() !== ""
+            ? { itemsPerDozen: Number(itemsPerDozen) }
+            : {}),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err =
+          typeof data.error === "string"
+            ? data.error
+            : "Failed to create product";
+        showError(err);
+        return;
+      }
+      setToast({ kind: "success", text: "Product published." });
+      window.setTimeout(() => {
+        router.push("/supplier/products");
+        router.refresh();
+      }, 500);
+    } catch {
+      showError("Network error. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (verified.length === 0) {
@@ -119,9 +201,9 @@ export function SupplierProductForm({
       <div className="mt-6 rounded-2xl border border-warning/35 bg-warning/10 p-6">
         <p className="text-sm text-base-content">
           You need at least one verified company before posting products.{" "}
-          <a href="/supplier/companies" className="link link-primary font-semibold">
+          <Link href="/supplier/companies" className="link link-primary font-semibold">
             Manage companies
-          </a>
+          </Link>
           .
         </p>
       </div>
@@ -129,7 +211,28 @@ export function SupplierProductForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className={`${supplierFormCardClass} mt-6 max-w-2xl`}>
+    <form
+      noValidate
+      onSubmit={onSubmit}
+      className={`${supplierFormCardClass} relative mt-6 w-full max-w-3xl`}
+    >
+      {toast ? (
+        <div
+          className="toast toast-top toast-center z-[100] max-w-[min(100%,24rem)] px-2 sm:toast-end"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            className={
+              toast.kind === "success"
+                ? "alert alert-success shadow-lg"
+                : "alert alert-error shadow-lg"
+            }
+          >
+            <span className="text-sm">{toast.text}</span>
+          </div>
+        </div>
+      ) : null}
       <SupplierFormSectionTitle
         icon={<HiOutlineCube className="h-5 w-5" />}
         title="Basics"
@@ -150,20 +253,11 @@ export function SupplierProductForm({
             ))}
           </select>
         </label>
-        <label className={supplierLabelClass}>
-          Category
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className={supplierSelectClass}
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SupplierCategorySearch
+          categories={categories}
+          value={categoryId}
+          onChange={setCategoryId}
+        />
         <label className={supplierLabelClass}>
           Product name
           <input
@@ -192,19 +286,10 @@ export function SupplierProductForm({
         <SupplierFormSectionTitle
           icon={<HiOutlinePhoto className="h-5 w-5" />}
           title="Media & visibility"
-          subtitle="Optional hero image and featured placement."
+          subtitle="Upload a hero photo or paste a link. Featured placement is optional."
         />
-        <label className={supplierLabelClass}>
-          Image URL (optional, https)
-          <input
-            type="url"
-            placeholder="https://…"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            className={supplierInputClass}
-          />
-        </label>
-        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-base-300 bg-base-200/30 p-3">
+        <SupplierProductHeroMedia imageUrl={imageUrl} onImageUrlChange={setImageUrl} />
+        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-base-300 bg-base-200/30 p-3 sm:p-4">
           <input
             type="checkbox"
             checked={featured}
@@ -292,18 +377,22 @@ export function SupplierProductForm({
               className={supplierInputClass}
             />
           </label>
-          <label className={`${supplierLabelClass} sm:col-span-2`}>
-            Max delivery qty
-            <input
-              required
-              type="number"
-              min={1}
-              placeholder="Per single delivery"
-              value={maxDeliveryQuantity}
-              onChange={(e) => setMaxDeliveryQuantity(e.target.value)}
-              className={supplierInputClass}
-            />
-          </label>
+          <div className="sm:col-span-2">
+            <label className={supplierLabelClass}>
+              Max delivery qty
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="Optional — cap per shipment"
+                value={maxDeliveryQuantity}
+                onChange={(e) => setMaxDeliveryQuantity(e.target.value)}
+                className={supplierInputClass}
+              />
+            </label>
+            <p className="mt-1.5 text-xs text-base-content/55">
+              Leave empty so a single delivery is limited only by available stock.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -367,16 +456,14 @@ export function SupplierProductForm({
             className={supplierInputClass}
           />
         </label>
-        <div className="mt-4 rounded-xl border border-base-300 p-3">
-          <GoogleLocationPicker
+        <div className="mt-5">
+          <EthiopianDeliveryLocation
             inputId={shipFromFieldId}
-            label="Ship-from region (optional)"
-            value={shipFromRegion}
-            onChange={setShipFromRegion}
-            helperText="Pick a city or area; we store a short region label for filters."
-            variant="zinc"
-            addressMode="region"
-            mapHeightPx={160}
+            label="Ship-from location (optional)"
+            value={shipFromAddress}
+            onChange={setShipFromAddress}
+            helperText="Search Ethiopia to autofill, then edit. We save this as your ship-from label for catalog filters (up to 256 characters)."
+            variant="supplier"
           />
         </div>
       </div>
@@ -394,18 +481,33 @@ export function SupplierProductForm({
         />
       </label>
 
-      {msg && (
-        <p className="alert alert-error mt-4 text-sm">
-          {msg}
-        </p>
-      )}
+      <div ref={feedbackRef}>
+        {msg ? (
+          <p className="alert alert-error mt-4 text-sm" role="alert">
+            {msg}
+          </p>
+        ) : null}
+      </div>
       <button
         type="submit"
         disabled={loading}
+        aria-busy={loading}
         className={`${supplierPrimaryButtonClass} mt-6 w-full sm:w-auto`}
       >
-        <HiOutlineCube className="h-4 w-4" />
-        {loading ? "Publishing…" : "Publish product"}
+        {loading ? (
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent opacity-90"
+              aria-hidden
+            />
+            Publishing…
+          </span>
+        ) : (
+          <>
+            <HiOutlineCube className="h-4 w-4" />
+            Publish product
+          </>
+        )}
       </button>
     </form>
   );

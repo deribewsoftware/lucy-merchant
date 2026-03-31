@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
+import { ADMIN_STAFF_ROLES } from "@/lib/admin-staff";
 import { getSystemConfig, updateSystemConfig } from "@/lib/db/catalog";
+import { logStaffAction } from "@/lib/server/admin-audit-log";
+import { requireStaffPermission } from "@/lib/server/admin-permissions";
 import { requireSession } from "@/lib/server/require-session";
 
 export async function GET() {
-  const auth = await requireSession(["admin"]);
+  const auth = await requireSession(ADMIN_STAFF_ROLES);
   if (!auth.ok) return auth.response;
+  const perm = requireStaffPermission(auth.user.id, "system:configure");
+  if (!perm.ok) return perm.response;
   return NextResponse.json({ config: getSystemConfig() });
 }
 
 export async function PATCH(request: Request) {
-  const auth = await requireSession(["admin"]);
+  const auth = await requireSession(ADMIN_STAFF_ROLES);
   if (!auth.ok) return auth.response;
+  const perm = requireStaffPermission(auth.user.id, "system:configure");
+  if (!perm.ok) return perm.response;
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") {
@@ -47,5 +54,10 @@ export async function PATCH(request: Request) {
   }
 
   const config = updateSystemConfig(patch);
+  logStaffAction(request, {
+    actorId: auth.user.id,
+    action: "system.config.patch",
+    detail: { keys: Object.keys(patch) },
+  });
   return NextResponse.json({ config });
 }

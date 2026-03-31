@@ -9,6 +9,7 @@
  * on failure **DNS-over-HTTPS** (Google / Cloudflare JSON APIs over port 443 — works when UDP/53 is blocked).
  * Optional: `NODEMAILER_SMTP_IP` to skip resolution; set `NODEMAILER_TLS_SERVERNAME` when needed.
  */
+import { ADMIN_INVITE_DEFAULT_PASSWORD } from "@/lib/auth/admin-invite";
 import { promises as dnsPromises } from "node:dns";
 import { Resolver } from "node:dns/promises";
 import net from "node:net";
@@ -216,6 +217,19 @@ async function getTransporterAsync(): Promise<Transporter> {
   return buildInFlight;
 }
 
+/** Drop cached SMTP connection (e.g. after a failed send or stale socket in serverless). */
+export function resetNodemailerTransport(): void {
+  transporter = null;
+  buildInFlight = null;
+}
+
+function isTransientSmtpError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return /timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EPIPE|socket|hang up|temporarily|451|452|421|4\.3\.2|4\.2\.2/i.test(
+    msg,
+  );
+}
+
 /** Map SMTP / transport errors to a short user-facing string (no stack traces). */
 export function formatNodemailerErrorForClient(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
@@ -254,21 +268,40 @@ export type SendEmailInput = {
 
 /**
  * Low-level transactional send. Use typed helpers when possible.
+ * Retries once after resetting the transport on transient SMTP/network errors.
  */
 export async function sendEmail(input: SendEmailInput): Promise<void> {
   const fromEmail = getFromEmail();
   const html =
     input.html ?? `<pre style="font-family:sans-serif">${escapeHtml(input.text)}</pre>`;
-  const transport = await getTransporterAsync();
-  const info = await transport.sendMail({
+  const payload = {
     from: `"${getFromName()}" <${fromEmail}>`,
     to: input.to,
     subject: input.subject,
     text: input.text,
     html,
-  });
-  if (!info.messageId) {
-    console.warn("[nodemailer] sendMail returned without messageId", info);
+  };
+
+  async function sendOnce(): Promise<void> {
+    const transport = await getTransporterAsync();
+    const info = await transport.sendMail(payload);
+    if (!info.messageId) {
+      console.warn("[nodemailer] sendMail returned without messageId", info);
+    } else {
+      console.info("[nodemailer] sent", { to: input.to, messageId: info.messageId });
+    }
+  }
+
+  try {
+    await sendOnce();
+  } catch (e) {
+    if (!isTransientSmtpError(e)) throw e;
+    console.warn(
+      "[nodemailer] transient SMTP error, resetting transport and retrying once:",
+      e instanceof Error ? e.message : e,
+    );
+    resetNodemailerTransport();
+    await sendOnce();
   }
 }
 
@@ -309,6 +342,91 @@ export async function sendVerificationOtpEmail(input: {
     <p style="color:#666">This code expires in ${OTP_EXPIRES_MIN} minutes.</p>
     <p><a href="${escapeHtml(appUrl + "/verify-email")}">Open verification page</a></p>
     <p style="color:#666;font-size:14px">If you did not create an account, you can ignore this email.</p>
+  </div>`;
+
+  await sendEmail({ to: input.to, subject, text, html });
+}
+
+/**
+ * Staff invite / credentials mail: sign-in email + password + login link (no OTP).
+ */
+export async function sendAdminInviteEmail(input: {
+  to: string;
+  name: string;
+  /** Login identifier (same as `to` in normal cases). */
+  loginEmail: string;
+  /** Initial or newly issued password. */
+  initialPassword: string;
+  /** True when password is the well-known default — user must change after first sign-in. */
+  isDefaultPassword: boolean;
+  /** True when a new password was issued (e.g. resend); old password no longer works. */
+  credentialsReset?: boolean;
+}): Promise<void> {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const label = process.env.NEXT_PUBLIC_APP_NAME ?? "Lucy Merchant";
+  const subject = input.credentialsReset
+    ? `${label} — new sign-in password`
+    : `${label} — your administrator account`;
+  const loginUrl = `${appUrl}/login`;
+
+  /** Always show the canonical default when `isDefaultPassword` so the email matches `ADMIN_INVITE_DEFAULT_PASSWORD`. */
+  const passwordForEmail = input.isDefaultPassword
+    ? ADMIN_INVITE_DEFAULT_PASSWORD
+    : input.initialPassword;
+
+  const intro = input.credentialsReset
+    ? "A new sign-in password was set for your staff account. Your previous password no longer works."
+    : "An administrator created a staff account for you. Use the credentials below to sign in.";
+
+  const lines = [
+    `Hi ${input.name},`,
+    "",
+    intro,
+    "",
+    "Sign in",
+    `  Email: ${input.loginEmail}`,
+    `  Password: ${passwordForEmail}`,
+    `  Open: ${loginUrl}`,
+    "",
+    input.isDefaultPassword
+      ? [
+          "Security — change your password",
+          "Your account uses the default invite password. After you sign in, you must set a new password before using the admin workspace (you will be redirected to change password).",
+          "",
+        ].join("\n")
+      : input.credentialsReset
+        ? [
+            "Security",
+            "This password was generated for you. Change it after sign-in if your organization requires it.",
+            "",
+          ].join("\n")
+        : [
+            "Security",
+            "Choose a unique password you do not use elsewhere. You can change it anytime under account settings.",
+            "",
+          ].join("\n"),
+    "If you did not expect this message, contact your organization.",
+  ];
+
+  const text = lines.join("\n");
+
+  const securityBlock = input.isDefaultPassword
+    ? `<p style="margin:0;color:#b45309;border-left:4px solid #f59e0b;padding-left:12px"><strong>Default password:</strong> After first sign-in you must set a new password before using the admin workspace.</p>`
+    : input.credentialsReset
+      ? `<p style="margin:0;color:#444">This password was generated for you. Change it after sign-in if your organization requires it.</p>`
+      : `<p style="margin:0;color:#444">Use a strong, unique password. You can change it anytime in account settings.</p>`;
+
+  const html = `
+  <div style="font-family:system-ui,sans-serif;max-width:520px;line-height:1.55;color:#111">
+    <p>Hi ${escapeHtml(input.name)},</p>
+    <p>${escapeHtml(intro)}</p>
+    <p style="margin-top:16px"><strong>Sign in</strong></p>
+    <p style="margin:4px 0">Email: <code>${escapeHtml(input.loginEmail)}</code></p>
+    <p style="margin:4px 0">Password: <code>${escapeHtml(passwordForEmail)}</code></p>
+    <p style="margin-top:8px"><a href="${escapeHtml(loginUrl)}">Go to login</a></p>
+    <p style="margin-top:20px"><strong>Security</strong></p>
+    ${securityBlock}
+    <p style="color:#666;font-size:14px;margin-top:20px">If you did not expect this message, contact your organization.</p>
   </div>`;
 
   await sendEmail({ to: input.to, subject, text, html });

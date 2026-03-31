@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { HiOutlineCheckCircle, HiOutlineShieldExclamation } from "react-icons/hi2";
 import { ImagePreviewLightbox } from "@/components/image-preview-lightbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   canAdminCompleteOrder,
   orderRequiresAdminProofAcknowledgment,
@@ -29,15 +30,21 @@ type Props = {
   orderId: string;
   order: OrderSlice;
   canCompleteOrders: boolean;
+  /** `orders:admin` — record commission proof review (API matches). */
+  canAcknowledgeProofs?: boolean;
 };
 
 export function AdminCompleteOrder({
   orderId,
   order,
   canCompleteOrders,
+  canAcknowledgeProofs = true,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState<"ack" | "complete" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"ack" | "complete" | null>(
+    null,
+  );
   const [msg, setMsg] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<{
     src: string;
@@ -68,6 +75,7 @@ export function AdminCompleteOrder({
       setMsg(data.error ?? "Could not save review");
       return;
     }
+    setConfirmAction(null);
     router.refresh();
   }
 
@@ -83,6 +91,7 @@ export function AdminCompleteOrder({
       setMsg(data.error ?? "Could not complete order");
       return;
     }
+    setConfirmAction(null);
     router.refresh();
   }
 
@@ -125,6 +134,18 @@ export function AdminCompleteOrder({
               Your admin account cannot complete orders. An administrator must
               remove <span className="font-mono text-xs">orders:complete</span>{" "}
               from your denied permissions, or use an account that has it.
+            </p>
+          ) : null}
+
+          {needsFee &&
+          !order.adminCommissionProofsAcknowledgedAt &&
+          !canAcknowledgeProofs ? (
+            <p className="flex items-start gap-2 rounded-lg border border-base-300 bg-base-200/40 px-3 py-2 text-sm text-base-content/80">
+              <HiOutlineShieldExclamation className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              Recording commission proof review requires the{" "}
+              <span className="font-mono text-xs">orders:admin</span> permission.
+              Ask a system administrator to update your role, or have another admin
+              record the review first.
             </p>
           ) : null}
 
@@ -207,7 +228,9 @@ export function AdminCompleteOrder({
             </div>
           ) : null}
 
-          {canCompleteOrders && needsFee && !order.adminCommissionProofsAcknowledgedAt ? (
+          {canAcknowledgeProofs &&
+          needsFee &&
+          !order.adminCommissionProofsAcknowledgedAt ? (
             <div className="space-y-2">
               <p className="text-xs text-base-content/70">
                 After viewing the screenshots (or confirming legacy records),
@@ -217,7 +240,7 @@ export function AdminCompleteOrder({
                 type="button"
                 className="btn btn-outline btn-sm rounded-xl border-primary/30"
                 disabled={loading !== null}
-                onClick={() => void acknowledge()}
+                onClick={() => setConfirmAction("ack")}
               >
                 {loading === "ack" ? (
                   <span className="loading loading-spinner loading-xs" />
@@ -227,7 +250,7 @@ export function AdminCompleteOrder({
             </div>
           ) : null}
 
-          {canCompleteOrders && needsFee && order.adminCommissionProofsAcknowledgedAt ? (
+          {needsFee && order.adminCommissionProofsAcknowledgedAt ? (
             <p className="text-xs text-success">
               Review recorded{" "}
               {new Date(order.adminCommissionProofsAcknowledgedAt).toLocaleString()}
@@ -251,7 +274,7 @@ export function AdminCompleteOrder({
               type="button"
               className="btn btn-primary btn-sm rounded-xl"
               disabled={loading !== null}
-              onClick={() => void complete()}
+              onClick={() => setConfirmAction("complete")}
             >
               {loading === "complete" ? (
                 <span className="loading loading-spinner loading-xs" />
@@ -272,6 +295,42 @@ export function AdminCompleteOrder({
           alt={imagePreview.alt}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        onOpenChange={(o) => !o && setConfirmAction(null)}
+        title={
+          confirmAction === "ack"
+            ? "Record commission proof review?"
+            : "Mark this order completed?"
+        }
+        description={
+          confirmAction === "ack" ? (
+            <>
+              Confirm you have reviewed the uploaded commission receipts (or accepted
+              legacy records). This unlocks the final completion step for this order.
+            </>
+          ) : (
+            <>
+              This closes the order as completed in the system. Buyers and suppliers
+              will see it as finished — only continue if commissions are fully
+              verified.
+            </>
+          )
+        }
+        variant={confirmAction === "complete" ? "primary" : "neutral"}
+        confirmLabel={
+          confirmAction === "ack" ? "Record review" : "Mark completed"
+        }
+        cancelLabel="Cancel"
+        loading={
+          confirmAction !== null && loading === confirmAction
+        }
+        onConfirm={async () => {
+          if (confirmAction === "ack") await acknowledge();
+          else if (confirmAction === "complete") await complete();
+        }}
+      />
     </section>
   );
 }

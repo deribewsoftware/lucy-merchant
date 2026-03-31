@@ -1,6 +1,7 @@
+import Image from "next/image"
 import Link from "next/link"
 import { Building2, Star, CheckCircle2, Clock, ArrowRight, Sparkles } from "lucide-react"
-import { PaginationBar } from "@/components/ui/pagination-bar"
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar"
 import { listCompanies } from "@/lib/db/catalog"
 import { stripHtmlToPlainText } from "@/lib/rich-text"
 
@@ -64,23 +65,20 @@ export default async function CompaniesDirectoryPage({ searchParams }: Props) {
         </div>
         
         {total > 0 && (
-          <div className="relative mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Companies</p>
-              <p className="mt-1 text-xl font-bold text-foreground">{total}</p>
+          <div className="relative mt-6 space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Companies</p>
+                <p className="mt-1 text-xl font-bold text-foreground">{total}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Verified</p>
+                <p className="mt-1 text-xl font-bold text-accent">
+                  {sorted.filter((c) => c.isVerified).length}
+                </p>
+              </div>
             </div>
-            <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Verified</p>
-              <p className="mt-1 text-xl font-bold text-accent">
-                {sorted.filter(c => c.isVerified).length}
-              </p>
-            </div>
-            <div className="col-span-2 rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm sm:col-span-1">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Showing</p>
-              <p className="mt-1 text-xl font-bold text-foreground">
-                {start + 1}-{Math.min(start + pageSize, total)}
-              </p>
-            </div>
+            <PaginationSummary page={safePage} pageSize={pageSize} total={total} />
           </div>
         )}
       </header>
@@ -104,10 +102,13 @@ export default async function CompaniesDirectoryPage({ searchParams }: Props) {
                 
                 {logoOk && (
                   <figure className="relative aspect-[2/1] w-full overflow-hidden bg-muted">
-                    <img
+                    <Image
                       src={logoOk}
                       alt=""
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fill
+                      unoptimized
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     {/* Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />

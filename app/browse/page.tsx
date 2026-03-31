@@ -4,7 +4,8 @@ import { Filter, Grid3X3, Package, Star, X } from "lucide-react";
 import { BrowseToolbar } from "@/components/browse/browse-toolbar";
 import { ProductOrderSpecs } from "@/components/product-order-specs";
 import { ProductUnitPrice } from "@/components/product-unit-price";
-import { PaginationBar } from "@/components/ui/pagination-bar";
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar";
+import { effectiveMaxDeliveryPerOrder } from "@/lib/domain/max-delivery";
 import { getCategories, listProducts } from "@/lib/db/catalog";
 import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
 import { stripHtmlToPlainText } from "@/lib/rich-text";
@@ -91,7 +92,9 @@ export default async function BrowsePage({ searchParams }: Props) {
 
   const minShipN = parseInt(minShip, 10);
   if (minShip !== "" && !Number.isNaN(minShipN)) {
-    products = products.filter((p) => p.maxDeliveryQuantity >= minShipN);
+    products = products.filter(
+      (p) => effectiveMaxDeliveryPerOrder(p) >= minShipN,
+    );
   }
 
   const feat = (a: (typeof products)[0], b: (typeof products)[0]) =>
@@ -221,11 +224,16 @@ export default async function BrowsePage({ searchParams }: Props) {
 
         {/* Results Count */}
         <div className="mt-6 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {totalCount === 0
-              ? "No products match your filters"
-              : `Showing ${pageStart + 1}-${Math.min(pageStart + pageSize, totalCount)} of ${totalCount} products`}
-          </p>
+          {totalCount === 0 ? (
+            <p className="text-sm text-muted-foreground">No products match your filters</p>
+          ) : (
+            <PaginationSummary
+              page={safePage}
+              pageSize={pageSize}
+              total={totalCount}
+              suffix="products"
+            />
+          )}
         </div>
 
         {/* Product Grid */}

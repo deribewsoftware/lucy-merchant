@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Building2, CheckCircle2 } from "lucide-react";
 import { CommissionReceiptUpload } from "@/components/commission-receipt-upload";
 import { PlatformBankAccountsPanel } from "@/components/platform-bank-accounts-panel";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { isSupplierPlatformCommissionPaid } from "@/lib/domain/platform-commission";
 import type { Order } from "@/lib/domain/types";
 
@@ -24,6 +25,7 @@ export function SupplierPlatformCommissionPanel({ order }: Props) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const memoRef = useMemo(
     () => `LM-SUP-COMM-${order.id.slice(0, 8).toUpperCase()}`,
@@ -56,6 +58,7 @@ export function SupplierPlatformCommissionPanel({ order }: Props) {
       setMsg(data.error ?? "Could not record commission");
       return;
     }
+    setConfirmOpen(false);
     router.refresh();
   }
 
@@ -145,18 +148,34 @@ export function SupplierPlatformCommissionPanel({ order }: Props) {
           <button
             type="button"
             disabled={loading || !proofFile}
-            onClick={recordPaid}
+            onClick={() => setConfirmOpen(true)}
             className="btn btn-primary w-full rounded-lg sm:w-auto"
           >
-            {loading ? (
-              <span className="loading loading-spinner loading-sm" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4" />
-            )}
-            {loading ? "Submitting…" : "Submit receipt & record payment"}
+            <CheckCircle2 className="h-4 w-4" />
+            Submit receipt & record payment
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Record supplier platform commission?"
+        description={
+          <>
+            You are about to submit your receipt for{" "}
+            <span className="font-semibold tabular-nums text-base-content">
+              {owed.toLocaleString()} ETB
+            </span>
+            . Confirm the transfer used the correct memo and amount.
+          </>
+        }
+        variant="primary"
+        confirmLabel="Submit & record"
+        cancelLabel="Review again"
+        loading={loading}
+        onConfirm={recordPaid}
+      />
     </section>
   );
 }

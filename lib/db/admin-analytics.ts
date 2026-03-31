@@ -161,7 +161,9 @@ export function getAdminAnalytics(): AdminAnalytics {
     userCount: users.length,
     merchantCount: users.filter((u) => u.role === "merchant").length,
     supplierCount: users.filter((u) => u.role === "supplier").length,
-    adminCount: users.filter((u) => u.role === "admin").length,
+    adminCount: users.filter(
+      (u) => u.role === "admin" || u.role === "system_admin",
+    ).length,
     orderCount: orders.length,
     completedOrderCount: completed.length,
     openOrderCount,

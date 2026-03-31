@@ -21,7 +21,7 @@ function parseAddress(
  * Proxied so we can set a proper User-Agent and rate-limit clients.
  */
 export async function GET(request: Request) {
-  const auth = await requireSession(["merchant"]);
+  const auth = await requireSession(["merchant", "supplier"]);
   if (!auth.ok) return auth.response;
 
   const ip = clientIp(request);

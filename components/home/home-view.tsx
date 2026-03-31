@@ -29,7 +29,7 @@ export type HomeProduct = {
   id: string;
   name: string;
   minOrderQuantity: number;
-  maxDeliveryQuantity: number;
+  maxDeliveryQuantity?: number;
   deliveryTime: string;
   availableQuantity: number;
   itemsPerCarton?: number;

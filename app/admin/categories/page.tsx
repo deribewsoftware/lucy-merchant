@@ -2,8 +2,11 @@ import { HiOutlineRectangleStack } from "react-icons/hi2";
 import { AdminAddCategoryForm } from "@/components/admin-add-category-form";
 import { AdminCategoryList } from "@/components/admin-category-list";
 import { getCategories } from "@/lib/db/catalog";
+import { requireStaffPagePermission } from "@/lib/server/require-staff-page";
 
-export default function AdminCategoriesPage() {
+export default async function AdminCategoriesPage() {
+  await requireStaffPagePermission("categories:manage", "/admin/categories");
+
   const categories = getCategories();
 
   return (

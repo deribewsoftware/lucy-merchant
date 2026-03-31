@@ -5,9 +5,12 @@ import { useMemo, useState } from "react";
 import { HiOutlineBanknotes, HiOutlineChevronDown } from "react-icons/hi2";
 import { PlatformBankAccountsPanel } from "@/components/platform-bank-accounts-panel";
 
-type Props = { orderId: string };
+type Props = { orderId: string; canProcessOrders?: boolean };
 
-export function AdminRecordSupplierPayout({ orderId }: Props) {
+export function AdminRecordSupplierPayout({
+  orderId,
+  canProcessOrders = true,
+}: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -54,17 +57,24 @@ export function AdminRecordSupplierPayout({ orderId }: Props) {
                 {msg}
               </p>
             ) : null}
-            <button
-              type="button"
-              onClick={record}
-              disabled={loading}
-              className="btn btn-secondary btn-sm mt-1"
-            >
-              {loading ? (
-                <span className="loading loading-spinner loading-xs" />
-              ) : null}
-              Record buyer commission received
-            </button>
+            {!canProcessOrders ? (
+              <p className="mt-2 text-xs text-base-content/60">
+                Recording requires the{" "}
+                <span className="font-mono">orders:admin</span> permission.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={record}
+                disabled={loading}
+                className="btn btn-secondary btn-sm mt-1"
+              >
+                {loading ? (
+                  <span className="loading loading-spinner loading-xs" />
+                ) : null}
+                Record buyer commission received
+              </button>
+            )}
           </div>
         </div>
 

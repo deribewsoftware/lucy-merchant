@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   HiOutlineArrowRight,
   HiOutlineExclamationCircle,
@@ -14,7 +14,89 @@ import AuthLayout, { childVariants } from "@/components/auth/AuthLayout";
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
 import { AuthEmailInput, AuthPasswordInput } from "@/components/auth-credential-inputs";
 import { LM_LOGIN_EVENT } from "@/components/presence-provider";
+import { defaultHomePath, PORTAL_ACCESS_ROWS, portalAreaLabel } from "@/lib/auth/portal-routes";
 import { loginFieldErrors, type LoginFieldErrors } from "@/lib/auth/login-validation";
+import type { LoginSuccessResponse } from "@/lib/domain/types";
+import { assertRolePath } from "@/lib/rbac";
+
+/** Legacy `?error=forbidden` — staff are now redirected in-app; this helps old bookmarks. */
+function StaffAccessNotice() {
+  const searchParams = useSearchParams();
+  const err = searchParams.get("error");
+  const next = searchParams.get("next") ?? "";
+  if (err !== "forbidden") return null;
+  const attempted = next && next.startsWith("/") ? next : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/8 via-card to-card p-4 text-left shadow-sm sm:p-5"
+    >
+      <div className="flex gap-3">
+        <HiOutlineExclamationCircle className="mt-0.5 h-6 w-6 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+        <div className="min-w-0 space-y-3">
+          <div>
+            <p className="font-semibold text-foreground">That page needs the right access</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              Staff accounts use <strong className="text-foreground">permissions</strong> (dashboard, orders,
+              moderation, etc.). If you opened a link you can&apos;t use yet, a system administrator can grant
+              capabilities under <strong className="text-foreground">Team &amp; roles</strong>. Merchant and
+              supplier accounts use different workspaces — after sign-in we take you to the home that matches
+              your role.
+            </p>
+          </div>
+          {attempted ? (
+            <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Requested URL:</span>{" "}
+              <code className="break-all rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+                {attempted}
+              </code>
+              <span className="mt-1 block text-muted-foreground/90">
+                ({portalAreaLabel(attempted)})
+              </span>
+            </p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            Quick map: <span className="font-mono text-[11px] text-foreground">/admin</span> staff ·{" "}
+            <span className="font-mono text-[11px] text-foreground">/supplier</span> suppliers ·{" "}
+            <span className="font-mono text-[11px] text-foreground">/merchant</span> merchants ·{" "}
+            <span className="font-mono text-[11px] text-foreground">/notifications</span> all signed-in roles
+          </p>
+          <details className="group text-xs text-muted-foreground">
+            <summary className="cursor-pointer font-medium text-foreground underline-offset-2 hover:underline">
+              Full workspace reference
+            </summary>
+            <div className="mt-2 overflow-hidden rounded-lg border border-border/60">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-muted/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">
+                  <tr>
+                    <th className="px-3 py-2">Prefix</th>
+                    <th className="px-3 py-2">Who signs in here</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {PORTAL_ACCESS_ROWS.map((row) => (
+                    <tr key={row.prefix} className="bg-card/50">
+                      <td className="px-3 py-2 align-top">
+                        <span className="font-mono text-[11px] text-primary">{row.prefix}</span>
+                        <span className="mt-0.5 block text-muted-foreground">{row.title}</span>
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        <span className="font-medium text-foreground">{row.roles}</span>
+                        <span className="mt-0.5 block text-xs opacity-90">{row.description}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export function LoginForm() {
   const router = useRouter();
@@ -23,12 +105,14 @@ export function LoginForm() {
   const err = searchParams.get("error");
   const verified = searchParams.get("verified");
   const reset = searchParams.get("reset");
+  const staffFromVerify = searchParams.get("staff") === "1";
+  const securityDefaultHint = searchParams.get("security") === "default";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [message, setMessage] = useState<string | null>(() => {
-    if (err === "forbidden") return "You do not have access to that area.";
+    if (err === "forbidden") return null;
     if (verified === "1") return null; // handled as success banner
     if (reset === "1") return null; // handled as success banner
     return null;
@@ -41,6 +125,12 @@ export function LoginForm() {
   const [verifyLinkEmail, setVerifyLinkEmail] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [loading, setLoading] = useState(false);
+
+  const emailParam = searchParams.get("email");
+  useEffect(() => {
+    const pre = emailParam?.trim();
+    if (pre) setEmail(pre);
+  }, [emailParam]);
 
   function clearField<K extends keyof LoginFieldErrors>(key: K) {
     setFieldErrors((prev) => {
@@ -68,28 +158,55 @@ export function LoginForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    const data = await res.json().catch(() => ({}));
+    const data = (await res.json().catch(() => ({}))) as
+      | LoginSuccessResponse
+      | { error?: string; code?: string };
     setLoading(false);
     if (!res.ok) {
-      if (res.status === 403 && data.code === "EMAIL_NOT_VERIFIED") {
+      if (res.status === 403 && "code" in data && data.code === "EMAIL_NOT_VERIFIED") {
         setVerifyLinkEmail(email);
         setMessage(data.error ?? "Verify your email before signing in.");
         return;
       }
       setVerifyLinkEmail(null);
-      setMessage(data.error ?? "Login failed");
+      setMessage("error" in data && data.error ? data.error : "Login failed");
+      return;
+    }
+    if (!("user" in data) || !data.user) {
+      setMessage("Login failed");
       return;
     }
     setVerifyLinkEmail(null);
-    const role = data.user?.role as string;
+    const login = data as LoginSuccessResponse;
+    const role = login.user.role;
+    const adminAccessPending = login.adminAccessPending === true;
+    const mustChangePassword = login.mustChangePassword === true;
     const fallback =
-      role === "admin"
-        ? "/admin/dashboard"
-        : role === "supplier"
-          ? "/supplier/dashboard"
-          : "/merchant/dashboard";
+      role === "admin" || role === "system_admin"
+        ? (login.staffHomePath ?? defaultHomePath(role, { adminAccessPending }))
+        : defaultHomePath(role, { adminAccessPending });
+    const allowLockedNext = (p: string) =>
+      p.startsWith("/admin/settings") || p.startsWith("/admin/pending-access");
+    let dest = next && next.startsWith("/") ? next : fallback;
+    if (next && next.startsWith("/") && !assertRolePath(role, next)) {
+      dest = fallback;
+    }
+    if (adminAccessPending && dest && !allowLockedNext(dest)) {
+      dest = "/admin/pending-access";
+    }
+    if (mustChangePassword) {
+      const qs = new URLSearchParams({
+        required: "1",
+        security: "default",
+        next: dest,
+      });
+      window.dispatchEvent(new CustomEvent(LM_LOGIN_EVENT));
+      router.push(`/change-password?${qs.toString()}`);
+      router.refresh();
+      return;
+    }
     window.dispatchEvent(new CustomEvent(LM_LOGIN_EVENT));
-    router.push(next && next.startsWith("/") ? next : fallback);
+    router.push(dest);
     router.refresh();
   }
 
@@ -115,6 +232,8 @@ export function LoginForm() {
           <SocialAuthButtons mode="login" />
         </div>
 
+        <StaffAccessNotice />
+
         {/* Success banner */}
         {successMessage && (
           <motion.div
@@ -123,7 +242,18 @@ export function LoginForm() {
             className="mt-4 flex items-start gap-2.5 rounded-xl border border-success/25 bg-success/10 px-3.5 py-3 text-sm text-success"
           >
             <HiOutlineCheckCircle className="mt-0.5 h-4.5 w-4.5 shrink-0" aria-hidden />
-            {successMessage}
+            <div className="min-w-0 text-left">
+              <p>{successMessage}</p>
+              {verified === "1" && staffFromVerify ? (
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  Use the <strong className="text-foreground">email and password</strong> from your
+                  invitation message.{" "}
+                  {securityDefaultHint
+                    ? "You still have the default password — after sign-in you will set a new password before opening the admin workspace."
+                    : "Then continue to your workspace."}
+                </p>
+              ) : null}
+            </div>
           </motion.div>
         )}
 

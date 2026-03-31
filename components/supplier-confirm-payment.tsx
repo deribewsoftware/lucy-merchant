@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { PaymentMethod } from "@/lib/domain/types";
 
 type Props = {
@@ -23,6 +24,7 @@ export function SupplierConfirmPayment({
   const [ref, setRef] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (!show) return null;
 
@@ -43,6 +45,7 @@ export function SupplierConfirmPayment({
       setError(data.error ?? "Could not confirm payment");
       return;
     }
+    setConfirmOpen(false);
     router.refresh();
   }
 
@@ -77,15 +80,29 @@ export function SupplierConfirmPayment({
       )}
       <button
         type="button"
-        onClick={confirm}
+        onClick={() => setConfirmOpen(true)}
         disabled={loading}
         className="btn btn-success btn-sm mt-3"
       >
-        {loading ? (
-          <span className="loading loading-spinner loading-xs" />
-        ) : null}
         {isAdmin ? "Mark payment recorded" : "Mark payment received"}
       </button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={isAdmin ? "Record payment for this order?" : "Confirm payment received?"}
+        description={
+          isAdmin
+            ? "This updates platform records and buyer visibility."
+            : paymentMethod === "bank_transfer"
+              ? "Only confirm after funds are visible on your account."
+              : "Only confirm after cash on delivery has been collected."
+        }
+        variant="primary"
+        confirmLabel={isAdmin ? "Record payment" : "Confirm"}
+        cancelLabel="Cancel"
+        loading={loading}
+        onConfirm={confirm}
+      />
     </div>
   );
 }

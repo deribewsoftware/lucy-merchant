@@ -144,6 +144,15 @@ function main() {
       role: "admin",
       name: "Selamawit Mulugeta",
       createdAt: daysAgo(120),
+      adminPermissionAllow: [
+        "admin:dashboard",
+        "companies:verify",
+        "categories:manage",
+        "system:configure",
+        "orders:complete",
+        "moderation:manage",
+        "orders:admin",
+      ],
     },
     {
       id: I.supHailu,

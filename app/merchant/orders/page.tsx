@@ -13,10 +13,13 @@ import {
   Sparkles,
   AlertTriangle,
 } from "lucide-react"
-import { PaginationBar } from "@/components/ui/pagination-bar"
+import { PaginatedOrderLineLinks } from "@/components/paginated-order-line-links"
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar"
 import { getProduct } from "@/lib/db/catalog"
 import { ordersForMerchant } from "@/lib/db/commerce"
 import { merchantPaymentSummary } from "@/lib/domain/order-presentations"
+import { fulfillmentHandoffShortLabel } from "@/lib/domain/fulfillment-handoff-copy"
+import { merchantMayOpenDeliveryDispute } from "@/lib/domain/order-dispute"
 import {
   isPlatformCommissionPaid,
   isSupplierPlatformCommissionPaid,
@@ -176,6 +179,15 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
         </div>
       </header>
 
+      {total > 0 && (
+        <PaginationSummary
+          page={safePage}
+          pageSize={pageSize}
+          total={total}
+          className="text-sm text-muted-foreground"
+        />
+      )}
+
       {/* Orders List */}
       <div className="space-y-4">
         {orders.length === 0 ? (
@@ -232,6 +244,32 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
                       {statusConfig.label}
                     </span>
                   </div>
+                  {o.fulfillmentHandoff ? (
+                    <p className="mt-2">
+                      <span className="inline-flex items-center rounded-full border border-sky-500/25 bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-sky-800 dark:text-sky-200">
+                        {fulfillmentHandoffShortLabel(o.fulfillmentHandoff)}
+                      </span>
+                    </p>
+                  ) : null}
+                  {o.merchantDisputeOpenedAt ? (
+                    <p className="mt-2">
+                      <span className="inline-flex items-center rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
+                        Dispute filed
+                      </span>
+                    </p>
+                  ) : merchantMayOpenDeliveryDispute(o) ? (
+                    <p className="mt-2">
+                      <span className="inline-flex items-center rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-destructive">
+                        Delivery overdue — open dispute
+                      </span>
+                    </p>
+                  ) : null}
+                  {o.status === "rejected" && o.supplierRejectionReason?.trim() ? (
+                    <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">Supplier: </span>
+                      {o.supplierRejectionReason.trim()}
+                    </p>
+                  ) : null}
                   {o.status === "delivered" &&
                   o.commissionAmount > 0 &&
                   !isPlatformCommissionPaid(o) ? (
@@ -308,31 +346,14 @@ export default async function MerchantOrdersPage({ searchParams }: Props) {
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Products
                     </p>
-                    <ul className="mt-2 space-y-1.5">
-                      {o.items.slice(0, 4).map((i) => {
-                        const p = getProduct(i.productId)
-                        const title = p?.name ?? i.productId
-                        return (
-                          <li key={`${i.productId}-${i.companyId}`}>
-                            <Link
-                              href={`/products/${i.productId}`}
-                              className="text-sm font-medium text-primary underline-offset-2 hover:underline"
-                            >
-                              {title}
-                            </Link>
-                            <span className="text-sm text-muted-foreground">
-                              {" "}
-                              · ×{i.quantity}
-                            </span>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                    {o.items.length > 4 ? (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        +{o.items.length - 4} more line{o.items.length - 4 === 1 ? "" : "s"} in order detail
-                      </p>
-                    ) : null}
+                    <PaginatedOrderLineLinks
+                      lines={o.items.map((i) => ({
+                        key: `${i.productId}-${i.companyId}`,
+                        productId: i.productId,
+                        title: getProduct(i.productId)?.name ?? i.productId,
+                        quantity: i.quantity,
+                      }))}
+                    />
                   </div>
                 </div>
               </article>

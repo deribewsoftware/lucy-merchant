@@ -7,6 +7,7 @@ import type {
   ProductReview,
 } from "@/lib/domain/types";
 import { getCompany, getProduct } from "@/lib/db/catalog";
+import { isStaffAdminRole } from "@/lib/admin-staff";
 import { findUserById, listUsers } from "@/lib/db/users";
 import { queueInAppNotificationEmail } from "@/lib/email/mirror-in-app-notification";
 import type { EmailMirrorCategory } from "@/lib/user/email-preferences";
@@ -81,6 +82,13 @@ export function listNotificationsForUser(
     .slice(0, limit);
 }
 
+/** All notifications for a user (newest first), for server-side pagination. */
+export function allNotificationsForUser(userId: string): NotificationRecord[] {
+  return load()
+    .filter((r) => r.userId === userId)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
 export function unreadCountForUser(userId: string): number {
   return load().filter((r) => r.userId === userId && !r.read).length;
 }
@@ -115,7 +123,7 @@ export function notifyAdmins(input: {
 }): void {
   const cat = input.emailCategory ?? "orders";
   for (const u of listUsers()) {
-    if (u.role !== "admin") continue;
+    if (!isStaffAdminRole(u.role)) continue;
     createNotification({
       userId: u.id,
       kind: "order_admin",
@@ -294,7 +302,7 @@ export function notifyAdminsOrderCompletedByAdmin(
   const { title, body } = adminCopyOrderCompletedByPlatform(order, admin?.name);
   const href = `/admin/orders/${order.id}`;
   for (const u of listUsers()) {
-    if (u.role !== "admin") continue;
+    if (!isStaffAdminRole(u.role)) continue;
     if (actingAdminUserId && u.id === actingAdminUserId) continue;
     createNotification({
       userId: u.id,
@@ -348,6 +356,39 @@ export function notifyAdminsOrderDelivered(order: Order): void {
     body: `Order ${order.id.slice(0, 8)}… marked delivered — ${order.totalPrice.toLocaleString()} ETB.`,
     href: `/admin/orders/${order.id}`,
   });
+}
+
+/** Buyer opened a late-delivery dispute — admins + involved suppliers. */
+export function notifyStakeholdersMerchantDispute(order: Order): void {
+  const short = order.id.slice(0, 8);
+  const snippet = (order.merchantDisputeReason ?? "").trim().slice(0, 400);
+  const title = "Delivery dispute opened";
+  const body = `Order ${short}… (${order.totalPrice.toLocaleString()} ETB). ${snippet}`;
+  notifyAdmins({
+    title,
+    body,
+    href: `/admin/orders/${order.id}`,
+  });
+  const seen = new Set<string>();
+  for (const line of order.items) {
+    const co = getCompany(line.companyId);
+    if (!co || seen.has(co.ownerId)) continue;
+    seen.add(co.ownerId);
+    const hrefS = `/supplier/orders/${order.id}`;
+    createNotification({
+      userId: co.ownerId,
+      kind: "order_status",
+      title: "Buyer opened a delivery dispute",
+      body: `Order ${short}… — ${snippet || "See order details."}`,
+      href: hrefS,
+    });
+    queueInAppNotificationEmail(
+      co.ownerId,
+      "Buyer opened a delivery dispute",
+      `Order ${short}… — ${snippet || "See order details."}`,
+      hrefS,
+    );
+  }
 }
 
 /** Remind merchant / suppliers to pay platform commission after delivery (before grace ends). */

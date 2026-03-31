@@ -1,3 +1,5 @@
+import { Wallet } from "lucide-react";
+import { PaginatedPaymentLines } from "@/components/paginated-payment-lines";
 import { merchantPaymentSummary } from "@/lib/domain/order-presentations";
 import {
   isMerchantPlatformCommissionPaid,
@@ -79,8 +81,8 @@ function resolveVariant(variant: SummaryVariant | undefined) {
   if (v === "merchant") {
     return {
       shell:
-        "rounded-xl border border-border/50 bg-card/95 p-3 shadow-sm ring-1 ring-border/20 backdrop-blur-sm sm:p-4",
-      title: "text-base font-semibold tracking-tight text-foreground",
+        "rounded-xl border border-border/50 bg-card/95 p-4 shadow-sm ring-1 ring-border/20 backdrop-blur-sm sm:p-5",
+      title: "lm-heading-card flex items-center gap-2.5 text-base",
       dt: "text-muted-foreground",
       dd: "text-foreground",
       ddStrong: "font-semibold text-foreground",
@@ -183,7 +185,14 @@ export function OrderPaymentSummary({
 
   return (
     <section className={s.shell}>
-      <h2 className={s.title}>Payment</h2>
+      <h2 className={s.title}>
+        {variant === "merchant" ? (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Wallet className="h-4 w-4" aria-hidden />
+          </span>
+        ) : null}
+        Payment
+      </h2>
       <dl className={s.dl}>
         <div className="flex flex-wrap justify-between gap-2">
           <dt className={s.dt}>Method</dt>
@@ -265,19 +274,11 @@ export function OrderPaymentSummary({
         ) : null}
       </dl>
       {payments.length > 0 && (
-        <ul className={`mt-3 space-y-2 border-t pt-3 text-xs ${s.listBorder}`}>
-          {payments.map((p) => (
-            <li key={p.id} className={s.paymentLi}>
-              <span className="font-mono text-[11px] opacity-80">
-                {p.id.slice(0, 8)}…
-              </span>
-              <span>
-                {p.amount.toLocaleString()} ETB · {p.status}
-                {p.transactionRef ? ` · ref ${p.transactionRef}` : ""}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <PaginatedPaymentLines
+          payments={payments}
+          paymentLiClass={s.paymentLi}
+          listBorderClass={s.listBorder}
+        />
       )}
     </section>
   );

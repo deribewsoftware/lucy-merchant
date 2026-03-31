@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MessageCircle, ThumbsUp } from "lucide-react";
 import { RichTextContent } from "@/components/rich-text-content";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar";
 import type { ProductComment } from "@/lib/domain/types";
 import { isRichTextEmpty } from "@/lib/rich-text";
+import { clampPage, pageStartIndex } from "@/lib/utils/pagination";
+
+const THREAD_PAGE_SIZE = 8;
 
 type Props = {
   productId: string;
@@ -23,6 +27,7 @@ export function ProductComments({
   const [parentId, setParentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [threadPage, setThreadPage] = useState(1);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/products/${productId}/comments`);
@@ -56,9 +61,21 @@ export function ProductComments({
     await load();
   }
 
-  const roots = comments.filter((c) => !c.parentId);
+  const roots = useMemo(
+    () => comments.filter((c) => !c.parentId),
+    [comments],
+  );
   const byParent = (pid: string) =>
     comments.filter((c) => c.parentId === pid);
+
+  useEffect(() => {
+    setThreadPage(1);
+  }, [roots.length]);
+
+  const rootTotal = roots.length;
+  const threadSafePage = clampPage(threadPage, rootTotal, THREAD_PAGE_SIZE);
+  const threadStart = pageStartIndex(threadSafePage, rootTotal, THREAD_PAGE_SIZE);
+  const rootsPage = roots.slice(threadStart, threadStart + THREAD_PAGE_SIZE);
 
   async function toggleLike(commentId: string) {
     if (!currentUserId) return;
@@ -143,13 +160,22 @@ export function ProductComments({
         </div>
       )}
 
-      <ul className="mt-8 space-y-4">
+      {rootTotal > 0 && (
+        <PaginationSummary
+          page={threadSafePage}
+          pageSize={THREAD_PAGE_SIZE}
+          total={rootTotal}
+          className="mt-8 text-sm text-muted-foreground"
+        />
+      )}
+
+      <ul className="mt-4 space-y-4">
         {roots.length === 0 && (
           <li className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
             No comments yet — be the first to ask a question.
           </li>
         )}
-        {roots.map((c) => (
+        {rootsPage.map((c) => (
           <li
             key={c.id}
             className="overflow-hidden rounded-xl border border-border/50 bg-base-100/90 shadow-sm"
@@ -219,6 +245,14 @@ export function ProductComments({
           </li>
         ))}
       </ul>
+
+      <PaginationBar
+        page={threadSafePage}
+        pageSize={THREAD_PAGE_SIZE}
+        total={rootTotal}
+        onPageChange={setThreadPage}
+        className="mt-6"
+      />
     </section>
   );
 }

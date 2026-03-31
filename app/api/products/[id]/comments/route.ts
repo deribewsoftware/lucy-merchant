@@ -9,6 +9,7 @@ import {
   notifySupplierProductCommentPosted,
   notifyUserProductCommentReplied,
 } from "@/lib/db/notifications";
+import { MERCHANT_SUPPLIER_STAFF_ROLES } from "@/lib/admin-staff";
 import { requireSession } from "@/lib/server/require-session";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 
@@ -23,7 +24,7 @@ export async function GET(_request: Request, context: Params) {
 }
 
 export async function POST(request: Request, context: Params) {
-  const auth = await requireSession(["merchant", "supplier", "admin"]);
+  const auth = await requireSession(MERCHANT_SUPPLIER_STAFF_ROLES);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;

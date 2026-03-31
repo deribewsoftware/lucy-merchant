@@ -5,7 +5,7 @@ import {
   HiOutlineShieldCheck,
   HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { PaginationBar } from "@/components/ui/pagination-bar";
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar";
 import { listOrders } from "@/lib/db/commerce";
 import { findUserById } from "@/lib/db/users";
 import {
@@ -16,6 +16,7 @@ import {
   type AdminOrdersTab,
 } from "@/lib/domain/order-presentations";
 import { isDualPlatformCommissionSettled } from "@/lib/domain/platform-commission";
+import { requireStaffOrdersPageAccess } from "@/lib/server/require-staff-page";
 
 type Props = {
   searchParams: Promise<{ page?: string; tab?: string }>;
@@ -66,6 +67,8 @@ function parseTab(raw: string | undefined): AdminOrdersTab {
 }
 
 export default async function AdminOrdersPage({ searchParams }: Props) {
+  await requireStaffOrdersPageAccess();
+
   const sp = await searchParams;
   const tab = parseTab(sp.tab);
   const pageRaw = parseInt(sp.page ?? "1", 10);
@@ -123,11 +126,13 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               after delivery, line items, and chat.
             </p>
             {total > 0 && (
-              <p className="mt-2 text-sm text-base-content/50">
-                Showing {start + 1}–{Math.min(start + pageSize, total)} of{" "}
-                {total}
-                {tab !== "all" ? " in this filter" : ""}
-              </p>
+              <PaginationSummary
+                page={safePage}
+                pageSize={pageSize}
+                total={total}
+                suffix={tab !== "all" ? "in this filter" : undefined}
+                className="mt-2 text-sm text-base-content/60 [&_span]:text-base-content"
+              />
             )}
           </div>
         </div>
@@ -225,6 +230,11 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                         isDualPlatformCommissionSettled(o) ? (
                           <span className="badge badge-success badge-sm font-medium">
                             Fees OK
+                          </span>
+                        ) : null}
+                        {o.merchantDisputeOpenedAt ? (
+                          <span className="badge badge-warning badge-sm font-medium">
+                            Dispute
                           </span>
                         ) : null}
                       </div>

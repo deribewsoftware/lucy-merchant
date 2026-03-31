@@ -11,7 +11,9 @@ import {
   HiOutlineTruck,
 } from "react-icons/hi2";
 import type { Category, Product } from "@/lib/domain/types";
-import { GoogleLocationPicker } from "@/components/google-location-picker";
+import { EthiopianDeliveryLocation } from "@/components/ethiopian-delivery-location";
+import { SupplierCategorySearch } from "@/components/supplier-category-search";
+import { SupplierProductHeroMedia } from "@/components/supplier-product-hero-media";
 import { SupplierFormSectionTitle } from "@/components/supplier/form-section";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
@@ -21,7 +23,6 @@ import {
   supplierLabelClass,
   supplierPrimaryButtonClass,
   supplierSectionClass,
-  supplierSelectClass,
 } from "@/components/supplier/form-styles";
 type Props = {
   product: Product;
@@ -49,13 +50,15 @@ export function SupplierProductEditForm({
     String(product.minOrderQuantity),
   );
   const [maxDeliveryQuantity, setMaxDeliveryQuantity] = useState(
-    String(product.maxDeliveryQuantity),
+    product.maxDeliveryQuantity != null
+      ? String(product.maxDeliveryQuantity)
+      : "",
   );
   const [deliveryTime, setDeliveryTime] = useState(product.deliveryTime);
   const [tags, setTags] = useState(product.tags.join(", "));
   const [imageUrl, setImageUrl] = useState(product.imageUrl ?? "");
   const [featured, setFeatured] = useState(Boolean(product.isFeatured));
-  const [shipFromRegion, setShipFromRegion] = useState(
+  const [shipFromAddress, setShipFromAddress] = useState(
     product.shipFromRegion ?? "",
   );
   const [itemsPerCarton, setItemsPerCarton] = useState(
@@ -73,11 +76,23 @@ export function SupplierProductEditForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const maxDelRaw = maxDeliveryQuantity.trim();
+    if (maxDelRaw !== "") {
+      const n = Number(maxDelRaw);
+      if (!Number.isFinite(n) || n < 1) {
+        setMsg(
+          "Max delivery must be at least 1, or leave the field empty.",
+        );
+        return;
+      }
+    }
     setLoading(true);
     setMsg(null);
+    try {
     const res = await fetch(`/api/products/${product.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         categoryId,
         name,
@@ -87,7 +102,10 @@ export function SupplierProductEditForm({
           compareAtPrice.trim() === "" ? null : Number(compareAtPrice),
         availableQuantity: Number(availableQuantity),
         minOrderQuantity: Number(minOrderQuantity),
-        maxDeliveryQuantity: Number(maxDeliveryQuantity),
+        maxDeliveryQuantity:
+          maxDeliveryQuantity.trim() === ""
+            ? null
+            : Number(maxDeliveryQuantity),
         deliveryTime,
         tags: tags
           .split(",")
@@ -95,7 +113,7 @@ export function SupplierProductEditForm({
           .filter(Boolean),
         imageUrl: imageUrl.trim() || undefined,
         featured,
-        shipFromRegion: shipFromRegion.trim() || undefined,
+        shipFromRegion: shipFromAddress.trim().slice(0, 256) || undefined,
         itemsPerCarton:
           itemsPerCarton.trim() === "" ? null : Number(itemsPerCarton),
         itemsPerRim: itemsPerRim.trim() === "" ? null : Number(itemsPerRim),
@@ -104,17 +122,29 @@ export function SupplierProductEditForm({
       }),
     });
     const data = await res.json().catch(() => ({}));
-    setLoading(false);
     if (!res.ok) {
-      setMsg(data.error ?? "Failed to update product");
+      setMsg(
+        typeof data.error === "string"
+          ? data.error
+          : "Failed to update product",
+      );
       return;
     }
     router.push("/supplier/products");
     router.refresh();
+    } catch {
+      setMsg("Network error. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <form onSubmit={onSubmit} className={`${supplierFormCardClass} mt-6 max-w-2xl`}>
+    <form
+      noValidate
+      onSubmit={onSubmit}
+      className={`${supplierFormCardClass} mt-6 w-full max-w-3xl`}
+    >
       <p className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-base-300 bg-base-200/30 px-4 py-3 text-sm text-base-content/70">
         <HiOutlineCube className="h-4 w-4 text-primary" />
         Listing ID{" "}
@@ -129,20 +159,11 @@ export function SupplierProductEditForm({
         title="Listing basics"
       />
       <div className="space-y-4">
-        <label className={supplierLabelClass}>
-          Category
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className={supplierSelectClass}
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SupplierCategorySearch
+          categories={categories}
+          value={categoryId}
+          onChange={setCategoryId}
+        />
         <label className={supplierLabelClass}>
           Product name
           <input
@@ -170,18 +191,14 @@ export function SupplierProductEditForm({
         <SupplierFormSectionTitle
           icon={<HiOutlinePhoto className="h-5 w-5" />}
           title="Media & visibility"
+          subtitle="Upload a new photo or paste a link. Clear to remove the listing image."
         />
-        <label className={supplierLabelClass}>
-          Image URL (optional — leave empty to remove)
-          <input
-            type="url"
-            placeholder="https://…"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            className={supplierInputClass}
-          />
-        </label>
-        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-base-300 bg-base-200/30 p-3">
+        <SupplierProductHeroMedia
+          imageUrl={imageUrl}
+          onImageUrlChange={setImageUrl}
+          urlInputId={`${product.id}-img-url`}
+        />
+        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-base-300 bg-base-200/30 p-3 sm:p-4">
           <input
             type="checkbox"
             checked={featured}
@@ -259,17 +276,22 @@ export function SupplierProductEditForm({
               className={supplierInputClass}
             />
           </label>
-          <label className={`${supplierLabelClass} sm:col-span-2`}>
-            Max delivery qty
-            <input
-              required
-              type="number"
-              min={1}
-              value={maxDeliveryQuantity}
-              onChange={(e) => setMaxDeliveryQuantity(e.target.value)}
-              className={supplierInputClass}
-            />
-          </label>
+          <div className="sm:col-span-2">
+            <label className={supplierLabelClass}>
+              Max delivery qty
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="Optional — cap per shipment"
+                value={maxDeliveryQuantity}
+                onChange={(e) => setMaxDeliveryQuantity(e.target.value)}
+                className={supplierInputClass}
+              />
+            </label>
+            <p className="mt-1.5 text-xs text-base-content/55">
+              Leave empty so a single delivery is limited only by available stock.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -327,16 +349,16 @@ export function SupplierProductEditForm({
             className={supplierInputClass}
           />
         </label>
-        <div className="mt-4 rounded-xl border border-base-300 p-3">
-          <GoogleLocationPicker
+        <div className="mt-5">
+          <EthiopianDeliveryLocation
+            key={`${product.id}-ship`}
             inputId={shipFromFieldId}
-            label="Ship-from region (optional)"
-            value={shipFromRegion}
-            onChange={setShipFromRegion}
-            helperText="Pick a city or area; we store a short region label for filters."
-            variant="zinc"
-            addressMode="region"
-            mapHeightPx={160}
+            label="Ship-from location (optional)"
+            value={shipFromAddress}
+            onChange={setShipFromAddress}
+            initialAddress={product.shipFromRegion}
+            helperText="Search Ethiopia to autofill, then edit. Saved as your ship-from label for filters (up to 256 characters)."
+            variant="supplier"
           />
         </div>
       </div>

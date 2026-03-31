@@ -10,7 +10,7 @@ type Params = { params: Promise<{ id: string }> };
 
 /** Supplier or admin confirms payment received (COD, Telebirr manual, etc.). */
 export async function POST(request: Request, context: Params) {
-  const auth = await requireSession(["supplier", "admin"]);
+  const auth = await requireSession(["supplier", "admin", "system_admin"]);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;

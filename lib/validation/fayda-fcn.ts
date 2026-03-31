@@ -91,11 +91,13 @@ export function validateFaydaVerificationText(
   checkOpt(input.nationalIdPhoneOnId, "Phone on ID");
   checkOpt(input.nationalIdAddressLine, "Extra address line");
 
+  let fanDigits = "";
   const fanRes = validateFaydaFan(input.nationalIdFan);
   if (!fanRes.ok) errors.push(fanRes.error);
+  else fanDigits = fanRes.fan;
 
   if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, fan: fanRes.fan };
+  return { ok: true, fan: fanDigits };
 }
 
 function extensionFromFilename(name: string): string {

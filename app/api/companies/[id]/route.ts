@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
 import {
+  deleteProduct,
   getCompany,
+  listProducts,
+  removeCompanyRecord,
   setCompanyVerified,
   updateCompany,
 } from "@/lib/db/catalog";
+import { deleteCommentsForProduct } from "@/lib/db/comments";
+import { removeProductFromAllCarts } from "@/lib/db/commerce";
+import { deleteAllReviewsForCompany } from "@/lib/db/reviews";
+import { deleteReviewsForProduct } from "@/lib/db/product-reviews";
 import { notifySupplierCompanyVerificationResult } from "@/lib/db/notifications";
+import { isStaffAdminRole } from "@/lib/admin-staff";
+import { logStaffAction } from "@/lib/server/admin-audit-log";
+import { requireStaffPermission } from "@/lib/server/admin-permissions";
 import { requireSession } from "@/lib/server/require-session";
 import { checkRateLimit } from "@/lib/server/rate-limit";
+import { companyApprovedOrVerified } from "@/lib/domain/types";
+import { supplierHasOutstandingCommission } from "@/lib/server/supplier-commission";
+import { API_SUPPLIER_COMMISSION_SUSPENDED } from "@/lib/domain/commission-hold-copy";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -20,13 +33,15 @@ export async function GET(_request: Request, context: Params) {
 }
 
 export async function PATCH(request: Request, context: Params) {
-  const auth = await requireSession(["admin", "supplier"]);
+  const auth = await requireSession(["admin", "system_admin", "supplier"]);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
 
-  if (auth.user.role === "admin") {
+  if (isStaffAdminRole(auth.user.role)) {
+    const perm = requireStaffPermission(auth.user.id, "companies:verify");
+    if (!perm.ok) return perm.response;
     if (typeof body?.isVerified !== "boolean") {
       return NextResponse.json(
         { error: "Admin PATCH requires isVerified (boolean)" },
@@ -47,12 +62,28 @@ export async function PATCH(request: Request, context: Params) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     notifySupplierCompanyVerificationResult(id, body.isVerified, rejectionReason);
+    logStaffAction(request, {
+      actorId: auth.user.id,
+      action: "companies.verify",
+      resource: id,
+      detail: { isVerified: body.isVerified },
+    });
     return NextResponse.json({ company: updated });
   }
 
   const company = getCompany(id);
   if (!company || company.ownerId !== auth.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (companyApprovedOrVerified(company)) {
+    return NextResponse.json(
+      {
+        error:
+          "This company is verified and its profile cannot be changed. Remove all product listings, then you can remove the company if you no longer need it.",
+      },
+      { status: 403 },
+    );
   }
 
   const rl = checkRateLimit(`coupdate:${auth.user.id}`, 40, 60 * 60 * 1000);
@@ -132,4 +163,55 @@ export async function PATCH(request: Request, context: Params) {
     );
   }
   return NextResponse.json({ company: updated });
+}
+
+export async function DELETE(_request: Request, context: Params) {
+  const auth = await requireSession(["supplier"]);
+  if (!auth.ok) return auth.response;
+
+  if (supplierHasOutstandingCommission(auth.user.id)) {
+    return NextResponse.json({ error: API_SUPPLIER_COMMISSION_SUSPENDED }, { status: 403 });
+  }
+
+  const { id } = await context.params;
+  const company = getCompany(id);
+  if (!company || company.ownerId !== auth.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const rl = checkRateLimit(`companydel:${auth.user.id}`, 10, 60 * 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Too many deletions. Retry in ${rl.retryAfterSec}s` },
+      { status: 429 },
+    );
+  }
+
+  const productIds = listProducts()
+    .filter((p) => p.companyId === id)
+    .map((p) => p.id);
+
+  if (companyApprovedOrVerified(company) && productIds.length > 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Remove all product listings for this verified company before you can remove the company.",
+      },
+      { status: 400 },
+    );
+  }
+
+  for (const productId of productIds) {
+    deleteCommentsForProduct(productId);
+    deleteReviewsForProduct(productId);
+    removeProductFromAllCarts(productId);
+    deleteProduct(productId);
+  }
+  deleteAllReviewsForCompany(id);
+  const ok = removeCompanyRecord(id);
+  if (!ok) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { MdDarkMode, MdLightMode } from "react-icons/md";
+import { setThemeCookieClient } from "@/lib/theme/theme-cookie";
+import { normalizeThemeId, type ThemeId } from "@/lib/theme/theme-id";
 
 const STORAGE_KEY = "lm-theme";
 
@@ -10,15 +12,7 @@ export const THEME_OPTIONS = [
   { value: "corporate", label: "Corporate (light)" },
   { value: "light", label: "Light" },
   { value: "night", label: "Midnight" },
-] as const;
-
-export type ThemeId = (typeof THEME_OPTIONS)[number]["value"];
-
-const ALLOWED = new Set<string>(THEME_OPTIONS.map((o) => o.value));
-
-function normalizeTheme(raw: string | null | undefined): ThemeId {
-  return raw && ALLOWED.has(raw) ? (raw as ThemeId) : "business";
-}
+] as const satisfies ReadonlyArray<{ value: ThemeId; label: string }>;
 
 export function ThemeToggle() {
   const [current, setCurrent] = useState<ThemeId>("business");
@@ -28,18 +22,20 @@ export function ThemeToggle() {
       localStorage.getItem(STORAGE_KEY) ??
       document.documentElement.getAttribute("data-theme") ??
       "business";
-    const t = normalizeTheme(raw);
+    const t = normalizeThemeId(raw);
     setCurrent(t);
     document.documentElement.setAttribute("data-theme", t);
+    setThemeCookieClient(t);
     if (raw !== t) {
       localStorage.setItem(STORAGE_KEY, t);
     }
   }, []);
 
   function apply(theme: ThemeId) {
-    const t = normalizeTheme(theme);
+    const t = normalizeThemeId(theme);
     setCurrent(t);
     localStorage.setItem(STORAGE_KEY, t);
+    setThemeCookieClient(t);
     document.documentElement.setAttribute("data-theme", t);
   }
 

@@ -12,6 +12,7 @@ import {
   HiOutlineXMark,
 } from "react-icons/hi2";
 import { PresenceAvatar } from "@/components/presence-avatar";
+import { isStaffAdminRole } from "@/lib/admin-staff";
 import type { ChatMessage, UserRole } from "@/lib/domain/types";
 
 type MessageWithRole = ChatMessage & { senderRole: UserRole };
@@ -39,6 +40,7 @@ function daisyChatBubbleClass(role: UserRole): string {
     case "supplier":
       return "chat-bubble-warning";
     case "admin":
+    case "system_admin":
       return "chat-bubble-secondary";
     default:
       return "chat-bubble-neutral";
@@ -64,6 +66,7 @@ function rolePresentation(role: UserRole) {
           "bg-gradient-to-br from-amber-500 to-orange-600 text-white",
       };
     case "admin":
+    case "system_admin":
       return {
         label: "Platform",
         short: "Platform",
@@ -506,7 +509,7 @@ export function OrderChat({
                     ? "Add a caption (optional)…"
                     : viewerRole === "merchant"
                       ? "Message suppliers and platform…"
-                      : viewerRole === "admin"
+                      : isStaffAdminRole(viewerRole)
                         ? "Moderation note to thread…"
                         : "Message the buyer…"
                 }

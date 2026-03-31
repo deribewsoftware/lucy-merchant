@@ -14,7 +14,11 @@ import {
 } from "@/lib/domain/platform-commission";
 import type { Order } from "@/lib/domain/types";
 
-type Role = "supplier" | "admin" | "merchant";
+type Role = "supplier" | "admin" | "system_admin" | "merchant";
+
+function isStaffAdminView(role: Role): boolean {
+  return role === "admin" || role === "system_admin";
+}
 
 function fulfillmentStepLabel(
   step: (typeof FULFILLMENT_TRACKER_STEPS)[number],
@@ -46,6 +50,7 @@ type Props = {
     | "gatewayPaymentCapturedAt"
     | "supplierCommissionAmount"
     | "supplierCommissionPaidAt"
+    | "supplierRejectionReason"
   >;
   /** Supplier copy is shorter; admin references platform duties; merchant is buyer-facing. */
   role?: Role;
@@ -112,6 +117,7 @@ export function OrderFulfillmentTracker({ order, role = "admin" }: Props) {
   }
 
   if (status === "rejected") {
+    const why = order.supplierRejectionReason?.trim();
     return (
       <div className="rounded-2xl border border-error/25 bg-error/5 p-4 sm:p-5">
         <p className="font-display text-sm font-bold text-error">
@@ -124,6 +130,16 @@ export function OrderFulfillmentTracker({ order, role = "admin" }: Props) {
               ? "This order was declined or closed."
               : "This request was declined. Fulfillment and payment flows are halted for this record."}
         </p>
+        {why ? (
+          <div className="mt-3 rounded-xl border border-error/20 bg-base-100/60 px-3 py-2.5 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-base-content/50">
+              {role === "supplier" ? "Your stated reason" : "Supplier’s reason"}
+            </p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-base-content/85">
+              {why}
+            </p>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -210,7 +226,7 @@ export function OrderFulfillmentTracker({ order, role = "admin" }: Props) {
         </ol>
       </div>
       {(status === "delivered" || status === "completed") &&
-        (role === "admin" ||
+        (isStaffAdminView(role) ||
           (role === "merchant" && (order.commissionAmount ?? 0) > 0) ||
           (role === "supplier" &&
             (order.supplierCommissionAmount ?? 0) > 0)) ? (
@@ -223,11 +239,11 @@ export function OrderFulfillmentTracker({ order, role = "admin" }: Props) {
                 : "Platform commissions on this order"}
           </p>
           <div className="mt-2 space-y-2">
-            {(role === "merchant" || role === "admin") &&
+            {(role === "merchant" || isStaffAdminView(role)) &&
             (order.commissionAmount ?? 0) > 0 ? (
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span className="text-base-content/80">
-                  {role === "admin" ? "Merchant fee" : "Amount"}
+                  {isStaffAdminView(role) ? "Merchant fee" : "Amount"}
                 </span>
                 <span className="font-semibold tabular-nums text-base-content">
                   {order.commissionAmount.toLocaleString()} ETB
@@ -243,11 +259,11 @@ export function OrderFulfillmentTracker({ order, role = "admin" }: Props) {
                 </span>
               </div>
             ) : null}
-            {(role === "supplier" || role === "admin") &&
+            {(role === "supplier" || isStaffAdminView(role)) &&
             (order.supplierCommissionAmount ?? 0) > 0 ? (
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span className="text-base-content/80">
-                  {role === "admin" ? "Supplier fee" : "Amount"}
+                  {isStaffAdminView(role) ? "Supplier fee" : "Amount"}
                 </span>
                 <span className="font-semibold tabular-nums text-base-content">
                   {(order.supplierCommissionAmount ?? 0).toLocaleString()} ETB

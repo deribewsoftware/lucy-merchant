@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import {
   Package,
@@ -12,7 +13,7 @@ import {
 } from "lucide-react"
 import { ProductOrderSpecs } from "@/components/product-order-specs"
 import { ProductUnitPrice } from "@/components/product-unit-price"
-import { PaginationBar } from "@/components/ui/pagination-bar"
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar"
 import { getCategories, getCompany } from "@/lib/db/catalog"
 import type { SearchScope } from "@/lib/search/catalog-search"
 import { searchCatalog } from "@/lib/search/catalog-search"
@@ -259,9 +260,12 @@ export default async function SearchPage({ searchParams }: Props) {
                     Products ({products.length})
                   </h2>
                   {useProductPaging && (
-                    <p className="text-sm text-muted-foreground">
-                      Showing {pStart + 1}–{Math.min(pStart + productPageSize, productTotal)} of {productTotal}
-                    </p>
+                    <PaginationSummary
+                      page={productPageSafe}
+                      pageSize={productPageSize}
+                      total={productTotal}
+                      className="text-sm text-muted-foreground"
+                    />
                   )}
                 </div>
               </div>
@@ -277,10 +281,13 @@ export default async function SearchPage({ searchParams }: Props) {
                       >
                         {p.imageUrl && (
                           <figure className="relative aspect-[16/10] overflow-hidden bg-muted">
-                            <img
+                            <Image
                               src={p.imageUrl}
                               alt=""
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              fill
+                              unoptimized
+                              sizes="(max-width: 640px) 100vw, 33vw"
+                              className="object-cover transition-transform duration-500 group-hover:scale-105"
                             />
                             {p.isFeatured && (
                               <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-1 text-xs font-medium text-white">
@@ -350,9 +357,12 @@ export default async function SearchPage({ searchParams }: Props) {
                     Companies ({companies.length})
                   </h2>
                   {useCompanyPaging && (
-                    <p className="text-sm text-muted-foreground">
-                      Showing {cStart + 1}–{Math.min(cStart + companyPageSize, companyTotal)} of {companyTotal}
-                    </p>
+                    <PaginationSummary
+                      page={companyPageSafe}
+                      pageSize={companyPageSize}
+                      total={companyTotal}
+                      className="text-sm text-muted-foreground"
+                    />
                   )}
                 </div>
               </div>
@@ -368,7 +378,14 @@ export default async function SearchPage({ searchParams }: Props) {
                       >
                         {logoOk ? (
                           <figure className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
-                            <img src={logoOk} alt="" className="h-full w-full object-cover" />
+                            <Image
+                              src={logoOk}
+                              alt=""
+                              width={56}
+                              height={56}
+                              unoptimized
+                              className="h-full w-full object-cover"
+                            />
                           </figure>
                         ) : (
                           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted">
@@ -420,9 +437,12 @@ export default async function SearchPage({ searchParams }: Props) {
                     Categories ({categories.length})
                   </h2>
                   {useCategoryPaging && (
-                    <p className="text-sm text-muted-foreground">
-                      Showing {catStart + 1}–{Math.min(catStart + categoryPageSize, categoryTotal)} of {categoryTotal}
-                    </p>
+                    <PaginationSummary
+                      page={categoryPageSafe}
+                      pageSize={categoryPageSize}
+                      total={categoryTotal}
+                      className="text-sm text-muted-foreground"
+                    />
                   )}
                 </div>
               </div>

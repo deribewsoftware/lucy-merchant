@@ -118,7 +118,12 @@ export function VerifyEmailForm() {
       setMessage(data.error ?? "Verification failed");
       return;
     }
-    router.push("/login?verified=1");
+    const qs = new URLSearchParams();
+    qs.set("verified", "1");
+    qs.set("email", email.trim());
+    if (data.staffRole === true) qs.set("staff", "1");
+    if (data.defaultPasswordPending === true) qs.set("security", "default");
+    router.push(`/login?${qs.toString()}`);
     router.refresh();
   }
 

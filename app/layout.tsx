@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import { PresenceProvider } from "@/components/presence-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { SupportBot } from "@/components/support-bot";
-import { THEME_INIT_SCRIPT } from "@/lib/theme/theme-script";
+import { ThemeInit } from "@/components/theme-init";
+import { decodeThemeCookieValue, THEME_COOKIE_NAME } from "@/lib/theme/theme-cookie";
+import { normalizeThemeId } from "@/lib/theme/theme-id";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -45,22 +48,25 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const theme = normalizeThemeId(
+    decodeThemeCookieValue(cookieStore.get(THEME_COOKIE_NAME)?.value),
+  );
+
   return (
     <html
       lang="en"
-      data-theme="business"
+      data-theme={theme}
       className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable}`}
       suppressHydrationWarning
     >
       <body className="flex min-h-dvh min-w-0 flex-col antialiased">
-        <script
-          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
-        />
+        <ThemeInit />
         <PresenceProvider>
           <SiteHeader />
           <main className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</main>

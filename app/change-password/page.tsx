@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import {
   HiOutlineArrowRight,
   HiOutlineExclamationCircle,
-  HiOutlineLockClosed,
   HiOutlineCheckCircle,
   HiOutlineShieldCheck,
 } from "react-icons/hi2";
@@ -19,17 +18,40 @@ import {
   resetPasswordFieldErrors,
   type ResetPasswordFieldErrors,
 } from "@/lib/auth/register-validation";
+import { ADMIN_INVITE_DEFAULT_PASSWORD } from "@/lib/auth/admin-invite";
+import { defaultHomePath } from "@/lib/auth/portal-routes";
+import { assertRolePath } from "@/lib/rbac";
+import type { UserRole } from "@/lib/domain/types";
 
 function ChangePasswordFormInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const requiredFlow = searchParams.get("required") === "1";
+  const securityDefault = searchParams.get("security") === "default";
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
     ResetPasswordFieldErrors & { currentPassword?: string }
   >({});
   const [loading, setLoading] = useState(false);
+  const [homeHref, setHomeHref] = useState("/merchant/dashboard");
+
+  useEffect(() => {
+    void fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d: { user?: { role?: UserRole; adminAccessPending?: boolean } }) => {
+        const role = d.user?.role;
+        if (!role) return;
+        setHomeHref(
+          defaultHomePath(role, { adminAccessPending: d.user?.adminAccessPending }),
+        );
+      })
+      .catch(() => {});
+  }, []);
 
   function clearField(key: string) {
     setFieldErrors((prev) => {
@@ -43,7 +65,6 @@ function ChangePasswordFormInner() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    setSuccess(false);
     setFieldErrors({});
 
     const errs: typeof fieldErrors = {};
@@ -75,10 +96,27 @@ function ChangePasswordFormInner() {
       return;
     }
 
-    setSuccess(true);
     setCurrentPassword("");
     setPassword("");
     setConfirmPassword("");
+
+    const meRes = await fetch("/api/auth/me");
+    const meData = (await meRes.json().catch(() => ({}))) as {
+      user?: { role?: UserRole; adminAccessPending?: boolean };
+    };
+    const role = meData.user?.role ?? "merchant";
+    const adminAccessPending = meData.user?.adminAccessPending === true;
+    const fallback = defaultHomePath(role, { adminAccessPending });
+    let dest = fallback;
+    if (
+      nextParam &&
+      nextParam.startsWith("/") &&
+      assertRolePath(role, nextParam)
+    ) {
+      dest = nextParam;
+    }
+    router.push(dest);
+    router.refresh();
   }
 
   return (
@@ -97,17 +135,22 @@ function ChangePasswordFormInner() {
           </p>
         </div>
 
-        {/* Success */}
-        {success && (
+        {requiredFlow && securityDefault ? (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 flex items-start gap-2.5 rounded-xl border border-success/25 bg-success/10 px-3.5 py-3 text-sm text-success"
+            className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-left text-sm text-amber-950 dark:text-amber-100"
           >
-            <HiOutlineCheckCircle className="mt-0.5 h-4.5 w-4.5 shrink-0" aria-hidden />
-            Your password has been updated successfully.
+            <p className="font-semibold">Security required</p>
+            <p className="mt-1 leading-relaxed opacity-95">
+              Your administrator account was created with the default password{" "}
+              <code className="rounded bg-black/10 px-1 py-0.5 font-mono text-xs dark:bg-white/10">
+                {ADMIN_INVITE_DEFAULT_PASSWORD}
+              </code>
+              . Set a new password now before continuing to the admin workspace.
+            </p>
           </motion.div>
-        )}
+        ) : null}
 
         {/* Form */}
         <form onSubmit={onSubmit} className="mt-7 space-y-4">
@@ -224,7 +267,7 @@ function ChangePasswordFormInner() {
         {/* Footer */}
         <div className="mt-7 border-t border-border/50 pt-6 text-center">
           <Link
-            href="/merchant/dashboard"
+            href={homeHref}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline"
           >
             <HiOutlineArrowRight className="h-3.5 w-3.5 rotate-180" />

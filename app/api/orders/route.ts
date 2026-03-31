@@ -5,6 +5,7 @@ import {
   ordersForMerchant,
   ordersForSupplierCompanyIds,
 } from "@/lib/db/commerce";
+import { isStaffAdminRole } from "@/lib/admin-staff";
 import { getSessionUser } from "@/lib/server/session";
 
 export async function GET() {
@@ -24,7 +25,7 @@ export async function GET() {
     });
   }
 
-  if (user.role === "admin") {
+  if (isStaffAdminRole(user.role)) {
     return NextResponse.json({
       orders: listOrders().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
     });

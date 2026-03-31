@@ -1,5 +1,9 @@
 import path from "path";
 import { NextResponse } from "next/server";
+import {
+  isStaffAdminRole,
+  MERCHANT_SUPPLIER_STAFF_ROLES,
+} from "@/lib/admin-staff";
 import { writeBufferToUpload } from "@/lib/server/upload-path";
 import { getOrder } from "@/lib/db/commerce";
 import { canAccessOrder } from "@/lib/server/order-access";
@@ -12,7 +16,7 @@ type Params = { params: Promise<{ id: string }> };
 const ALLOWED = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 
 export async function POST(request: Request, context: Params) {
-  const auth = await requireSession(["merchant", "supplier", "admin"]);
+  const auth = await requireSession(MERCHANT_SUPPLIER_STAFF_ROLES);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
@@ -27,7 +31,7 @@ export async function POST(request: Request, context: Params) {
   if (
     (order.status === "awaiting_payment" ||
       order.status === "awaiting_bank_review") &&
-    auth.user.role !== "admin"
+    !isStaffAdminRole(auth.user.role)
   ) {
     return NextResponse.json(
       { error: "Chat opens after payment is confirmed." },

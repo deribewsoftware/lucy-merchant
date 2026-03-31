@@ -1,6 +1,5 @@
 import Link from "next/link"
-import { AdminDashboardCharts } from "@/components/admin/admin-dashboard-charts"
-import { getAdminAnalytics } from "@/lib/db/admin-analytics"
+import type { LucideIcon } from "lucide-react"
 import {
   ArrowRight,
   Banknote,
@@ -10,19 +9,37 @@ import {
   Settings,
   Layers,
   ShieldAlert,
+  ShieldCheck,
   Users,
   Sparkles,
   BarChart3,
   Zap,
+  UserCog,
 } from "lucide-react"
+import { AdminDashboardCharts } from "@/components/admin/admin-dashboard-charts"
+import { getAdminAnalytics } from "@/lib/db/admin-analytics"
+import type { Permission } from "@/lib/domain/types"
+import { effectiveStaffPermissions } from "@/lib/server/admin-permissions"
+import { requireStaffPagePermission } from "@/lib/server/require-staff-page"
+import { getSessionUser } from "@/lib/server/session"
 
-const shortcuts = [
+type ShortcutPerm = Permission | "orders:any"
+
+const SHORTCUTS: {
+  href: string
+  label: string
+  description: string
+  icon: LucideIcon
+  color: string
+  perm: ShortcutPerm
+}[] = [
   {
     href: "/admin/moderation",
     label: "Moderation",
     description: "Reviews, comments, and takedowns",
     icon: ShieldAlert,
     color: "text-red-500 bg-red-500/10",
+    perm: "moderation:manage",
   },
   {
     href: "/admin/orders",
@@ -30,6 +47,7 @@ const shortcuts = [
     description: "Payments and fulfillment audit",
     icon: ClipboardList,
     color: "text-blue-500 bg-blue-500/10",
+    perm: "orders:any",
   },
   {
     href: "/admin/categories",
@@ -37,6 +55,7 @@ const shortcuts = [
     description: "Taxonomy and browse filters",
     icon: Layers,
     color: "text-purple-500 bg-purple-500/10",
+    perm: "categories:manage",
   },
   {
     href: "/admin/companies",
@@ -44,6 +63,7 @@ const shortcuts = [
     description: "Supplier verification queue",
     icon: Building2,
     color: "text-amber-500 bg-amber-500/10",
+    perm: "companies:verify",
   },
   {
     href: "/admin/system",
@@ -51,11 +71,37 @@ const shortcuts = [
     description: "Commission, points, featured cost",
     icon: Settings,
     color: "text-slate-500 bg-slate-500/10",
+    perm: "system:configure",
   },
-] as const
+  {
+    href: "/admin/admins",
+    label: "Team & roles",
+    description: "Invites, system admins, whitelist or deny list",
+    icon: UserCog,
+    color: "text-cyan-600 bg-cyan-500/10",
+    perm: "system:manage-admins",
+  },
+  {
+    href: "/admin/audit",
+    label: "Audit log",
+    description: "Sign-ins and admin actions",
+    icon: ShieldCheck,
+    color: "text-emerald-600 bg-emerald-500/10",
+    perm: "system:audit-read",
+  },
+]
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  await requireStaffPagePermission("admin:dashboard", "/admin/dashboard")
+  const user = await getSessionUser()
   const a = getAdminAnalytics()
+  const perms = user ? effectiveStaffPermissions(user.id) : []
+  const canOrders =
+    perms.includes("orders:admin") || perms.includes("orders:complete")
+  const shortcuts = SHORTCUTS.filter((s) => {
+    if (s.perm === "orders:any") return canOrders
+    return perms.includes(s.perm)
+  })
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -79,14 +125,19 @@ export default function AdminDashboardPage() {
             </h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Verify suppliers, tune monetization, and keep the catalog healthy.
-              Bootstrap the first admin with{" "}
+              Bootstrap the first staff account with{" "}
               <code className="whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 text-xs">
                 POST /api/auth/bootstrap-admin
-              </code>{" "}
-              and{" "}
+              </code>
+              ,{" "}
               <code className="whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 text-xs">
                 ADMIN_BOOTSTRAP_KEY
               </code>
+              , and optional{" "}
+              <code className="whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 text-xs">
+                &quot;role&quot;: &quot;system_admin&quot;
+              </code>{" "}
+              for full access (team + audit).
             </p>
           </div>
         </div>
@@ -212,6 +263,11 @@ export default function AdminDashboardPage() {
         </div>
         
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {shortcuts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No quick actions match your current permissions.
+            </p>
+          ) : null}
           {shortcuts.map((s) => {
             const Icon = s.icon
             return (

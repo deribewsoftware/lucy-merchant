@@ -2,13 +2,21 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
-type Props = { orderId: string };
+type Props = {
+  orderId: string;
+  canProcessOrders?: boolean;
+};
 
-export function AdminConfirmGatewayPayment({ orderId }: Props) {
+export function AdminConfirmGatewayPayment({
+  orderId,
+  canProcessOrders = true,
+}: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function confirm() {
     setLoading(true);
@@ -23,6 +31,7 @@ export function AdminConfirmGatewayPayment({ orderId }: Props) {
       setMsg(data.error ?? "Could not confirm");
       return;
     }
+    setConfirmOpen(false);
     router.refresh();
   }
 
@@ -38,17 +47,35 @@ export function AdminConfirmGatewayPayment({ orderId }: Props) {
       {msg && (
         <p className="mt-2 text-xs text-red-600 dark:text-red-400">{msg}</p>
       )}
-      <button
-        type="button"
-        onClick={confirm}
-        disabled={loading}
-        className="btn btn-primary btn-sm mt-3"
-      >
-        {loading ? (
-          <span className="loading loading-spinner loading-xs" />
-        ) : null}
-        Confirm payment & release to suppliers
-      </button>
+      {!canProcessOrders ? (
+        <p className="mt-3 text-xs text-base-content/60">
+          You don&apos;t have the{" "}
+          <span className="font-mono">orders:admin</span> permission needed to
+          confirm gateway payments here.
+        </p>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={loading}
+            className="btn btn-primary btn-sm mt-3"
+          >
+            Confirm payment & release to suppliers
+          </button>
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            title="Confirm gateway payment?"
+            description="This marks the order paid, notifies suppliers, and shows the buyer as paid. Only proceed if the charge is correct."
+            variant="primary"
+            confirmLabel="Confirm & release"
+            cancelLabel="Cancel"
+            loading={loading}
+            onConfirm={confirm}
+          />
+        </>
+      )}
     </div>
   );
 }

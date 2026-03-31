@@ -7,6 +7,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineClock,
 } from "react-icons/hi2";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Company } from "@/lib/domain/types";
 import { stripHtmlToPlainText } from "@/lib/rich-text";
 
@@ -16,6 +17,10 @@ export function AdminCompanyVerify({ companies }: Props) {
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [approveTarget, setApproveTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   async function setVerified(id: string, isVerified: boolean) {
     setMsg(null);
@@ -31,6 +36,7 @@ export function AdminCompanyVerify({ companies }: Props) {
       setMsg(data.error ?? "Failed");
       return;
     }
+    if (isVerified) setApproveTarget(null);
     router.refresh();
   }
 
@@ -89,7 +95,7 @@ export function AdminCompanyVerify({ companies }: Props) {
               <button
                 type="button"
                 disabled={busyId === c.id}
-                onClick={() => setVerified(c.id, true)}
+                onClick={() => setApproveTarget({ id: c.id, name: c.name })}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-success px-4 py-2.5 text-sm font-semibold text-success-content shadow-sm transition hover:bg-success/90 disabled:opacity-50"
               >
                 <HiOutlineCheckCircle className="h-5 w-5" />
@@ -107,6 +113,25 @@ export function AdminCompanyVerify({ companies }: Props) {
           </li>
         ))}
       </ul>
+      <ConfirmDialog
+        open={approveTarget !== null}
+        onOpenChange={(o) => !o && setApproveTarget(null)}
+        title={
+          approveTarget
+            ? `Approve “${approveTarget.name}”?`
+            : "Approve company?"
+        }
+        description="This publishes the company as verified so the owner can list products. Make sure documents and details have been checked."
+        variant="primary"
+        confirmLabel="Approve company"
+        cancelLabel="Review again"
+        loading={
+          approveTarget !== null && busyId === approveTarget.id
+        }
+        onConfirm={async () => {
+          if (approveTarget) await setVerified(approveTarget.id, true);
+        }}
+      />
     </div>
   );
 }

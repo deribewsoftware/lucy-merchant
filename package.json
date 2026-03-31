@@ -8,8 +8,14 @@
     "start": "next start",
     "lint": "eslint .",
     "verify": "npm run lint && npm run build",
+    "verify:e2e": "npm run lint && npm run build && npm run test:e2e",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install",
     "test:nodemailer": "node scripts/test-nodemailer.mjs",
     "seed:demo": "node scripts/seed-demo-data.mjs",
+    "seed:admin": "node scripts/seed-deribew-admin.mjs",
+    "seed:super-admin": "node scripts/seed-super-admin.mjs",
     "sync:deploy-seed": "node scripts/sync-deploy-seed.mjs",
     "seed:mongodb": "node scripts/seed-mongodb.mjs",
     "seed:all": "npm run seed:demo && npm run sync:deploy-seed && npm run seed:mongodb"
@@ -44,6 +50,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",

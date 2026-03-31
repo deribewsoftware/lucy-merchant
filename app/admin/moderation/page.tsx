@@ -1,22 +1,60 @@
-import Link from "next/link";
 import {
   HiOutlineBuildingStorefront,
   HiOutlineChatBubbleLeftRight,
   HiOutlineShieldCheck,
   HiOutlineStar,
 } from "react-icons/hi2";
-import { ModerationDeleteButton } from "@/components/moderation-delete-button";
-import { RichTextContent } from "@/components/rich-text-content";
+import {
+  AdminModerationLists,
+  type ModerationCommentVm,
+  type ModerationCompanyReviewVm,
+  type ModerationProductReviewVm,
+} from "@/components/admin-moderation-lists";
 import { getCompany, getProduct } from "@/lib/db/catalog";
 import { listAllProductComments } from "@/lib/db/comments";
 import { listAllProductReviews } from "@/lib/db/product-reviews";
 import { listAllCompanyReviews } from "@/lib/db/reviews";
 import { findUserById } from "@/lib/db/users";
+import { requireStaffPagePermission } from "@/lib/server/require-staff-page";
 
-export default function AdminModerationPage() {
+export default async function AdminModerationPage() {
+  await requireStaffPagePermission("moderation:manage", "/admin/moderation");
+
   const comments = listAllProductComments().slice().reverse();
   const companyReviews = listAllCompanyReviews().slice().reverse();
   const productReviews = listAllProductReviews().slice().reverse();
+
+  const commentsVm: ModerationCommentVm[] = comments.map((c) => ({
+    id: c.id,
+    productId: c.productId,
+    productName: getProduct(c.productId)?.name ?? c.productId,
+    userName: c.userName,
+    commentHtml: c.comment,
+  }));
+
+  const companyReviewsVm: ModerationCompanyReviewVm[] = companyReviews.map((r) => {
+    const co = getCompany(r.companyId);
+    const author = findUserById(r.merchantId);
+    return {
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      companyName: co?.name ?? r.companyId,
+      authorName: author?.name ?? r.merchantId,
+    };
+  });
+
+  const productReviewsVm: ModerationProductReviewVm[] = productReviews.map((r) => {
+    const p = getProduct(r.productId);
+    const author = findUserById(r.merchantId);
+    return {
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      productName: p?.name ?? r.productId,
+      authorName: author?.name ?? r.merchantId,
+    };
+  });
 
   return (
     <div className="space-y-12">
@@ -51,146 +89,11 @@ export default function AdminModerationPage() {
         </div>
       </header>
 
-      <section className="space-y-4">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-base-content">
-          <HiOutlineChatBubbleLeftRight className="h-5 w-5 text-primary" />
-          Product comments
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-            {comments.length}
-          </span>
-        </h2>
-        <ul className="space-y-3">
-          {comments.map((c) => {
-            const p = getProduct(c.productId);
-            return (
-              <li
-                key={c.id}
-                className="flex flex-col gap-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm ring-1 ring-base-300/15 sm:flex-row sm:items-start sm:justify-between sm:p-5"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-base-content">
-                    {c.userName}{" "}
-                    <span className="font-normal text-base-content/50">
-                      on {p?.name ?? c.productId}
-                    </span>
-                  </p>
-                  <div className="mt-2 text-sm leading-relaxed text-base-content/70">
-                    <RichTextContent html={c.comment} variant="compact" />
-                  </div>
-                  <Link
-                    href={`/products/${c.productId}`}
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                  >
-                    View product →
-                  </Link>
-                </div>
-                <ModerationDeleteButton
-                  apiPath={`/api/admin/moderation/product-comment/${c.id}`}
-                />
-              </li>
-            );
-          })}
-        </ul>
-        {comments.length === 0 && (
-          <p className="rounded-2xl border border-dashed border-base-300 bg-base-200/20 px-4 py-10 text-center text-sm text-base-content/55">
-            No comments to review.
-          </p>
-        )}
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-base-content">
-          <HiOutlineBuildingStorefront className="h-5 w-5 text-secondary" />
-          Company reviews
-          <span className="rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary">
-            {companyReviews.length}
-          </span>
-        </h2>
-        <ul className="space-y-3">
-          {companyReviews.map((r) => {
-            const co = getCompany(r.companyId);
-            const author = findUserById(r.merchantId);
-            return (
-              <li
-                key={r.id}
-                className="flex flex-col gap-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm ring-1 ring-base-300/15 sm:flex-row sm:items-start sm:justify-between sm:p-5"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-base-content">
-                    <span className="text-warning">{r.rating}★</span> ·{" "}
-                    {co?.name ?? r.companyId}
-                  </p>
-                  <div className="mt-2 text-sm leading-relaxed text-base-content/70">
-                    <span className="font-medium text-base-content/80">
-                      {author?.name ?? r.merchantId}:
-                    </span>
-                    <RichTextContent
-                      html={r.comment}
-                      variant="compact"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-                <ModerationDeleteButton
-                  apiPath={`/api/admin/moderation/company-review/${r.id}`}
-                />
-              </li>
-            );
-          })}
-        </ul>
-        {companyReviews.length === 0 && (
-          <p className="rounded-2xl border border-dashed border-base-300 bg-base-200/20 px-4 py-10 text-center text-sm text-base-content/55">
-            No company reviews.
-          </p>
-        )}
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-base-content">
-          <HiOutlineStar className="h-5 w-5 text-accent" />
-          Product reviews
-          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-            {productReviews.length}
-          </span>
-        </h2>
-        <ul className="space-y-3">
-          {productReviews.map((r) => {
-            const p = getProduct(r.productId);
-            const author = findUserById(r.merchantId);
-            return (
-              <li
-                key={r.id}
-                className="flex flex-col gap-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm ring-1 ring-base-300/15 sm:flex-row sm:items-start sm:justify-between sm:p-5"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-base-content">
-                    <span className="text-warning">{r.rating}★</span> ·{" "}
-                    {p?.name ?? r.productId}
-                  </p>
-                  <div className="mt-2 text-sm leading-relaxed text-base-content/70">
-                    <span className="font-medium text-base-content/80">
-                      {author?.name ?? r.merchantId}:
-                    </span>
-                    <RichTextContent
-                      html={r.comment}
-                      variant="compact"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-                <ModerationDeleteButton
-                  apiPath={`/api/admin/moderation/product-review/${r.id}`}
-                />
-              </li>
-            );
-          })}
-        </ul>
-        {productReviews.length === 0 && (
-          <p className="rounded-2xl border border-dashed border-base-300 bg-base-200/20 px-4 py-10 text-center text-sm text-base-content/55">
-            No product reviews.
-          </p>
-        )}
-      </section>
+      <AdminModerationLists
+        comments={commentsVm}
+        companyReviews={companyReviewsVm}
+        productReviews={productReviewsVm}
+      />
     </div>
   );
 }

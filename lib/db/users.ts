@@ -1,7 +1,13 @@
 import { randomInt, randomUUID } from "crypto";
-import type { UserPreferences, UserRecord, UserRole } from "@/lib/domain/types";
+import type {
+  Permission,
+  UserPreferences,
+  UserRecord,
+  UserRole,
+} from "@/lib/domain/types";
 import { readJsonFile, writeJsonFile } from "@/lib/store/json-file";
 import { hashPassword } from "@/lib/auth/password";
+import { ADMIN_INVITE_DEFAULT_PASSWORD } from "@/lib/auth/admin-invite";
 import {
   EMAIL_VERIFICATION_OTP_MS,
   PASSWORD_RESET_TOKEN_MS,
@@ -47,14 +53,20 @@ export async function createUser(input: {
   role: UserRole;
   /** Set for admin bootstrap so no OTP email is required */
   skipEmailVerification?: boolean;
+  /** Super-admin invite: admin account with no permissions until granted (email verified at creation unless skipped). */
+  inviteAdmin?: boolean;
+  adminPermissionAllow?: Permission[];
 }): Promise<CreateUserResult> {
   const users = load();
   if (users.some((u) => u.email.toLowerCase() === input.email.trim().toLowerCase())) {
     throw new Error("Email already registered");
   }
 
+  /** Invited admins must verify email; bootstrap uses skipEmailVerification: true */
   const needsVerification =
-    input.role !== "admin" && !input.skipEmailVerification;
+    !input.skipEmailVerification &&
+    (input.role !== "admin" && input.role !== "system_admin" ||
+      Boolean(input.inviteAdmin));
 
   let verificationOtp: string | undefined;
   const record: UserRecord = {
@@ -76,6 +88,21 @@ export async function createUser(input: {
     ).toISOString();
   } else {
     record.emailVerified = true;
+  }
+
+  if (input.role === "admin") {
+    if (input.adminPermissionAllow !== undefined) {
+      record.adminPermissionAllow = input.adminPermissionAllow;
+    } else if (input.inviteAdmin) {
+      record.adminPermissionAllow = [];
+    }
+  }
+
+  if (
+    input.inviteAdmin &&
+    input.password === ADMIN_INVITE_DEFAULT_PASSWORD
+  ) {
+    record.mustChangePassword = true;
   }
 
   users.push(record);
@@ -143,12 +170,20 @@ export async function setPasswordResetToken(
   save(users);
 }
 
-export async function updateUserPassword(userId: string, newPlainPassword: string): Promise<void> {
+export async function updateUserPassword(
+  userId: string,
+  newPlainPassword: string,
+  options?: { mustChangePassword?: boolean },
+): Promise<void> {
   const passwordHash = await hashPassword(newPlainPassword);
   const users = load();
   const i = users.findIndex((u) => u.id === userId);
   if (i === -1) return;
-  const next = { ...users[i], passwordHash };
+  const mustChange =
+    options?.mustChangePassword === true
+      ? true
+      : false;
+  const next = { ...users[i], passwordHash, mustChangePassword: mustChange };
   delete next.passwordResetTokenHash;
   delete next.passwordResetExpiresAt;
   users[i] = next;
@@ -175,7 +210,8 @@ export function submitNationalIdVerification(
   const i = users.findIndex((u) => u.id === userId);
   if (i === -1) return undefined;
   const prev = users[i] as UserRecord & { nationalIdNumber?: string };
-  const { nationalIdNumber: _legacyFcn, ...base } = prev;
+  const { nationalIdNumber, ...base } = prev;
+  void nationalIdNumber;
   users[i] = {
     ...base,
     nationalIdStatus: "pending",
@@ -232,6 +268,83 @@ export function reviewNationalId(
 
 export function listPendingNationalIdUsers(): UserRecord[] {
   return load().filter((u) => u.nationalIdStatus === "pending");
+}
+
+export function setAdminTeamMember(
+  targetUserId: string,
+  input: {
+    role: UserRole;
+    adminPermissionDeny?: Permission[];
+    /** When set (including `[]`), whitelist mode; use `null` to clear and go back to deny-only. */
+    adminPermissionAllow?: Permission[] | null;
+  },
+): UserRecord | undefined {
+  const users = load();
+  const i = users.findIndex((u) => u.id === targetUserId);
+  if (i === -1) return undefined;
+  const cur = users[i];
+  let next: UserRecord = {
+    ...cur,
+    role: input.role,
+  };
+  if (input.role !== "admin") {
+    delete next.adminPermissionDeny;
+    delete next.adminPermissionAllow;
+  } else {
+    if (input.adminPermissionAllow !== undefined) {
+      if (input.adminPermissionAllow === null) {
+        delete next.adminPermissionAllow;
+        if (input.adminPermissionDeny !== undefined) {
+          next.adminPermissionDeny =
+            input.adminPermissionDeny.length > 0 ? input.adminPermissionDeny : undefined;
+        }
+      } else {
+        next.adminPermissionAllow = input.adminPermissionAllow;
+        delete next.adminPermissionDeny;
+      }
+    } else if (input.adminPermissionDeny !== undefined) {
+      next.adminPermissionDeny =
+        input.adminPermissionDeny.length > 0 ? input.adminPermissionDeny : undefined;
+      delete next.adminPermissionAllow;
+    }
+  }
+  users[i] = next;
+  save(users);
+  return next;
+}
+
+/**
+ * Remove staff access: demote to merchant and clear admin-only fields.
+ * Caller must enforce authorization (e.g. system administrator only).
+ */
+export function revokeStaffUser(userId: string): UserRecord | undefined {
+  const users = load();
+  const i = users.findIndex((u) => u.id === userId);
+  if (i === -1) return undefined;
+  const cur = users[i];
+  if (cur.role !== "admin" && cur.role !== "system_admin") return undefined;
+  const next: UserRecord = { ...cur, role: "merchant" };
+  delete next.adminPermissionDeny;
+  delete next.adminPermissionAllow;
+  delete next.lastAccessRequestEmailAt;
+  if (next.mustChangePassword) delete next.mustChangePassword;
+  users[i] = next;
+  save(users);
+  return next;
+}
+
+/** @deprecated Use setAdminTeamMember */
+export const setUserRoleAndAdminDeny = setAdminTeamMember;
+
+export function markAccessRequestEmailSent(userId: string): void {
+  const users = load();
+  const i = users.findIndex((u) => u.id === userId);
+  if (i === -1) return;
+  users[i] = {
+    ...users[i],
+    lastAccessRequestEmailAt: new Date().toISOString(),
+  };
+  save(users);
 }
 
 export function updateUserProfile(

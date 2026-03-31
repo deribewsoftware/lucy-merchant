@@ -251,11 +251,20 @@ export function supplierOrderGuidance(
       ) {
         return "Wait for the buyer to transfer to your company account and upload proof, then confirm payment received before accepting.";
       }
-      return "Accept to start work (COD: cash is collected on delivery), or reject if you cannot fulfill.";
+      if (order.paymentStatus === "paid") {
+        return "You confirmed the buyer’s payment — accept to start fulfillment. Rejection is no longer available after payment is confirmed.";
+      }
+      return "Accept to start work (COD: cash is collected on delivery), or reject with a clear written reason if you cannot fulfill (max 3 rejections per 7 days).";
     case "accepted":
-      return "Move to in progress when you begin preparing or shipping.";
+      if (order.paymentStatus === "paid") {
+        return "Move to in progress when you begin preparing. Rejection is not available after payment was confirmed.";
+      }
+      return "Move to in progress when you begin preparing or shipping, or reject with a clear reason if you cannot continue (max 3 per 7 days).";
     case "in_progress":
-      return "Mark delivered when the buyer has received the goods.";
+      if (order.paymentStatus === "paid") {
+        return "Mark delivered when the buyer has received the goods. Rejection is not available after payment was confirmed.";
+      }
+      return "Mark delivered when the buyer has received the goods, or reject with a clear reason if fulfillment is no longer possible (max 3 per 7 days).";
     case "delivered":
       if (
         isPlatformCommissionPaid(order) &&

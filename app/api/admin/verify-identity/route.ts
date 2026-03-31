@@ -5,11 +5,16 @@ import {
   reviewNationalId,
 } from "@/lib/db/users";
 import { notifyUserVerificationResult } from "@/lib/db/notifications";
+import { ADMIN_STAFF_ROLES } from "@/lib/admin-staff";
+import { logStaffAction } from "@/lib/server/admin-audit-log";
+import { requireStaffPermission } from "@/lib/server/admin-permissions";
 import { requireSession } from "@/lib/server/require-session";
 
 export async function GET() {
-  const auth = await requireSession(["admin"]);
+  const auth = await requireSession(ADMIN_STAFF_ROLES);
   if (!auth.ok) return auth.response;
+  const perm = requireStaffPermission(auth.user.id, "companies:verify");
+  if (!perm.ok) return perm.response;
 
   const pending = listPendingNationalIdUsers().map((u) => ({
     id: u.id,
@@ -26,8 +31,10 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const auth = await requireSession(["admin"]);
+  const auth = await requireSession(ADMIN_STAFF_ROLES);
   if (!auth.ok) return auth.response;
+  const perm = requireStaffPermission(auth.user.id, "companies:verify");
+  if (!perm.ok) return perm.response;
 
   const body = await request.json().catch(() => null);
   const userId = String(body?.userId ?? "").trim();
@@ -70,6 +77,13 @@ export async function PATCH(request: Request) {
   }
 
   notifyUserVerificationResult(userId, approved, reason);
+
+  logStaffAction(request, {
+    actorId: auth.user.id,
+    action: "identity.review",
+    resource: userId,
+    detail: { approved },
+  });
 
   return NextResponse.json({
     status: updated.nationalIdStatus,

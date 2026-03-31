@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FAYDA_FAN_DIGITS,
   FAYDA_MAX_IMAGE_BYTES,
@@ -10,6 +10,7 @@ import {
   validateFaydaIdImageFile,
   validateFaydaVerificationText,
 } from "@/lib/validation/fayda-fcn";
+import { PaginatedClientList } from "@/components/paginated-client-list";
 import {
   HiOutlineShieldCheck,
   HiOutlineIdentification,
@@ -24,6 +25,7 @@ import {
   HiOutlineArrowTopRightOnSquare,
   HiOutlineMapPin,
   HiOutlinePhone,
+  HiOutlineTrash,
 } from "react-icons/hi2";
 
 const ID_GOV_ET = "https://id.gov.et/";
@@ -127,6 +129,7 @@ export function FaydaIdVerification({ role }: { role: FaydaVerificationRole }) {
       setValidationErrors(textRes.errors);
       return;
     }
+    const normalizedFan = textRes.fan;
 
     if (!frontFile || !backFile) {
       setValidationErrors(["Upload both the front and back of your Digital ID (JPG, PNG, or WebP)."]);
@@ -147,7 +150,7 @@ export function FaydaIdVerification({ role }: { role: FaydaVerificationRole }) {
     setSubmitting(true);
 
     const fd = new FormData();
-    fd.append("nationalIdFan", nationalIdFan.trim());
+    fd.append("nationalIdFan", normalizedFan);
     fd.append("nationalIdName", nationalIdName.trim());
     fd.append("nationalIdCity", nationalIdCity.trim());
     if (nationalIdSubcity.trim()) fd.append("nationalIdSubcity", nationalIdSubcity.trim());
@@ -521,21 +524,33 @@ export function FaydaIdVerification({ role }: { role: FaydaVerificationRole }) {
               </label>
             </div>
 
-            <div className="mt-8">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-base-content/50">
-                Card images
-              </p>
+            <div className="mt-8 rounded-2xl border border-emerald-200/40 bg-gradient-to-br from-emerald-50/50 to-base-100 p-4 dark:border-emerald-900/30 dark:from-emerald-950/25 sm:p-5">
+              <div className="mb-4 flex flex-col gap-3 border-b border-emerald-200/30 pb-4 dark:border-emerald-900/30 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800/90 dark:text-emerald-400/90">
+                    Digital ID photos
+                  </p>
+                  <p className="mt-1 text-sm text-base-content/70">
+                    Both sides are required — well-lit, in focus, full card visible.
+                  </p>
+                </div>
+                <span className="inline-flex w-fit items-center rounded-full bg-emerald-600/10 px-3 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                  2 files · front &amp; back
+                </span>
+              </div>
               <div className="grid gap-6 lg:grid-cols-2">
                 <IdUploadSlot
                   label="Front of card"
-                  hint="Portrait and card details visible"
+                  hint="Portrait and printed details visible"
                   preview={frontPreview}
+                  fileName={frontFile?.name ?? null}
                   onFile={(f) => setFrontFile(f)}
                 />
                 <IdUploadSlot
                   label="Back of card"
                   hint="QR code and FAN visible"
                   preview={backPreview}
+                  fileName={backFile?.name ?? null}
                   onFile={(f) => setBackFile(f)}
                 />
               </div>
@@ -561,13 +576,27 @@ export function FaydaIdVerification({ role }: { role: FaydaVerificationRole }) {
                   <HiOutlineXCircle className="h-4 w-4 shrink-0" />
                   Fix the following before submitting:
                 </p>
-                <ul className="mt-2 list-inside list-disc space-y-1 text-xs sm:text-sm">
-                  {validationErrors.map((msg, idx) => (
-                    <li key={`${idx}-${msg.slice(0, 48)}`} className="leading-relaxed">
-                      {msg}
-                    </li>
-                  ))}
-                </ul>
+                <PaginatedClientList
+                  items={validationErrors}
+                  pageSize={6}
+                  resetKey={validationErrors.join("\n")}
+                  summaryClassName="mt-2 text-xs text-error/85"
+                  summarySuffix="issues"
+                  barClassName="mt-2"
+                >
+                  {(pageItems) => (
+                    <ul className="mt-2 list-inside list-disc space-y-1 text-xs sm:text-sm">
+                      {pageItems.map((msg, idx) => (
+                        <li
+                          key={`${idx}-${msg.slice(0, 64)}`}
+                          className="leading-relaxed"
+                        >
+                          {msg}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </PaginatedClientList>
               </motion.div>
             )}
 
@@ -706,30 +735,36 @@ function IdPhotoPair({ frontSrc, backSrc }: { frontSrc?: string; backSrc?: strin
 
 function IdDisplayCard({ label, src }: { label: string; src?: string }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-base-300/80 bg-gradient-to-b from-base-200/30 to-base-100 shadow-inner ring-1 ring-base-300/40">
-      <div className="flex items-center justify-between border-b border-base-300/50 bg-base-200/40 px-3 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-base-content/55">{label}</span>
+    <div className="group overflow-hidden rounded-2xl border border-base-300/80 bg-gradient-to-b from-base-200/40 to-base-100 shadow-md ring-1 ring-base-300/35">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-base-300/50 bg-base-200/50 px-3 py-2.5 sm:px-4">
+        <span className="text-xs font-semibold uppercase tracking-wide text-base-content/60">{label}</span>
         {src && (
           <a
             href={src}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-600/15 dark:text-emerald-400"
           >
             Open full size
+            <HiOutlineArrowTopRightOnSquare className="h-3.5 w-3.5" />
           </a>
         )}
       </div>
-      <div className="relative flex min-h-[220px] items-center justify-center bg-base-300/20 p-3 sm:min-h-[280px]">
+      <div className="relative flex min-h-[200px] items-center justify-center bg-gradient-to-b from-base-300/25 to-base-300/10 p-3 sm:min-h-[260px] sm:p-4">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element -- dynamic upload paths
           <img
             src={src}
             alt={label}
-            className="max-h-[min(420px,70vh)] w-full rounded-lg object-contain shadow-md ring-1 ring-black/5"
+            className="max-h-[min(440px,72vh)] w-full rounded-xl object-contain shadow-lg ring-1 ring-black/5"
           />
         ) : (
-          <p className="text-sm text-base-content/40">No image</p>
+          <div className="flex flex-col items-center gap-2 py-6 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-base-200/80 text-base-content/40">
+              <HiOutlinePhoto className="h-6 w-6" />
+            </span>
+            <p className="text-sm text-base-content/45">No image on file</p>
+          </div>
         )}
       </div>
     </div>
@@ -740,22 +775,70 @@ function IdUploadSlot({
   label,
   hint,
   preview,
+  fileName,
   onFile,
 }: {
   label: string;
   hint: string;
   preview: string | null;
+  fileName: string | null;
   onFile: (f: File | null) => void;
 }) {
+  const [drag, setDrag] = useState(false);
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDrag(false);
+      const f = e.dataTransfer.files?.[0];
+      if (f) onFile(f);
+    },
+    [onFile],
+  );
+
   return (
     <div className="flex flex-col">
-      <span className="mb-1.5 text-xs font-semibold text-base-content">{label}</span>
-      <span className="mb-2 text-[11px] text-base-content/50">{hint}</span>
-      <label className="group relative flex min-h-[200px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-emerald-600/25 bg-emerald-50/30 transition hover:border-emerald-500/40 hover:bg-emerald-50/50 dark:border-emerald-500/30 dark:bg-emerald-950/20">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-wide text-base-content/70">{label}</span>
+          <p className="mt-0.5 text-[11px] leading-snug text-base-content/50">{hint}</p>
+        </div>
+        {preview && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onFile(null);
+            }}
+            className="inline-flex items-center gap-1 rounded-lg border border-base-300/80 bg-base-100 px-2.5 py-1 text-[11px] font-semibold text-base-content/50 transition hover:border-error/40 hover:bg-error/5 hover:text-error"
+          >
+            <HiOutlineTrash className="h-3.5 w-3.5" />
+            Remove
+          </button>
+        )}
+      </div>
+      <label
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={onDrop}
+        className={`group relative flex min-h-[220px] cursor-pointer flex-col overflow-hidden rounded-2xl border-2 border-dashed transition sm:min-h-[240px] ${
+          drag
+            ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20"
+            : "border-emerald-600/30 bg-emerald-50/40 hover:border-emerald-500/50 hover:bg-emerald-50/70 dark:border-emerald-500/35 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/45"
+        }`}
+      >
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          className="absolute inset-0 cursor-pointer opacity-0"
+          className="absolute inset-0 z-10 cursor-pointer opacity-0"
           onChange={(e) => {
             const f = e.target.files?.[0] ?? null;
             onFile(f);
@@ -763,21 +846,32 @@ function IdUploadSlot({
           }}
         />
         {preview ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={preview}
-            alt=""
-            className="max-h-[320px] w-full object-contain p-2"
-          />
+          <div className="relative flex flex-1 flex-col">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={preview}
+              alt=""
+              className="max-h-[min(340px,50vh)] w-full flex-1 object-contain p-3 sm:max-h-[360px]"
+            />
+            {fileName && (
+              <div className="border-t border-base-300/40 bg-base-100/80 px-3 py-2 text-center backdrop-blur-sm">
+                <p className="truncate text-[11px] font-medium text-base-content/65" title={fileName}>
+                  {fileName}
+                </p>
+              </div>
+            )}
+          </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 p-6 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600/10 text-emerald-700">
-              <HiOutlinePhoto className="h-6 w-6" />
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center sm:p-8">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600/12 text-emerald-700 dark:text-emerald-400">
+              <HiOutlinePhoto className="h-7 w-7" />
             </span>
-            <span className="text-sm font-medium text-base-content">Click or drop an image</span>
-            <span className="text-xs text-base-content/45">
-              JPG, PNG, or WebP · max {FAYDA_MAX_IMAGE_BYTES / (1024 * 1024)}MB
-            </span>
+            <div>
+              <p className="text-sm font-semibold text-base-content">Tap to choose or drop a file here</p>
+              <p className="mt-1 text-xs text-base-content/45">
+                JPG, PNG, or WebP · max {FAYDA_MAX_IMAGE_BYTES / (1024 * 1024)}MB
+              </p>
+            </div>
           </div>
         )}
       </label>

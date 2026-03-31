@@ -9,6 +9,7 @@ import {
 import { findUserById, updateUserPoints } from "@/lib/db/users";
 import { normalizeCompareAtPrice } from "@/lib/domain/compare-at-price";
 import { packagingForCreate } from "@/lib/domain/packaging-from-body";
+import { normalizeProductImageUrl } from "@/lib/server/product-image-url";
 import { requireSession } from "@/lib/server/require-session";
 import { API_SUPPLIER_COMMISSION_SUSPENDED } from "@/lib/domain/commission-hold-copy";
 import { supplierHasOutstandingCommission } from "@/lib/server/supplier-commission";
@@ -93,17 +94,28 @@ export async function POST(request: Request) {
     updateUserPoints(auth.user.id, pts);
   }
 
-  const imageUrlRaw = String(body?.imageUrl ?? "").trim();
-  const imageUrl =
-    imageUrlRaw && /^https?:\/\//i.test(imageUrlRaw) ? imageUrlRaw : undefined;
+  const imageUrl = normalizeProductImageUrl(String(body?.imageUrl ?? ""));
 
-  const shipRaw = String(body?.shipFromRegion ?? "").trim().slice(0, 80);
+  const shipRaw = String(body?.shipFromRegion ?? "").trim().slice(0, 256);
   const shipFromRegion = shipRaw || undefined;
 
   const unitPrice = Number(body?.price) || 0;
   const compareAt = normalizeCompareAtPrice(unitPrice, body?.compareAtPrice);
 
   const pack = packagingForCreate(body);
+
+  const rawMaxDel = (body as { maxDeliveryQuantity?: unknown })?.maxDeliveryQuantity;
+  let maxDeliveryQuantity: number | undefined;
+  if (rawMaxDel !== null && rawMaxDel !== undefined && rawMaxDel !== "") {
+    const n = Number(rawMaxDel);
+    if (!Number.isFinite(n) || n < 1) {
+      return NextResponse.json(
+        { error: "Invalid max delivery quantity" },
+        { status: 400 },
+      );
+    }
+    maxDeliveryQuantity = n;
+  }
 
   const product = createProduct({
     companyId,
@@ -115,7 +127,7 @@ export async function POST(request: Request) {
     ...(compareAt != null ? { compareAtPrice: compareAt } : {}),
     availableQuantity: Number(body?.availableQuantity) || 0,
     minOrderQuantity: Math.max(1, Number(body?.minOrderQuantity) || 1),
-    maxDeliveryQuantity: Number(body?.maxDeliveryQuantity) || 0,
+    ...(maxDeliveryQuantity !== undefined ? { maxDeliveryQuantity } : {}),
     deliveryTime: String(body?.deliveryTime ?? ""),
     totalOrdersCount: 0,
     averageRating: 0,

@@ -1,8 +1,11 @@
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import { AdminSystemForm } from "@/components/admin-system-form";
 import { getSystemConfig } from "@/lib/db/catalog";
+import { requireStaffPagePermission } from "@/lib/server/require-staff-page";
 
-export default function AdminSystemPage() {
+export default async function AdminSystemPage() {
+  await requireStaffPagePermission("system:configure", "/admin/system");
+
   const config = getSystemConfig();
   return (
     <div>

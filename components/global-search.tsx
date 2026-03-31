@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SearchScope } from "@/lib/search/catalog-search";
+import type { AuthMeUser } from "@/lib/domain/types";
 import { brandCopy } from "@/lib/brand/copy";
 import {
   MERCHANT_COMMISSION_HOLD_INLINE,
@@ -47,7 +48,7 @@ type HitProduct = {
   price: number;
   compareAtPrice?: number;
   minOrderQuantity: number;
-  maxDeliveryQuantity: number;
+  maxDeliveryQuantity?: number;
   deliveryTime: string;
   availableQuantity: number;
   itemsPerCarton?: number;
@@ -532,10 +533,10 @@ export function GlobalSearch({
       }
       if (!res.ok) return;
       const data = (await res.json()) as {
-        user?: {
-          merchantCommissionHold?: boolean;
-          supplierCommissionHold?: boolean;
-        };
+        user?: Pick<
+          AuthMeUser,
+          "merchantCommissionHold" | "supplierCommissionHold"
+        >;
       };
       const u = data.user;
       if (!u) return;

@@ -10,10 +10,10 @@ import {
   Shield,
   Sparkles,
   Star,
-  Tag,
   Truck,
   Users,
 } from "lucide-react";
+import { PaginatedProductTags } from "@/components/paginated-product-tags";
 import { ProductOrderSpecs } from "@/components/product-order-specs";
 import { ProductUnitPrice } from "@/components/product-unit-price";
 import { AddToCart } from "@/components/add-to-cart";
@@ -27,13 +27,22 @@ import {
   listRelatedProducts,
 } from "@/lib/db/catalog";
 import { listReviewsForProduct } from "@/lib/db/product-reviews";
+import { isStaffAdminRole } from "@/lib/admin-staff";
 import { findUserById } from "@/lib/db/users";
 import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
 import { getSessionUser } from "@/lib/server/session";
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar";
+import { effectiveMaxDeliveryPerOrder } from "@/lib/domain/max-delivery";
+import { clampPage, pageStartIndex } from "@/lib/utils/pagination";
 
-type Params = { params: Promise<{ id: string }> };
+const REVIEW_PAGE_SIZE = 10;
 
-export default async function ProductPage({ params }: Params) {
+type Params = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ rpage?: string }>;
+};
+
+export default async function ProductPage({ params, searchParams }: Params) {
   const sessionUser = await getSessionUser();
   if (
     sessionUser?.role === "merchant" &&
@@ -43,6 +52,7 @@ export default async function ProductPage({ params }: Params) {
   }
 
   const { id } = await params;
+  const sp = await searchParams;
   const product = getProduct(id);
   if (!product) notFound();
   incrementProductViewCount(id);
@@ -52,14 +62,31 @@ export default async function ProductPage({ params }: Params) {
   const canComment =
     user?.role === "merchant" ||
     user?.role === "supplier" ||
-    user?.role === "admin";
+    (user && isStaffAdminRole(user.role));
+  const maxPerDelivery = effectiveMaxDeliveryPerOrder(product);
   const defaultQty = Math.min(
     Math.max(product.minOrderQuantity, 1),
-    Math.min(product.availableQuantity, product.maxDeliveryQuantity),
+    maxPerDelivery,
   );
-  const productReviews = listReviewsForProduct(product.id);
+  const allProductReviews = listReviewsForProduct(product.id);
+  const reviewPageRaw = parseInt(sp.rpage ?? "1", 10);
+  const reviewPage =
+    Number.isFinite(reviewPageRaw) && reviewPageRaw >= 1 ? reviewPageRaw : 1;
+  const reviewTotal = allProductReviews.length;
+  const reviewSafePage = clampPage(reviewPage, reviewTotal, REVIEW_PAGE_SIZE);
+  const reviewStart = pageStartIndex(reviewSafePage, reviewTotal, REVIEW_PAGE_SIZE);
+  const productReviews = allProductReviews.slice(
+    reviewStart,
+    reviewStart + REVIEW_PAGE_SIZE,
+  );
+  const reviewsHref = (p: number) => {
+    const base = `/products/${product.id}`;
+    const hash = "#verified-reviews";
+    if (p <= 1) return `${base}${hash}`;
+    return `${base}?rpage=${p}${hash}`;
+  };
   const related = listRelatedProducts(product.id, 12);
-  const hasReviews = productReviews.length > 0;
+  const hasReviews = reviewTotal > 0;
 
   return (
     <div className="flex min-w-0 flex-col bg-gradient-to-b from-base-100 via-base-100 to-base-200/30">
@@ -183,16 +210,8 @@ export default async function ProductPage({ params }: Params) {
                 </div>
 
                 {product.tags.length > 0 && (
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    {product.tags.map((t) => (
-                      <span
-                        key={t}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground sm:text-sm"
-                      >
-                        <Tag className="h-3 w-3 shrink-0 opacity-70" />
-                        {t}
-                      </span>
-                    ))}
+                  <div className="mt-6">
+                    <PaginatedProductTags tags={product.tags} />
                   </div>
                 )}
 
@@ -255,7 +274,7 @@ export default async function ProductPage({ params }: Params) {
                       </p>
                       {hasReviews && (
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {productReviews.length} verified
+                          {reviewTotal} verified
                         </p>
                       )}
                     </div>
@@ -292,7 +311,10 @@ export default async function ProductPage({ params }: Params) {
 
             {/* Reviews */}
             {hasReviews && (
-              <section className="rounded-2xl border border-border/50 bg-card/80 p-6 shadow-sm ring-1 ring-border/20 sm:p-8">
+              <section
+                id="verified-reviews"
+                className="rounded-2xl border border-border/50 bg-card/80 p-6 shadow-sm ring-1 ring-border/20 sm:p-8"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="flex items-center gap-2 font-display text-xl font-bold text-foreground sm:text-2xl">
@@ -304,12 +326,19 @@ export default async function ProductPage({ params }: Params) {
                     </p>
                   </div>
                   <span className="rounded-full bg-success/12 px-3 py-1.5 text-sm font-semibold text-success">
-                    {productReviews.length} review
-                    {productReviews.length !== 1 ? "s" : ""}
+                    {reviewTotal} review
+                    {reviewTotal !== 1 ? "s" : ""}
                   </span>
                 </div>
 
-                <ul className="mt-6 space-y-4">
+                <PaginationSummary
+                  page={reviewSafePage}
+                  pageSize={REVIEW_PAGE_SIZE}
+                  total={reviewTotal}
+                  className="mt-4 text-sm text-muted-foreground"
+                />
+
+                <ul className="mt-4 space-y-4">
                   {productReviews.map((r) => {
                     const author = findUserById(r.merchantId);
                     return (
@@ -364,6 +393,14 @@ export default async function ProductPage({ params }: Params) {
                     );
                   })}
                 </ul>
+
+                <PaginationBar
+                  page={reviewSafePage}
+                  pageSize={REVIEW_PAGE_SIZE}
+                  total={reviewTotal}
+                  buildHref={reviewsHref}
+                  className="mt-6"
+                />
               </section>
             )}
 
@@ -381,7 +418,7 @@ export default async function ProductPage({ params }: Params) {
             <AddToCart
               productId={product.id}
               minQty={product.minOrderQuantity}
-              maxQty={product.maxDeliveryQuantity}
+              maxQty={maxPerDelivery}
               stock={product.availableQuantity}
               defaultQty={defaultQty}
               isMerchant={isMerchant}

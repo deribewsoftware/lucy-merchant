@@ -3,9 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type Props = { orderId: string };
+type Props = {
+  orderId: string;
+  /** When false, hide the action (matches `orders:admin` on the API). */
+  canProcessOrders?: boolean;
+};
 
-export function AdminApproveBank({ orderId }: Props) {
+export function AdminApproveBank({
+  orderId,
+  canProcessOrders = true,
+}: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -38,17 +45,25 @@ export function AdminApproveBank({ orderId }: Props) {
       {msg && (
         <p className="mt-2 text-xs text-red-600 dark:text-red-400">{msg}</p>
       )}
-      <button
-        type="button"
-        onClick={approve}
-        disabled={loading}
-        className="btn btn-success btn-sm mt-3"
-      >
-        {loading ? (
-          <span className="loading loading-spinner loading-xs" />
-        ) : null}
-        Approve bank payment
-      </button>
+      {!canProcessOrders ? (
+        <p className="mt-3 text-xs text-base-content/60">
+          You don&apos;t have the{" "}
+          <span className="font-mono">orders:admin</span> permission needed to
+          approve bank transfers here.
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={approve}
+          disabled={loading}
+          className="btn btn-success btn-sm mt-3"
+        >
+          {loading ? (
+            <span className="loading loading-spinner loading-xs" />
+          ) : null}
+          Approve bank payment
+        </button>
+      )}
     </div>
   );
 }

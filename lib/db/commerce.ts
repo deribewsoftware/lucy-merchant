@@ -1,5 +1,9 @@
 import { randomUUID } from "crypto";
-import { getSystemConfig, updateProductStock } from "@/lib/db/catalog";
+import {
+  companiesByOwner,
+  getSystemConfig,
+  updateProductStock,
+} from "@/lib/db/catalog";
 import type { Cart, CartItem, Order, OrderStatus } from "@/lib/domain/types";
 import { readJsonFile, writeJsonFile } from "@/lib/store/json-file";
 
@@ -133,21 +137,47 @@ export function ordersForSupplierCompanyIds(companyIds: string[]): Order[] {
 export function updateOrderStatus(
   orderId: string,
   status: OrderStatus,
+  extra?: Partial<Order>,
 ): Order | undefined {
   const all = loadOrders();
   const i = all.findIndex((o) => o.id === orderId);
   if (i === -1) return undefined;
   const cur = all[i];
-  const patch: Partial<Order> = { status };
+  const patch: Partial<Order> = { ...extra, status };
   if (status === "delivered" && !cur.commissionDeadlineAt) {
     const hours = getSystemConfig().commissionPaymentGraceHours ?? 72;
     patch.commissionDeadlineAt = new Date(
       Date.now() + hours * 3600 * 1000,
     ).toISOString();
   }
+  if (status === "accepted" && !cur.fulfillmentAcceptedAt) {
+    patch.fulfillmentAcceptedAt = new Date().toISOString();
+  }
   all[i] = { ...cur, ...patch } as Order;
   saveOrders(all);
   return all[i];
+}
+
+/** Rejections in the last `days` for orders owned by this supplier (single-supplier orders). */
+export function supplierRejectionsInLastDays(
+  supplierUserId: string,
+  days: number,
+): number {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const companyIds = new Set(
+    companiesByOwner(supplierUserId).map((c) => c.id),
+  );
+  return loadOrders().filter((o) => {
+    if (o.status !== "rejected") return false;
+    if (!o.supplierRejectedAt) return false;
+    if (new Date(o.supplierRejectedAt).getTime() < cutoff) return false;
+    if (o.items.length === 0) return false;
+    if (o.items.length > 1) {
+      const first = o.items[0].companyId;
+      if (!o.items.every((i) => i.companyId === first)) return false;
+    }
+    return companyIds.has(o.items[0].companyId);
+  }).length;
 }
 
 export function patchOrder(

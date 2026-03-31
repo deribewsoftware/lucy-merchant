@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   HiOutlinePencilSquare,
   HiOutlineTrash,
@@ -13,6 +13,8 @@ import {
   supplierPrimaryButtonClass,
   supplierSelectClass,
 } from "@/components/supplier/form-styles";
+import { PaginatedClientList } from "@/components/paginated-client-list";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Category } from "@/lib/domain/types";
 
 function descendantIds(cats: Category[], rootId: string): Set<string> {
@@ -37,6 +39,15 @@ export function AdminCategoryList({ categories }: { categories: Category[] }) {
   const [editName, setEditName] = useState("");
   const [editParent, setEditParent] = useState<string>("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const clearEditOnPaging = useCallback(() => {
+    setEditId(null);
+    setMsg(null);
+  }, []);
 
   function startEdit(c: Category) {
     setEditId(c.id);
@@ -68,8 +79,9 @@ export function AdminCategoryList({ categories }: { categories: Category[] }) {
     router.refresh();
   }
 
-  async function remove(id: string, name: string) {
-    if (!confirm(`Delete category “${name}”?`)) return;
+  async function performDelete() {
+    if (!pendingDelete) return;
+    const { id } = pendingDelete;
     setBusyId(id);
     setMsg(null);
     const res = await fetch(`/api/categories/${id}`, {
@@ -82,6 +94,7 @@ export function AdminCategoryList({ categories }: { categories: Category[] }) {
       setMsg(data.error ?? "Delete failed");
       return;
     }
+    setPendingDelete(null);
     if (editId === id) setEditId(null);
     router.refresh();
   }
@@ -99,94 +112,124 @@ export function AdminCategoryList({ categories }: { categories: Category[] }) {
           {msg}
         </p>
       )}
-      <ul className="divide-y divide-base-300 overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm ring-1 ring-base-300/20">
-        {categories.map((c) => {
-          const parent = c.parentId
-            ? categories.find((x) => x.id === c.parentId)
-            : null;
-          const editing = editId === c.id;
-          return (
-            <li
-              key={c.id}
-              className="flex flex-col gap-4 px-4 py-4 text-sm sm:flex-row sm:items-start sm:justify-between sm:px-5"
-            >
-              {editing ? (
-                <div className="flex min-w-0 flex-1 flex-col gap-3">
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className={supplierInputClass}
-                  />
-                  <select
-                    value={editParent}
-                    onChange={(e) => setEditParent(e.target.value)}
-                    className={supplierSelectClass}
-                  >
-                    <option value="">Root (no parent)</option>
-                    {parentOptions(c.id).map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="min-w-0 flex-1">
-                  <span className="font-semibold text-base-content">{c.name}</span>
-                  <p className="mt-1 font-mono text-xs text-base-content/45">
-                    {parent ? `Under ${parent.name}` : "Root"} ·{" "}
-                    {c.id.slice(0, 8)}…
-                  </p>
-                </div>
-              )}
-              <div className="flex shrink-0 flex-wrap gap-2">
-                {editing ? (
-                  <>
-                    <button
-                      type="button"
-                      disabled={busyId === c.id}
-                      onClick={() => saveEdit(c.id)}
-                      className={supplierPrimaryButtonClass}
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busyId === c.id}
-                      onClick={() => setEditId(null)}
-                      className={`${supplierGhostButtonClass} border-error/20 text-error hover:border-error/30 hover:bg-error/5`}
-                    >
-                      <HiOutlineXMark className="h-4 w-4" />
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      disabled={busyId !== null}
-                      onClick={() => startEdit(c)}
-                      className={`${supplierGhostButtonClass} gap-1.5`}
-                    >
-                      <HiOutlinePencilSquare className="h-4 w-4" />
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busyId !== null}
-                      onClick={() => remove(c.id, c.name)}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-error/25 bg-error/5 px-4 py-2 text-sm font-medium text-error transition hover:bg-error/10"
-                    >
-                      <HiOutlineTrash className="h-4 w-4" />
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <PaginatedClientList
+        items={categories}
+        pageSize={15}
+        resetKey={categories.map((c) => c.id).join(",")}
+        summaryClassName="mb-3"
+        summarySuffix="categories"
+        barClassName="mt-4"
+        onReset={clearEditOnPaging}
+        onPageSelect={clearEditOnPaging}
+      >
+        {(pageItems) => (
+          <ul className="divide-y divide-base-300 overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm ring-1 ring-base-300/20">
+            {pageItems.map((c) => {
+              const parent = c.parentId
+                ? categories.find((x) => x.id === c.parentId)
+                : null;
+              const editing = editId === c.id;
+              return (
+                <li
+                  key={c.id}
+                  className="flex flex-col gap-4 px-4 py-4 text-sm sm:flex-row sm:items-start sm:justify-between sm:px-5"
+                >
+                  {editing ? (
+                    <div className="flex min-w-0 flex-1 flex-col gap-3">
+                      <input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className={supplierInputClass}
+                      />
+                      <select
+                        value={editParent}
+                        onChange={(e) => setEditParent(e.target.value)}
+                        className={supplierSelectClass}
+                      >
+                        <option value="">Root (no parent)</option>
+                        {parentOptions(c.id).map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-base-content">{c.name}</span>
+                      <p className="mt-1 font-mono text-xs text-base-content/45">
+                        {parent ? `Under ${parent.name}` : "Root"} ·{" "}
+                        {c.id.slice(0, 8)}…
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    {editing ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled={busyId === c.id}
+                          onClick={() => saveEdit(c.id)}
+                          className={supplierPrimaryButtonClass}
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyId === c.id}
+                          onClick={() => setEditId(null)}
+                          className={`${supplierGhostButtonClass} border-error/20 text-error hover:border-error/30 hover:bg-error/5`}
+                        >
+                          <HiOutlineXMark className="h-4 w-4" />
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          disabled={busyId !== null}
+                          onClick={() => startEdit(c)}
+                          className={`${supplierGhostButtonClass} gap-1.5`}
+                        >
+                          <HiOutlinePencilSquare className="h-4 w-4" />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyId !== null}
+                          onClick={() =>
+                            setPendingDelete({ id: c.id, name: c.name })
+                          }
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-error/25 bg-error/5 px-4 py-2 text-sm font-medium text-error transition hover:bg-error/10"
+                        >
+                          <HiOutlineTrash className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </PaginatedClientList>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+        title={
+          pendingDelete
+            ? `Delete category “${pendingDelete.name}”?`
+            : "Delete category?"
+        }
+        description="Products still using this category may need to be recategorized. This cannot be undone."
+        variant="danger"
+        confirmLabel="Delete category"
+        cancelLabel="Cancel"
+        loading={pendingDelete !== null && busyId === pendingDelete.id}
+        onConfirm={performDelete}
+      />
     </div>
   );
 }

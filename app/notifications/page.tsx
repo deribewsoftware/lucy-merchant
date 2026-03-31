@@ -1,24 +1,53 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Bell, Sparkles, ArrowRight, Clock, CheckCircle2, Inbox } from "lucide-react"
+import {
+  Bell,
+  Sparkles,
+  ArrowRight,
+  Clock,
+  CheckCircle2,
+  Inbox,
+  Shield,
+} from "lucide-react"
 import {
   MarkAllNotificationsRead,
   NotificationMarkReadButton,
 } from "@/components/notifications-mark-actions"
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar"
 import {
-  listNotificationsForUser,
+  allNotificationsForUser,
   unreadCountForUser,
 } from "@/lib/db/notifications"
 import { getSessionUser } from "@/lib/server/session"
+import { clampPage, pageStartIndex } from "@/lib/utils/pagination"
 
-export default async function NotificationsPage() {
+type Props = {
+  searchParams: Promise<{ page?: string }>
+}
+
+const PAGE_SIZE = 15
+
+export default async function NotificationsPage({ searchParams }: Props) {
   const user = await getSessionUser()
   if (!user) {
     redirect("/login?next=/notifications")
   }
 
-  const items = listNotificationsForUser(user.id, 80)
+  const sp = await searchParams
+  const pageRaw = parseInt(sp.page ?? "1", 10)
+  const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1
+
+  const all = allNotificationsForUser(user.id)
+  const total = all.length
+  const safePage = clampPage(page, total, PAGE_SIZE)
+  const start = pageStartIndex(safePage, total, PAGE_SIZE)
+  const items = all.slice(start, start + PAGE_SIZE)
+
   const unread = unreadCountForUser(user.id)
+  const readTotal = Math.max(0, total - unread)
+
+  const href = (p: number) =>
+    p > 1 ? `/notifications?page=${p}` : "/notifications"
 
   return (
     <div className="lm-page-narrow animate-in fade-in duration-500">
@@ -49,7 +78,7 @@ export default async function NotificationsPage() {
                 Your Alerts
               </h1>
               <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-                Order events, chat messages, and reviews surface here. Open a row to jump into the workspace.
+                Order events, chat, reviews, and staff alerts appear here. Open a row to jump into the workspace.
               </p>
             </div>
           </div>
@@ -65,7 +94,7 @@ export default async function NotificationsPage() {
         <div className="relative mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total</p>
-            <p className="mt-1 text-xl font-bold text-foreground">{items.length}</p>
+            <p className="mt-1 text-xl font-bold text-foreground">{total}</p>
           </div>
           <div className="rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Unread</p>
@@ -73,13 +102,22 @@ export default async function NotificationsPage() {
           </div>
           <div className="col-span-2 rounded-xl border border-border/50 bg-background/50 p-4 backdrop-blur-sm sm:col-span-1">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Read</p>
-            <p className="mt-1 text-xl font-bold text-accent">{items.length - unread}</p>
+            <p className="mt-1 text-xl font-bold text-accent">{readTotal}</p>
           </div>
         </div>
       </header>
 
+      {total > 0 && (
+        <PaginationSummary
+          page={safePage}
+          pageSize={PAGE_SIZE}
+          total={total}
+          className="mt-8"
+        />
+      )}
+
       {/* Notifications List */}
-      <ul className="mt-8 space-y-3">
+      <ul className="mt-4 space-y-3">
         {items.map((n, index) => (
           <li
             key={n.id}
@@ -101,13 +139,22 @@ export default async function NotificationsPage() {
               }`}>
                 {n.read ? (
                   <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+                ) : n.kind === "admin_staff" ? (
+                  <Shield className="h-5 w-5 text-primary" />
                 ) : (
                   <Bell className="h-5 w-5 text-primary" />
                 )}
               </div>
               
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-foreground">{n.title}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-foreground">{n.title}</p>
+                  {n.kind === "admin_staff" ? (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                      Staff
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-sm text-muted-foreground">{n.body}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -132,14 +179,22 @@ export default async function NotificationsPage() {
         ))}
       </ul>
 
-      {items.length === 0 && (
+      <PaginationBar
+        page={safePage}
+        pageSize={PAGE_SIZE}
+        total={total}
+        buildHref={href}
+        className="mt-8"
+      />
+
+      {total === 0 && (
         <div className="mt-16 flex flex-col items-center justify-center py-16 text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50">
             <Inbox className="h-10 w-10 text-muted-foreground/50" />
           </div>
           <h3 className="mt-6 text-lg font-semibold text-foreground">No notifications yet</h3>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            New orders, chat messages, and reviews will appear here when they happen.
+            New orders, chat messages, reviews, and staff notifications will appear here when they happen.
           </p>
         </div>
       )}

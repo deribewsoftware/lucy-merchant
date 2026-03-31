@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   HiOutlineFingerPrint,
   HiOutlineBuildingOffice2,
@@ -15,8 +16,15 @@ import {
   HiOutlineDocumentCheck,
 } from "react-icons/hi2";
 import type { Company } from "@/lib/domain/types";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar";
+import { InlineDocumentPreview } from "@/components/inline-document-preview";
+import { clampPage, pageStartIndex } from "@/lib/utils/pagination";
 import { stripHtmlToPlainText } from "@/lib/rich-text";
 import { formatFanDisplay } from "@/lib/validation/fayda-fcn";
+
+const FAYDA_PAGE_SIZE = 5;
+const COMPANY_VERIFY_PAGE_SIZE = 5;
 
 type PendingUser = {
   id: string;
@@ -111,6 +119,20 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [approveTarget, setApproveTarget] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [users.length]);
+
+  const total = users.length;
+  const safePage = clampPage(page, total, FAYDA_PAGE_SIZE);
+  const start = pageStartIndex(safePage, total, FAYDA_PAGE_SIZE);
+  const pageUsers = users.slice(start, start + FAYDA_PAGE_SIZE);
 
   async function approve(userId: string) {
     setBusyId(userId);
@@ -126,6 +148,7 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
       setMsg(data.error ?? "Failed to approve");
       return;
     }
+    setApproveTarget(null);
     router.refresh();
   }
 
@@ -174,7 +197,16 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
         </p>
       )}
 
-      {users.map((u) => (
+      {total > 0 && (
+        <PaginationSummary
+          page={safePage}
+          pageSize={FAYDA_PAGE_SIZE}
+          total={total}
+          className="text-base-content/60"
+        />
+      )}
+
+      {pageUsers.map((u) => (
         <div
           key={u.id}
           className="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm ring-1 ring-base-300/20"
@@ -269,12 +301,15 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
                       href={u.nationalIdFrontImage}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block max-h-[min(480px,70vh)] w-full"
+                      className="relative mx-auto block h-[min(480px,70vh)] w-full max-w-full"
                     >
-                      <img
+                      <Image
                         src={u.nationalIdFrontImage}
                         alt="ID Front"
-                        className="mx-auto max-h-[min(480px,70vh)] w-full rounded-lg object-contain shadow-md ring-1 ring-black/5"
+                        fill
+                        unoptimized
+                        sizes="(max-width: 640px) 100vw, 50vw"
+                        className="rounded-lg object-contain shadow-md ring-1 ring-black/5"
                       />
                     </a>
                   ) : (
@@ -306,12 +341,15 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
                       href={u.nationalIdBackImage}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block max-h-[min(480px,70vh)] w-full"
+                      className="relative mx-auto block h-[min(480px,70vh)] w-full max-w-full"
                     >
-                      <img
+                      <Image
                         src={u.nationalIdBackImage}
                         alt="ID Back"
-                        className="mx-auto max-h-[min(480px,70vh)] w-full rounded-lg object-contain shadow-md ring-1 ring-black/5"
+                        fill
+                        unoptimized
+                        sizes="(max-width: 640px) 100vw, 50vw"
+                        className="rounded-lg object-contain shadow-md ring-1 ring-black/5"
                       />
                     </a>
                   ) : (
@@ -376,7 +414,7 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
                 <button
                   type="button"
                   disabled={busyId === u.id}
-                  onClick={() => approve(u.id)}
+                  onClick={() => setApproveTarget({ userId: u.id, name: u.name })}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-success px-5 py-2.5 text-sm font-semibold text-success-content shadow-sm transition hover:bg-success/90 disabled:opacity-50"
                 >
                   <HiOutlineShieldCheck className="h-5 w-5" />
@@ -400,6 +438,32 @@ function IdentityVerificationList({ users }: { users: PendingUser[] }) {
           </div>
         </div>
       ))}
+      <PaginationBar
+        page={safePage}
+        pageSize={FAYDA_PAGE_SIZE}
+        total={total}
+        onPageChange={setPage}
+        className="mt-2"
+      />
+      <ConfirmDialog
+        open={approveTarget !== null}
+        onOpenChange={(o) => !o && setApproveTarget(null)}
+        title={
+          approveTarget
+            ? `Approve Fayda verification for “${approveTarget.name}”?`
+            : "Approve verification?"
+        }
+        description="This marks the national ID check as passed for this user. They can proceed with role features that require verified identity."
+        variant="primary"
+        confirmLabel="Approve identity"
+        cancelLabel="Review again"
+        loading={
+          approveTarget !== null && busyId === approveTarget.userId
+        }
+        onConfirm={async () => {
+          if (approveTarget) await approve(approveTarget.userId);
+        }}
+      />
     </div>
   );
 }
@@ -418,6 +482,29 @@ function CompanyVerificationList({
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [approveTarget, setApproveTarget] = useState<{
+    companyId: string;
+    name: string;
+  } | null>(null);
+  const [pageP, setPageP] = useState(1);
+  const [pageR, setPageR] = useState(1);
+
+  useEffect(() => {
+    setPageP(1);
+  }, [pending.length]);
+  useEffect(() => {
+    setPageR(1);
+  }, [rejected.length]);
+
+  const pTotal = pending.length;
+  const pSafe = clampPage(pageP, pTotal, COMPANY_VERIFY_PAGE_SIZE);
+  const pStart = pageStartIndex(pSafe, pTotal, COMPANY_VERIFY_PAGE_SIZE);
+  const pendingPage = pending.slice(pStart, pStart + COMPANY_VERIFY_PAGE_SIZE);
+
+  const rTotal = rejected.length;
+  const rSafe = clampPage(pageR, rTotal, COMPANY_VERIFY_PAGE_SIZE);
+  const rStart = pageStartIndex(rSafe, rTotal, COMPANY_VERIFY_PAGE_SIZE);
+  const rejectedPage = rejected.slice(rStart, rStart + COMPANY_VERIFY_PAGE_SIZE);
 
   async function approve(companyId: string) {
     setBusyId(companyId);
@@ -433,6 +520,7 @@ function CompanyVerificationList({
       setMsg(data.error ?? "Failed");
       return;
     }
+    setApproveTarget(null);
     router.refresh();
   }
 
@@ -544,19 +632,54 @@ function CompanyVerificationList({
             </div>
           </div>
 
-          {c.tradeLicenseDocument && (
-            <div className="mt-3">
+          {c.licenseDocument?.trim() ? (
+            <div className="mt-4 rounded-xl border border-base-300/50 bg-base-200/15 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-base-content/45">
+                Extra license / certificate
+              </p>
+              <div className="mt-2">
+                <InlineDocumentPreview url={c.licenseDocument.trim()} />
+              </div>
+              {(() => {
+                const lic = c.licenseDocument!.trim();
+                const isLink =
+                  /^https?:\/\//i.test(lic) ||
+                  lic.startsWith("/api/uploads/") ||
+                  lic.startsWith("/uploads/");
+                return isLink ? (
+                  <a
+                    href={lic}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    <HiOutlineDocumentCheck className="h-3.5 w-3.5" />
+                    Open in new tab
+                  </a>
+                ) : null;
+              })()}
+            </div>
+          ) : null}
+
+          {c.tradeLicenseDocument?.trim() ? (
+            <div className="mt-4 rounded-xl border border-base-300/50 bg-base-200/15 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-base-content/45">
+                Trade license document
+              </p>
+              <div className="mt-2">
+                <InlineDocumentPreview url={c.tradeLicenseDocument.trim()} />
+              </div>
               <a
-                href={c.tradeLicenseDocument}
+                href={c.tradeLicenseDocument.trim()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary underline-offset-2 hover:underline"
               >
                 <HiOutlineDocumentCheck className="h-3.5 w-3.5" />
-                View Trade License Document
+                Open trade license in new tab
               </a>
             </div>
-          )}
+          ) : null}
 
           {c.businessAddress && (
             <p className="mt-3 text-sm text-base-content/55">
@@ -626,7 +749,9 @@ function CompanyVerificationList({
               <button
                 type="button"
                 disabled={busyId === c.id}
-                onClick={() => approve(c.id)}
+                onClick={() =>
+                  setApproveTarget({ companyId: c.id, name: c.name })
+                }
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-success px-5 py-2.5 text-sm font-semibold text-success-content shadow-sm transition hover:bg-success/90 disabled:opacity-50"
               >
                 <HiOutlineShieldCheck className="h-5 w-5" />
@@ -665,7 +790,21 @@ function CompanyVerificationList({
           <h3 className="text-sm font-semibold uppercase tracking-wide text-base-content/50">
             Pending Verification ({pending.length})
           </h3>
-          {pending.map((c) => renderCompanyCard(c, false))}
+          {pTotal > 0 && (
+            <PaginationSummary
+              page={pSafe}
+              pageSize={COMPANY_VERIFY_PAGE_SIZE}
+              total={pTotal}
+              className="text-base-content/60"
+            />
+          )}
+          {pendingPage.map((c) => renderCompanyCard(c, false))}
+          <PaginationBar
+            page={pSafe}
+            pageSize={COMPANY_VERIFY_PAGE_SIZE}
+            total={pTotal}
+            onPageChange={setPageP}
+          />
         </div>
       )}
 
@@ -674,9 +813,43 @@ function CompanyVerificationList({
           <h3 className="text-sm font-semibold uppercase tracking-wide text-error/70">
             Previously Rejected ({rejected.length})
           </h3>
-          {rejected.map((c) => renderCompanyCard(c, true))}
+          {rTotal > 0 && (
+            <PaginationSummary
+              page={rSafe}
+              pageSize={COMPANY_VERIFY_PAGE_SIZE}
+              total={rTotal}
+              className="text-base-content/60"
+            />
+          )}
+          {rejectedPage.map((c) => renderCompanyCard(c, true))}
+          <PaginationBar
+            page={rSafe}
+            pageSize={COMPANY_VERIFY_PAGE_SIZE}
+            total={rTotal}
+            onPageChange={setPageR}
+          />
         </div>
       )}
+
+      <ConfirmDialog
+        open={approveTarget !== null}
+        onOpenChange={(o) => !o && setApproveTarget(null)}
+        title={
+          approveTarget
+            ? `Approve “${approveTarget.name}”?`
+            : "Approve company?"
+        }
+        description="This verifies the company so the owner can list products. Confirm documents and details are correct."
+        variant="primary"
+        confirmLabel="Approve company"
+        cancelLabel="Review again"
+        loading={
+          approveTarget !== null && busyId === approveTarget.companyId
+        }
+        onConfirm={async () => {
+          if (approveTarget) await approve(approveTarget.companyId);
+        }}
+      />
     </div>
   );
 }

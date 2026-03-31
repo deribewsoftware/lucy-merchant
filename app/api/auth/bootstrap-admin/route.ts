@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createUser, findUserByEmail } from "@/lib/db/users";
 import { signToken } from "@/lib/auth/jwt";
+import { ROLE_PERMISSIONS } from "@/lib/rbac";
+import type { Permission } from "@/lib/domain/types";
 
 const COOKIE = "lm_token";
 const MAX_AGE = 60 * 60 * 24 * 7;
@@ -32,12 +34,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email already registered" }, { status: 409 });
   }
 
+  const roleRaw = String(body?.role ?? "admin");
+  const role =
+    roleRaw === "system_admin" ? "system_admin" : ("admin" as const);
+
   const { user } = await createUser({
     email,
     password,
     name,
-    role: "admin",
+    role,
     skipEmailVerification: true,
+    ...(role === "admin"
+      ? {
+          adminPermissionAllow: [...ROLE_PERMISSIONS.admin] as Permission[],
+        }
+      : {}),
   });
   const token = await signToken({
     sub: user.id,

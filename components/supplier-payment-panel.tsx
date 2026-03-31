@@ -32,8 +32,8 @@ export function SupplierPaymentPanel({ order, company }: Props) {
   if (order.status === "awaiting_bank_review") {
     return (
       <div className="rounded-xl border border-amber-300/60 bg-amber-50/80 p-3 shadow-sm dark:border-amber-800 dark:bg-amber-950/30 sm:p-4">
-        <h2 className="font-semibold text-base-content">Legacy platform review</h2>
-        <p className="mt-2 text-sm text-base-content/75">
+        <h2 className="lm-heading-card text-base text-foreground">Legacy platform review</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
           This order is waiting for admin verification of a platform transfer.
         </p>
         {order.bankProofImagePath ? (
@@ -100,8 +100,8 @@ export function SupplierPaymentPanel({ order, company }: Props) {
 
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 shadow-sm ring-1 ring-primary/10 sm:p-4">
-      <h2 className="font-semibold text-base-content">Pay the supplier</h2>
-      <p className="mt-1.5 text-sm text-base-content/75">
+      <h2 className="lm-heading-card text-base text-foreground">Pay the supplier</h2>
+      <p className="mt-1.5 text-sm text-muted-foreground">
         Transfer {order.totalPrice.toLocaleString()} ETB to the supplier account below, then
         upload proof. The supplier will confirm receipt before accepting the order.
       </p>

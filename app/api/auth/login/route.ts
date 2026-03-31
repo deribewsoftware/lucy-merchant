@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { signToken } from "@/lib/auth/jwt";
 import { isEmailVerified } from "@/lib/auth/email-verification";
 import { verifyPassword } from "@/lib/auth/password";
+import type { LoginSuccessResponse } from "@/lib/domain/types";
 import { findUserByEmail } from "@/lib/db/users";
+import { notifySuperAdminsAdminNeedsAccess } from "@/lib/email/notify-super-admins-access";
+import {
+  effectiveStaffPermissions,
+  getFirstAccessibleAdminHref,
+} from "@/lib/server/admin-permissions";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
+import { logStaffLogin } from "@/lib/server/admin-audit-log";
 
 const COOKIE = "lm_token";
 const MAX_AGE = 60 * 60 * 24 * 7;
@@ -18,9 +25,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json().catch(() => null);
-  const email = String(body?.email ?? "");
-  const password = String(body?.password ?? "");
+  const input = await request.json().catch(() => null);
+  const email = String(input?.email ?? "");
+  const password = String(input?.password ?? "");
   if (!email || !password) {
     return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
   }
@@ -40,6 +47,12 @@ export async function POST(request: Request) {
     );
   }
 
+  let adminAccessPending = false;
+  if (user.role === "admin") {
+    await notifySuperAdminsAdminNeedsAccess(user);
+    adminAccessPending = effectiveStaffPermissions(user.id).length === 0;
+  }
+
   const token = await signToken({
     sub: user.id,
     email: user.email,
@@ -47,8 +60,18 @@ export async function POST(request: Request) {
     name: user.name,
   });
 
-  const res = NextResponse.json({
+  logStaffLogin(request, { userId: user.id, role: user.role });
+
+  const staffHomePath =
+    user.role === "admin" || user.role === "system_admin"
+      ? getFirstAccessibleAdminHref(user.id)
+      : undefined;
+
+  const successPayload: LoginSuccessResponse = {
     ok: true,
+    adminAccessPending,
+    mustChangePassword: user.mustChangePassword === true,
+    staffHomePath,
     user: {
       id: user.id,
       email: user.email,
@@ -56,7 +79,8 @@ export async function POST(request: Request) {
       name: user.name,
       points: user.points,
     },
-  });
+  };
+  const res = NextResponse.json(successPayload);
   res.cookies.set(COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

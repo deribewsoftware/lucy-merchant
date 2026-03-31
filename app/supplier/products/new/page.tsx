@@ -20,14 +20,14 @@ export default async function NewSupplierProductPage() {
   const system = getSystemConfig();
 
   return (
-    <div>
-      <header className="relative mb-2 overflow-hidden rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 to-primary/[0.06] p-6 shadow-sm ring-1 ring-base-300/25 sm:p-8">
+    <div className="mx-auto w-full max-w-3xl">
+      <header className="relative mb-4 overflow-hidden rounded-2xl border border-base-300 bg-gradient-to-br from-base-100 to-primary/[0.06] p-5 shadow-sm ring-1 ring-base-300/25 sm:mb-6 sm:p-8">
         <SupplierHeroBackdrop />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <HiOutlineCube className="h-7 w-7" />
           </span>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl font-bold tracking-tight text-base-content sm:text-3xl">
               Post product
             </h1>
@@ -35,9 +35,12 @@ export default async function NewSupplierProductPage() {
               Posting may deduct points when free posting is disabled. Featured
               listings can cost extra points when configured in system settings.
             </p>
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-warning/35 bg-warning/10 px-3 py-2 text-xs font-medium text-base-content">
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-warning/35 bg-warning/10 px-3 py-2.5 text-xs font-medium leading-snug text-base-content">
               <HiOutlineLightBulb className="h-4 w-4 shrink-0 text-warning" />
-              Clear photos and accurate MOQ help merchants buy with confidence.
+              <span>
+                A sharp hero image (upload or link), accurate ship-from location,
+                and clear MOQ help merchants buy with confidence.
+              </span>
             </div>
           </div>
         </div>
@@ -52,3 +55,4 @@ export default async function NewSupplierProductPage() {
     </div>
   );
 }
+

@@ -11,14 +11,17 @@ import {
   HiOutlineShieldCheck,
   HiOutlineUserCircle,
 } from "react-icons/hi2";
+import { FulfillmentHandoffDisplay } from "@/components/fulfillment-handoff-display";
 import { AdminApproveBank } from "@/components/admin-approve-bank";
 import { AdminCompleteOrder } from "@/components/admin-complete-order";
 import { AdminConfirmGatewayPayment } from "@/components/admin-confirm-gateway-payment";
 import { AdminRecordSupplierPlatformFee } from "@/components/admin-record-supplier-platform-fee";
 import { AdminRecordSupplierPayout } from "@/components/admin-record-supplier-payout";
+import { AdminOrderLineItemsPaginated } from "@/components/admin-order-line-items-paginated";
 import { OrderFulfillmentTracker } from "@/components/order-fulfillment-tracker";
 import { OrderChat } from "@/components/order-chat";
 import { OrderPaymentSummary } from "@/components/order-payment-summary";
+import { PaginatedOrderSuppliersList } from "@/components/paginated-order-suppliers-list";
 import { SupplierConfirmPayment } from "@/components/supplier-confirm-payment";
 import { getPlatformBankById } from "@/lib/data/ethiopian-banks";
 import { getCompany, getProduct } from "@/lib/db/catalog";
@@ -33,7 +36,11 @@ import {
   orderStatusBadgeClass,
   orderStatusLabel,
 } from "@/lib/domain/order-presentations";
-import { adminMayCompleteOrders } from "@/lib/server/admin-permissions";
+import {
+  adminMayCompleteOrders,
+  effectiveStaffPermissions,
+} from "@/lib/server/admin-permissions";
+import { requireStaffOrdersPageAccess } from "@/lib/server/require-staff-page";
 import { getSessionUser } from "@/lib/server/session";
 
 type Params = { params: Promise<{ id: string }> };
@@ -47,13 +54,18 @@ function merchantInitials(name: string): string {
 
 export default async function AdminOrderDetailPage({ params }: Params) {
   const { id } = await params;
+  await requireStaffOrdersPageAccess(`/admin/orders/${id}`);
   const order = getOrder(id);
   if (!order) notFound();
 
   const viewer = await getSessionUser();
+  const staffPerms = viewer ? effectiveStaffPermissions(viewer.id) : [];
+  const canProcessOrders = staffPerms.includes("orders:admin");
   const canAdminCompleteOrders = viewer
     ? adminMayCompleteOrders(viewer.id)
     : false;
+  const trackerRole =
+    viewer?.role === "system_admin" ? "system_admin" : "admin";
   ensureLegacyPaymentForOrder(order);
   const payments = listPaymentsForOrder(order.id);
   const merchant = findUserById(order.merchantId);
@@ -88,6 +100,25 @@ export default async function AdminOrderDetailPage({ params }: Params) {
     : undefined;
 
   const companyIds = [...new Set(order.items.map((i) => i.companyId))];
+  const supplierRows = companyIds.map((cid) => ({
+    id: cid,
+    name: getCompany(cid)?.name ?? cid,
+  }));
+  const adminLineItemsVm = order.items.map((i) => {
+    const p = getProduct(i.productId);
+    const c = getCompany(i.companyId);
+    return {
+      key: `${i.productId}-${i.companyId}`,
+      productId: i.productId,
+      companyId: i.companyId,
+      quantity: i.quantity,
+      subtotal: i.subtotal,
+      productName: p?.name ?? i.productId,
+      productDesc: p?.description?.trim() ?? "",
+      productImageUrl: p?.imageUrl ?? null,
+      companyName: c?.name ?? i.companyId,
+    };
+  });
   const lineCount = order.items.length;
   const unitCount = order.items.reduce((acc, i) => acc + i.quantity, 0);
   const commissionRate =
@@ -219,10 +250,29 @@ export default async function AdminOrderDetailPage({ params }: Params) {
               {adminHint}
             </p>
           ) : null}
-          <OrderFulfillmentTracker order={order} role="admin" />
+          {order.merchantDisputeOpenedAt ? (
+            <div
+              role="status"
+              className="rounded-2xl border border-amber-500/35 bg-amber-500/10 px-4 py-4 text-sm shadow-sm"
+            >
+              <p className="font-display font-bold text-amber-900 dark:text-amber-200">
+                Delivery dispute (buyer)
+              </p>
+              <p className="mt-1 text-xs text-base-content/65">
+                Opened {new Date(order.merchantDisputeOpenedAt).toLocaleString()}
+              </p>
+              {order.merchantDisputeReason ? (
+                <p className="mt-3 whitespace-pre-wrap rounded-xl border border-amber-500/25 bg-base-100/80 p-3 text-base-content/90">
+                  {order.merchantDisputeReason}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <OrderFulfillmentTracker order={order} role={trackerRole} />
 
           <AdminCompleteOrder
             orderId={id}
+            canAcknowledgeProofs={canProcessOrders}
             canCompleteOrders={canAdminCompleteOrders}
             order={{
               status: order.status,
@@ -252,84 +302,10 @@ export default async function AdminOrderDetailPage({ params }: Params) {
                 Linked products and suppliers for this checkout
               </p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="table w-full min-w-[720px]">
-                <thead>
-                  <tr className="border-b border-base-300 bg-base-200/30 text-left text-[11px] font-bold uppercase tracking-wider text-base-content/45">
-                    <th className="px-4 py-3 sm:px-6">Product</th>
-                    <th className="px-4 py-3">Supplier</th>
-                    <th className="px-4 py-3 text-center">Qty</th>
-                    <th className="px-4 py-3 text-end">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.items.map((i) => {
-                    const p = getProduct(i.productId);
-                    const c = getCompany(i.companyId);
-                    const name = p?.name ?? i.productId;
-                    const desc = p?.description?.trim() ?? "";
-                    return (
-                      <tr
-                        key={`${i.productId}-${i.companyId}`}
-                        className="border-b border-base-200/80 transition hover:bg-base-200/25"
-                      >
-                        <td className="max-w-[min(100vw,28rem)] px-4 py-3 sm:px-6">
-                          <div className="flex items-start gap-3">
-                            <div className="relative mt-0.5 h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-base-300 bg-base-200">
-                              {p?.imageUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={p.imageUrl}
-                                  alt=""
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <span className="flex h-full w-full items-center justify-center text-base-content/25">
-                                  <HiOutlineCube className="h-5 w-5" />
-                                </span>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <Link
-                                href={`/products/${i.productId}`}
-                                className="link link-hover font-semibold text-base-content no-underline decoration-primary/0 transition hover:text-primary"
-                              >
-                                {name}
-                              </Link>
-                              {desc ? (
-                                <p className="mt-1 line-clamp-2 text-xs leading-snug text-base-content/60">
-                                  {desc}
-                                </p>
-                              ) : null}
-                              <p className="mt-1 font-mono text-[10px] text-base-content/40">
-                                {i.productId.slice(0, 8)}…
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="max-w-[200px] px-4 py-3">
-                          <Link
-                            href={`/companies/${i.companyId}`}
-                            className="link-hover link font-medium text-base-content/85 no-underline hover:text-primary"
-                          >
-                            {c?.name ?? i.companyId}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 text-center tabular-nums font-semibold text-base-content">
-                          {i.quantity}
-                        </td>
-                        <td className="px-4 py-3 text-end font-bold tabular-nums text-base-content">
-                          {i.subtotal.toLocaleString()}{" "}
-                          <span className="text-xs font-semibold text-base-content/45">
-                            ETB
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <AdminOrderLineItemsPaginated
+              items={adminLineItemsVm}
+              resetKey={order.id}
+            />
           </section>
 
           {viewer ? (
@@ -345,7 +321,7 @@ export default async function AdminOrderDetailPage({ params }: Params) {
                 <OrderChat
                   orderId={id}
                   viewerId={viewer.id}
-                  viewerRole="admin"
+                  viewerRole={viewer.role}
                   closed={chatClosed}
                 />
               </div>
@@ -382,6 +358,11 @@ export default async function AdminOrderDetailPage({ params }: Params) {
             </div>
           </div>
 
+          <FulfillmentHandoffDisplay
+            fulfillmentHandoff={order.fulfillmentHandoff}
+            audience="admin"
+          />
+
           <div className="rounded-3xl border border-base-300 bg-base-100 p-5 shadow-md ring-1 ring-base-300/20 sm:p-6">
             <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-base-content/45">
               <HiOutlineMapPin className="h-4 w-4" />
@@ -407,22 +388,7 @@ export default async function AdminOrderDetailPage({ params }: Params) {
               <HiOutlineBuildingOffice2 className="h-4 w-4" />
               Suppliers on order
             </h2>
-            <ul className="mt-3 space-y-2">
-              {companyIds.map((cid) => {
-                const c = getCompany(cid);
-                return (
-                  <li key={cid}>
-                    <Link
-                      href={`/companies/${cid}`}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-base-300/60 bg-base-200/20 px-3 py-2.5 text-sm font-medium transition hover:border-primary/30 hover:bg-primary/5"
-                    >
-                      <span className="truncate">{c?.name ?? cid}</span>
-                      <span className="shrink-0 text-xs text-primary">View</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+            <PaginatedOrderSuppliersList rows={supplierRows} />
           </div>
 
           <div className="space-y-4">
@@ -462,15 +428,29 @@ export default async function AdminOrderDetailPage({ params }: Params) {
                 </p>
               </div>
             ) : null}
-            {showApproveBank ? <AdminApproveBank orderId={id} /> : null}
+            {showApproveBank ? (
+              <AdminApproveBank
+                orderId={id}
+                canProcessOrders={canProcessOrders}
+              />
+            ) : null}
             {showConfirmGateway ? (
-              <AdminConfirmGatewayPayment orderId={id} />
+              <AdminConfirmGatewayPayment
+                orderId={id}
+                canProcessOrders={canProcessOrders}
+              />
             ) : null}
             {showRecordSupplierPayout ? (
-              <AdminRecordSupplierPayout orderId={id} />
+              <AdminRecordSupplierPayout
+                orderId={id}
+                canProcessOrders={canProcessOrders}
+              />
             ) : null}
             {showRecordSupplierPlatformFee ? (
-              <AdminRecordSupplierPlatformFee orderId={id} />
+              <AdminRecordSupplierPlatformFee
+                orderId={id}
+                canProcessOrders={canProcessOrders}
+              />
             ) : null}
             <SupplierConfirmPayment
               orderId={id}

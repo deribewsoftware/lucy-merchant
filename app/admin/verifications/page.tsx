@@ -3,10 +3,13 @@ import {
   HiOutlineBuildingOffice2,
 } from "react-icons/hi2";
 import { AdminVerificationsDashboard } from "@/components/admin-verifications-dashboard";
-import { listPendingNationalIdUsers } from "@/lib/db/users";
 import { listCompanies } from "@/lib/db/catalog";
+import { listPendingNationalIdUsers } from "@/lib/db/users";
+import { requireStaffPagePermission } from "@/lib/server/require-staff-page";
 
-export default function AdminVerificationsPage() {
+export default async function AdminVerificationsPage() {
+  await requireStaffPagePermission("companies:verify", "/admin/verifications");
+
   const pendingUsers = listPendingNationalIdUsers().map((u) => ({
     id: u.id,
     name: u.name,

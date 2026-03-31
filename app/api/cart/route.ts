@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCompany, getProduct } from "@/lib/db/catalog";
 import { getCart, setCartItem } from "@/lib/db/commerce";
+import { effectiveMaxDeliveryPerOrder } from "@/lib/domain/max-delivery";
 import type { CartItem } from "@/lib/domain/types";
 import { API_MERCHANT_COMMISSION_SUSPENDED } from "@/lib/domain/commission-hold-copy";
 import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
@@ -50,12 +51,16 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (quantity > product.availableQuantity) {
-    return NextResponse.json({ error: "Not enough stock" }, { status: 400 });
-  }
-  if (quantity > product.maxDeliveryQuantity) {
+  const cap = effectiveMaxDeliveryPerOrder(product);
+  if (quantity > cap) {
+    if (quantity > product.availableQuantity) {
+      return NextResponse.json({ error: "Not enough stock" }, { status: 400 });
+    }
+    const m = product.maxDeliveryQuantity;
     return NextResponse.json(
-      { error: `Max delivery quantity is ${product.maxDeliveryQuantity}` },
+      {
+        error: `Max delivery quantity is ${typeof m === "number" && m > 0 ? m : cap}`,
+      },
       { status: 400 },
     );
   }
