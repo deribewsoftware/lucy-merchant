@@ -4,6 +4,9 @@ import { touchPresence } from "@/lib/db/presence";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { requireSession } from "@/lib/server/require-session";
 
+/** Uses JSON/memory store (`lib/db/presence`); keep on Node, not Edge. */
+export const runtime = "nodejs";
+
 /**
  * Heartbeat so other participants can see you as online / last seen.
  * Accepts merchant, supplier, and staff (`admin` / `system_admin`), including locked admins.

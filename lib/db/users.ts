@@ -283,7 +283,7 @@ export function setAdminTeamMember(
   const i = users.findIndex((u) => u.id === targetUserId);
   if (i === -1) return undefined;
   const cur = users[i];
-  let next: UserRecord = {
+  const next: UserRecord = {
     ...cur,
     role: input.role,
   };

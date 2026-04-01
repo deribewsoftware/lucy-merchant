@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { defaultHomePath } from "@/lib/auth/portal-routes";
 import { AlertTriangle } from "lucide-react";
 import {
   HiOutlineBuildingOffice2,

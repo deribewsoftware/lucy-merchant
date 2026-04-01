@@ -244,26 +244,25 @@ export function SupplierOrderActions({
           onConfirm={async () => {
             if (pendingNext) await save(pendingNext);
           }}
-          children={
-            pendingNext === "rejected" ? (
-              <div className="space-y-2">
-                <label className="block text-left text-xs font-semibold text-base-content/80">
-                  Rejection reason (required)
-                </label>
-                <textarea
-                  className="textarea textarea-bordered min-h-[120px] w-full text-sm"
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Explain clearly why you cannot fulfill — e.g. stock, capacity, delivery area…"
-                  disabled={loading}
-                />
-                <p className="text-left text-[11px] text-base-content/50">
-                  {rejectReason.trim().length}/2000 · minimum 20 characters
-                </p>
-              </div>
-            ) : undefined
-          }
-        />
+        >
+          {pendingNext === "rejected" ? (
+            <div className="space-y-2">
+              <label className="block text-left text-xs font-semibold text-base-content/80">
+                Rejection reason (required)
+              </label>
+              <textarea
+                className="textarea textarea-bordered min-h-[120px] w-full text-sm"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Explain clearly why you cannot fulfill — e.g. stock, capacity, delivery area…"
+                disabled={loading}
+              />
+              <p className="text-left text-[11px] text-base-content/50">
+                {rejectReason.trim().length}/2000 · minimum 20 characters
+              </p>
+            </div>
+          ) : undefined}
+        </ConfirmDialog>
       ) : null}
     </div>
   );

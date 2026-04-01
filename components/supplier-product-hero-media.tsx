@@ -49,36 +49,39 @@ export function SupplierProductHeroMedia({
     [onImageUrlChange],
   );
 
-  async function uploadFile(file: File) {
-    setUploading(true);
-    setUploadErr(null);
-    try {
-      const fd = new FormData();
-      fd.set("file", file);
-      const res = await fetch("/api/products/upload-image", {
-        method: "POST",
-        body: fd,
-        credentials: "include",
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setUploadErr(
-          typeof data.error === "string" ? data.error : "Upload failed.",
-        );
-        return;
+  const uploadFile = useCallback(
+    async (file: File) => {
+      setUploading(true);
+      setUploadErr(null);
+      try {
+        const fd = new FormData();
+        fd.set("file", file);
+        const res = await fetch("/api/products/upload-image", {
+          method: "POST",
+          body: fd,
+          credentials: "include",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setUploadErr(
+            typeof data.error === "string" ? data.error : "Upload failed.",
+          );
+          return;
+        }
+        const url = typeof data.url === "string" ? data.url : "";
+        if (!url) {
+          setUploadErr("Invalid response from server.");
+          return;
+        }
+        applyUploadedUrl(url);
+      } catch {
+        setUploadErr("Upload failed. Check your connection.");
+      } finally {
+        setUploading(false);
       }
-      const url = typeof data.url === "string" ? data.url : "";
-      if (!url) {
-        setUploadErr("Invalid response from server.");
-        return;
-      }
-      applyUploadedUrl(url);
-    } catch {
-      setUploadErr("Upload failed. Check your connection.");
-    } finally {
-      setUploading(false);
-    }
-  }
+    },
+    [applyUploadedUrl],
+  );
 
   const onPickFiles = useCallback(
     (files: FileList | null) => {

@@ -15,6 +15,9 @@ import { isUploadedAssetPath } from "@/lib/server/upload-path";
 import { resolveChatSenderRole } from "@/lib/server/resolve-chat-sender-role";
 import type { Order } from "@/lib/domain/types";
 
+/** Chat + presence use JSON/memory store; Node runtime. */
+export const runtime = "nodejs";
+
 type Params = { params: Promise<{ id: string }> };
 
 function orderParticipantUserIds(order: Order): string[] {
