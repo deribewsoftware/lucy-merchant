@@ -1,5 +1,6 @@
-/** Minimum length for `AUTH_SECRET` / `NEXTAUTH_SECRET` after trim. */
-export const AUTH_SECRET_MIN_LENGTH = 32;
+import { AUTH_SECRET_MIN_LENGTH } from "@/auth-secret-constants";
+
+export { AUTH_SECRET_MIN_LENGTH };
 
 const vercelHint =
   "In Vercel: Project → Settings → Environment Variables → add AUTH_SECRET or NEXTAUTH_SECRET, " +
