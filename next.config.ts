@@ -1,9 +1,13 @@
+import { loadEnvConfig } from "@next/env";
 import type { NextConfig } from "next";
 import {
   AUTH_SECRET_MIN_LENGTH,
   authSecretMissingMessage,
   resolveAuthSecretFromEnv,
 } from "./lib/auth/auth-secret-requirements";
+
+// Ensure `.env*` are merged before reading AUTH_SECRET (e.g. after `vercel env pull` before local `vercel build`).
+loadEnvConfig(process.cwd(), process.env.NODE_ENV === "development");
 
 /**
  * Edge/proxy may not see plain `process.env.AUTH_SECRET`; `compiler.defineServer` inlines it for those bundles.
