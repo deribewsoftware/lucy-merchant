@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getPublicAppUrl } from "@/lib/app-url";
 import type { EthiopiaSearchHit } from "@/lib/location/ethiopia-location";
 import { requireSession } from "@/lib/server/require-session";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
@@ -39,8 +40,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ results: [] as EthiopiaSearchHit[] });
   }
 
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
+  const base = getPublicAppUrl();
   const userAgent = `LucyMerchant/1.0 (delivery; ${base})`;
 
   const url = new URL(NOMINATIM);

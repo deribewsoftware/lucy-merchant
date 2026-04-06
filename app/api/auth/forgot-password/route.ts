@@ -1,12 +1,20 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
+import { getPublicAppUrl } from "@/lib/app-url";
 import {
   isValidEmail,
   normalizeEmail,
 } from "@/lib/auth/register-validation";
 import { findUserByEmail, setPasswordResetToken } from "@/lib/db/users";
-import { isNodemailerConfigured, sendPasswordResetEmail } from "@/lib/email/nodemailer";
+import {
+  formatNodemailerErrorForClient,
+  isNodemailerConfigured,
+  sendPasswordResetEmail,
+} from "@/lib/email/nodemailer";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
+
+/** Nodemailer, DNS resolution, and JSON user store require Node (not Edge). */
+export const runtime = "nodejs";
 
 function generateResetToken(): string {
   return randomBytes(32).toString("base64url");
@@ -37,10 +45,7 @@ export async function POST(request: Request) {
   if (user) {
     const token = generateResetToken();
     await setPasswordResetToken(user.id, token);
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
-      /\/$/,
-      "",
-    );
+    const appUrl = getPublicAppUrl();
     const resetUrl = `${appUrl}/reset-password?${new URLSearchParams({
       email,
       token,
@@ -54,11 +59,19 @@ export async function POST(request: Request) {
           resetUrl,
         });
       } catch (e) {
-        console.error("[auth/forgot-password] Nodemailer:", e);
+        console.error(
+          "[auth/forgot-password] Nodemailer:",
+          formatNodemailerErrorForClient(e),
+          e,
+        );
       }
     } else if (process.env.NODE_ENV !== "production") {
       console.warn(
         `[auth/forgot-password] Nodemailer not configured (NODEMAILER_FROM_EMAIL, NODEMAILER_PASSWORD). Dev reset link for ${email}:\n${resetUrl}`,
+      );
+    } else {
+      console.error(
+        "[auth/forgot-password] Nodemailer not configured; cannot send reset email. Set NODEMAILER_FROM_EMAIL and NODEMAILER_PASSWORD.",
       );
     }
   }

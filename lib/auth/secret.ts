@@ -3,7 +3,7 @@ import {
   resolveAuthSecretFromEnv,
 } from "@/lib/auth/auth-secret-requirements";
 
-/** Dynamic lookup avoids accidental empty inlining of `process.env.AUTH_SECRET` in some server bundles. */
+/** Resolves secret via `resolveAuthSecretFromEnv` (dynamic `process.env[...]` reads). */
 export function getJwtSecretKey(): Uint8Array {
   const s = resolveAuthSecretFromEnv();
   if (s) {

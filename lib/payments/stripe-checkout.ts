@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { getPublicAppUrl } from "@/lib/app-url";
 import type { Order } from "@/lib/domain/types";
 
 export function getStripe(): Stripe | null {
@@ -17,9 +18,7 @@ export async function createStripeCheckoutForOrders(
   const stripe = getStripe();
   if (!stripe || orders.length === 0) return null;
 
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000";
+  const base = getPublicAppUrl();
 
   const total =
     Math.round(orders.reduce((s, o) => s + o.totalPrice, 0) * 100) / 100;

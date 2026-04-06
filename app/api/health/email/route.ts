@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getPublicAppUrl } from "@/lib/app-url";
 import { isNodemailerConfigured } from "@/lib/email/nodemailer";
 
 function stripEnvQuotes(s: string): string {
@@ -34,6 +35,8 @@ export async function GET() {
       smtpHost: host,
       smtpPort: port,
       appUrlSet: Boolean(stripEnvQuotes(process.env.NEXT_PUBLIC_APP_URL ?? "")),
+      /** Origin used for links in emails when env is unset or at runtime resolution. */
+      publicAppUrl: getPublicAppUrl(),
     },
     nodemailer: {
       configured,

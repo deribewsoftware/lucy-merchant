@@ -1,3 +1,4 @@
+import { getPublicAppUrl } from "@/lib/app-url";
 import { findUserById } from "@/lib/db/users";
 import {
   escapeHtml,
@@ -33,10 +34,7 @@ export function queueInAppNotificationEmail(
 ): void {
   if (!isNodemailerConfigured()) return;
   const category = options?.emailCategory ?? "orders";
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
+  const appUrl = getPublicAppUrl();
   void (async () => {
     try {
       const user = findUserById(userId);

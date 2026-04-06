@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getPublicAppUrl } from "@/lib/app-url";
 import { ADMIN_STAFF_ROLES } from "@/lib/admin-staff";
 import {
   formatNodemailerErrorForClient,
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   const label = process.env.NEXT_PUBLIC_APP_NAME ?? "Lucy Merchant";
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "") || "(not set — set NEXT_PUBLIC_APP_URL)";
+  const appUrl = getPublicAppUrl();
 
   try {
     await sendEmail({

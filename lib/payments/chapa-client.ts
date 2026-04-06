@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getPublicAppUrl } from "@/lib/app-url";
 
 export async function createChapaCheckout(opts: {
   amountEtb: number;
@@ -9,9 +10,7 @@ export async function createChapaCheckout(opts: {
   const secret = process.env.CHAPA_SECRET_KEY?.trim();
   if (!secret) return null;
 
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000";
+  const base = getPublicAppUrl();
 
   const txRef = `lucy-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 

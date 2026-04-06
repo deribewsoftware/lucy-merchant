@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
+import { getPublicAppUrl } from "@/lib/app-url";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import { PresenceProvider } from "@/components/presence-provider";
 import { SiteFooter } from "@/components/site-footer";
@@ -27,6 +28,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getPublicAppUrl()),
   title: "Lucy Merchant | B2B Wholesale Marketplace",
   description:
     "The modern B2B marketplace connecting verified suppliers with merchants. Bulk ordering, real-time communication, and secure transactions.",

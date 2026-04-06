@@ -1,3 +1,4 @@
+import { getPublicAppUrl } from "@/lib/app-url";
 import {
   findUserById,
   listUsers,
@@ -32,10 +33,7 @@ export async function notifySuperAdminsAdminNeedsAccess(
   if (supers.length === 0) return;
 
   const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Lucy Merchant";
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
+  const appUrl = getPublicAppUrl();
   const teamUrl = `${appUrl}/admin/admins`;
 
   for (const s of supers) {

@@ -1,3 +1,4 @@
+import { getPublicAppUrl } from "@/lib/app-url";
 import { escapeHtml, isNodemailerConfigured, sendEmail } from "@/lib/email/nodemailer";
 import { STAFF_PERMISSION_LABELS } from "@/lib/admin-permission-labels";
 import type { Permission, UserRecord } from "@/lib/domain/types";
@@ -23,10 +24,7 @@ export async function notifyAdminPermissionsUpdated(input: {
   if (!isNodemailerConfigured()) return;
 
   const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Lucy Merchant";
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
+  const appUrl = getPublicAppUrl();
   const dashUrl = `${appUrl}/admin/dashboard`;
 
   const { target, actorName, previousPermissions, nextPermissions } = input;

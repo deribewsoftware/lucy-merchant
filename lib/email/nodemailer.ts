@@ -9,6 +9,7 @@
  * on failure **DNS-over-HTTPS** (Google / Cloudflare JSON APIs over port 443 — works when UDP/53 is blocked).
  * Optional: `NODEMAILER_SMTP_IP` to skip resolution; set `NODEMAILER_TLS_SERVERNAME` when needed.
  */
+import { getPublicAppUrl } from "@/lib/app-url";
 import { ADMIN_INVITE_DEFAULT_PASSWORD } from "@/lib/auth/admin-invite";
 import { promises as dnsPromises } from "node:dns";
 import { Resolver } from "node:dns/promises";
@@ -320,7 +321,7 @@ export async function sendVerificationOtpEmail(input: {
   name: string;
   code: string;
 }): Promise<void> {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const appUrl = getPublicAppUrl();
   const subject = `Your ${process.env.NEXT_PUBLIC_APP_NAME ?? "Lucy Merchant"} verification code`;
   const text = [
     `Hi ${input.name},`,
@@ -362,7 +363,7 @@ export async function sendAdminInviteEmail(input: {
   /** True when a new password was issued (e.g. resend); old password no longer works. */
   credentialsReset?: boolean;
 }): Promise<void> {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const appUrl = getPublicAppUrl();
   const label = process.env.NEXT_PUBLIC_APP_NAME ?? "Lucy Merchant";
   const subject = input.credentialsReset
     ? `${label} — new sign-in password`
@@ -484,10 +485,7 @@ export async function sendWelcomeEmail(input: {
   name: string;
   role: "merchant" | "supplier";
 }): Promise<void> {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
+  const appUrl = getPublicAppUrl();
   const dash =
     input.role === "supplier" ? "/supplier/dashboard" : "/merchant/dashboard";
   const label = process.env.NEXT_PUBLIC_APP_NAME ?? "Lucy Merchant";
