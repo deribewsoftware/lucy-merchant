@@ -25,6 +25,7 @@ import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar
 import { RichTextContent } from "@/components/rich-text-content";
 import type { CompanyReviewEligibility } from "@/lib/company-review-eligibility";
 import type { Company, Product } from "@/lib/domain/types";
+import { getCategories } from "@/lib/db/catalog";
 import { isLikelyPdfUrl, isLikelyPublicImageUrl } from "@/lib/utils/document-url";
 
 export type CompanyReviewVm = {
@@ -249,6 +250,11 @@ export function CompanySupplierPublicPage({
       ? company.logo.trim()
       : null;
 
+  const allCats = getCategories();
+  const tradeFocusCategories = (company.recommendationCategoryIds ?? [])
+    .map((cid) => allCats.find((c) => c.id === cid))
+    .filter((c): c is { id: string; name: string; parentId: string | null } => c != null);
+
   return (
     <div className="lm-page-wide animate-in fade-in duration-500">
       <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -317,6 +323,25 @@ export function CompanySupplierPublicPage({
                     variant="baseMuted"
                   />
                 </div>
+                {tradeFocusCategories.length > 0 ? (
+                  <div className="mt-4">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Trade focus
+                    </p>
+                    <ul className="flex flex-wrap gap-2">
+                      {tradeFocusCategories.map((c) => (
+                        <li key={c.id}>
+                          <Link
+                            href={`/browse?category=${encodeURIComponent(c.id)}`}
+                            className="inline-flex items-center rounded-full border border-primary/25 bg-primary/8 px-3 py-1.5 text-xs font-medium text-primary transition hover:border-primary/40 hover:bg-primary/12"
+                          >
+                            {c.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             </div>
 

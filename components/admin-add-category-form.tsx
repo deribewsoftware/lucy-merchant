@@ -3,13 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { HiOutlinePlusCircle, HiOutlineSquares2X2 } from "react-icons/hi2";
+import { ParentCategoryPicker } from "@/components/parent-category-picker";
 import {
   supplierFormCardClass,
   supplierGhostButtonClass,
   supplierInputClass,
   supplierLabelClass,
   supplierPrimaryButtonClass,
-  supplierSelectClass,
 } from "@/components/supplier/form-styles";
 import type { Category } from "@/lib/domain/types";
 
@@ -75,24 +75,22 @@ export function AdminAddCategoryForm({ categories }: Props) {
             className={supplierInputClass}
           />
         </label>
-        <label className={supplierLabelClass}>
-          <span className="inline-flex items-center gap-1.5">
-            <HiOutlineSquares2X2 className="h-3.5 w-3.5 opacity-60" />
-            Parent (optional)
+
+        <div className="space-y-2">
+          <span className={`${supplierLabelClass} mb-0`}>
+            <span className="inline-flex items-center gap-1.5">
+              <HiOutlineSquares2X2 className="h-3.5 w-3.5 opacity-60" />
+              Parent (optional)
+            </span>
           </span>
-          <select
+          <ParentCategoryPicker
+            options={categories}
             value={parentId}
-            onChange={(e) => setParentId(e.target.value)}
-            className={supplierSelectClass}
-          >
-            <option value="">Top-level category</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            onChange={setParentId}
+            rootOptionLabel="Top-level category"
+          />
+        </div>
+
         {msg && (
           <p className="rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-sm text-error">
             {msg}
@@ -116,7 +114,7 @@ export function AdminAddCategoryForm({ categories }: Props) {
               setMsg(null);
             }}
           >
-            Clear
+            Reset form
           </button>
         </div>
       </div>

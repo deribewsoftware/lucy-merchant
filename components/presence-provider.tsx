@@ -63,6 +63,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/presence", {
         method: "POST",
         credentials: "include",
+        cache: "no-store",
       });
       if (res.ok) {
         setLastPingAtMs(Date.now());

@@ -2,51 +2,166 @@
   {
     "id": "10000000-0000-4000-a000-000000000001",
     "email": "admin@demo.lucymerchant.local",
-    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "passwordHash": "$2b$10$WK/DdvawNqc.QFPy6NtaWegFZhAojozNL5yvLm8maEmW5w5xE9xDS",
     "role": "admin",
     "name": "Selamawit Mulugeta",
-    "createdAt": "2025-11-25T13:20:52.716Z"
+    "createdAt": "2025-12-07T15:10:48.612Z",
+    "adminPermissionAllow": [
+      "admin:dashboard",
+      "companies:verify",
+      "categories:manage",
+      "system:configure",
+      "orders:complete",
+      "moderation:manage",
+      "orders:admin"
+    ]
   },
   {
     "id": "10000000-0000-4000-a000-000000000002",
     "email": "hailu@demo.lucymerchant.local",
-    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "passwordHash": "$2b$10$WK/DdvawNqc.QFPy6NtaWegFZhAojozNL5yvLm8maEmW5w5xE9xDS",
     "role": "supplier",
     "name": "Hailu Bekele",
     "points": 850,
-    "createdAt": "2025-12-25T13:20:52.717Z"
+    "createdAt": "2026-01-06T15:10:48.613Z"
   },
   {
     "id": "10000000-0000-4000-a000-000000000003",
     "email": "kidist@demo.lucymerchant.local",
-    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "passwordHash": "$2b$10$WK/DdvawNqc.QFPy6NtaWegFZhAojozNL5yvLm8maEmW5w5xE9xDS",
     "role": "supplier",
     "name": "Kidist Tadesse",
     "points": 420,
-    "createdAt": "2026-02-08T13:20:52.717Z"
+    "createdAt": "2026-02-20T15:10:48.613Z"
   },
   {
     "id": "10000000-0000-4000-a000-000000000004",
     "email": "aster@demo.lucymerchant.local",
-    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "passwordHash": "$2b$10$WK/DdvawNqc.QFPy6NtaWegFZhAojozNL5yvLm8maEmW5w5xE9xDS",
     "role": "merchant",
     "name": "Aster Construction PLC",
-    "createdAt": "2026-01-24T13:20:52.717Z"
+    "createdAt": "2026-02-05T15:10:48.613Z"
   },
   {
     "id": "10000000-0000-4000-a000-000000000005",
     "email": "solomon@demo.lucymerchant.local",
-    "passwordHash": "$2b$10$B410BiNqgtg3NHLQctAnQe6iW.prhbu45fjKh.AR0pc8TuuxZBkEi",
+    "passwordHash": "$2b$10$WK/DdvawNqc.QFPy6NtaWegFZhAojozNL5yvLm8maEmW5w5xE9xDS",
     "role": "merchant",
     "name": "Solomon Trading House",
-    "createdAt": "2026-02-23T13:20:52.717Z"
+    "createdAt": "2026-03-07T15:10:48.613Z"
   },
   {
-    "id": "c56b8de8-62d2-4b6e-98eb-49cd45a37b1d",
+    "id": "506f7569-7d77-4330-a17f-d0c2c12d0c06",
+    "email": "deribewsoftware@gmail.com",
+    "passwordHash": "$2b$10$2KUvh25qBZOa6HFDBvfOFOrxtNaPCxQO4cs9gkXm7furkyeQdn6Wa",
+    "role": "system_admin",
+    "name": "Deribew (Super Administrator)",
+    "createdAt": "2026-04-06T12:38:45.617Z",
+    "emailVerified": true,
+    "preferences": {
+      "emailOrderUpdates": true,
+      "emailReviewsAndComments": true,
+      "emailChatMirrors": false,
+      "emailAccountAlerts": true
+    }
+  },
+  {
+    "id": "1d1df6ba-be5d-4b14-9650-32155810535e",
     "email": "deribew.tech@gmail.com",
-    "passwordHash": "$2b$10$0Std2Ao763dfHsXJf8wGOePb1Yl2YDpISs4COwHECtzAObA9Dnwhi",
+    "passwordHash": "$2b$10$wMtY3Gi8YIcfWdOK17yPT.5BfK6rX8P635KVPQFWx65xuZv4rIax6",
+    "role": "admin",
+    "name": "Deribew Tech — Admin",
+    "createdAt": "2026-04-06T12:38:45.797Z",
+    "emailVerified": true,
+    "adminPermissionAllow": [
+      "admin:dashboard",
+      "companies:verify",
+      "categories:manage",
+      "system:configure",
+      "orders:complete",
+      "moderation:manage",
+      "orders:admin"
+    ],
+    "preferences": {
+      "emailOrderUpdates": true,
+      "emailReviewsAndComments": true,
+      "emailChatMirrors": false,
+      "emailAccountAlerts": true
+    }
+  },
+  {
+    "id": "d4e5aa28-4a0e-4101-b01b-4015c32f6057",
+    "email": "deri.software@gmail.com",
+    "passwordHash": "$2b$10$1n9e6t.vuGYQQ8rppLDIK.kvvf9iRBteUZV9BiW8V1MfiWIqEyeX6",
+    "role": "admin",
+    "name": "Deribew Software — Admin",
+    "createdAt": "2026-04-06T12:38:45.980Z",
+    "emailVerified": true,
+    "adminPermissionAllow": [
+      "admin:dashboard",
+      "companies:verify",
+      "categories:manage",
+      "system:configure",
+      "orders:complete",
+      "moderation:manage",
+      "orders:admin"
+    ],
+    "preferences": {
+      "emailOrderUpdates": true,
+      "emailReviewsAndComments": true,
+      "emailChatMirrors": false,
+      "emailAccountAlerts": true
+    }
+  },
+  {
+    "id": "a21845ac-f908-44f4-b1ae-c3adcb7b04b3",
+    "email": "deribewshimels4@gmail.com",
+    "passwordHash": "$2b$10$3zdqhGNpAyySEuCiMR4eouKhYJHFc1E0TO0g56pxS8VPXgvuWTF9C",
+    "role": "supplier",
+    "name": "Deribew Shimels — Supplier",
+    "createdAt": "2026-04-06T12:38:46.180Z",
+    "emailVerified": true,
+    "points": 1200,
+    "preferences": {
+      "emailOrderUpdates": true,
+      "emailReviewsAndComments": true,
+      "emailChatMirrors": false,
+      "emailAccountAlerts": true
+    },
+    "nationalIdStatus": "approved",
+    "nationalIdFan": "1234567890123456",
+    "nationalIdName": "Deribew Shimels",
+    "nationalIdCity": "Addis Ababa",
+    "nationalIdSubcity": "Bole",
+    "nationalIdWoreda": "Woreda 03",
+    "nationalIdAddressLine": "Ethiopia — demo seed profile",
+    "nationalIdSubmittedAt": "2026-04-06T12:56:13.115Z",
+    "nationalIdReviewedAt": "2026-04-06T12:56:13.115Z",
+    "nationalIdReviewedBy": "506f7569-7d77-4330-a17f-d0c2c12d0c06"
+  },
+  {
+    "id": "3cbf313f-0cba-4513-8a07-4f9e44e3bc94",
+    "email": "deribew.et@gmail.com",
+    "passwordHash": "$2b$10$spDU8FP8K2kLzoaf4Gj2VuCDwDxp5m4xypnvy72WARWCIcEVMrxlO",
     "role": "merchant",
-    "name": "Deribew Shimelis",
-    "createdAt": "2026-03-24T10:19:35.084Z"
+    "name": "Deribew ET — Merchant",
+    "createdAt": "2026-04-06T12:38:46.373Z",
+    "emailVerified": true,
+    "preferences": {
+      "emailOrderUpdates": true,
+      "emailReviewsAndComments": true,
+      "emailChatMirrors": false,
+      "emailAccountAlerts": true
+    },
+    "nationalIdStatus": "approved",
+    "nationalIdFan": "1234567890123456",
+    "nationalIdName": "Deribew ET Trading (merchant)",
+    "nationalIdCity": "Addis Ababa",
+    "nationalIdSubcity": "Bole",
+    "nationalIdWoreda": "Woreda 03",
+    "nationalIdAddressLine": "Ethiopia — demo seed profile",
+    "nationalIdSubmittedAt": "2026-04-06T12:56:13.115Z",
+    "nationalIdReviewedAt": "2026-04-06T12:56:13.115Z",
+    "nationalIdReviewedBy": "506f7569-7d77-4330-a17f-d0c2c12d0c06"
   }
 ]

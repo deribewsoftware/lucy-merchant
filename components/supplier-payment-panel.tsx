@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { getCompanySettlementAccounts } from "@/lib/domain/company-settlement-accounts";
 import type { Company, Order } from "@/lib/domain/types";
 
 type Props = {
@@ -79,23 +80,26 @@ export function SupplierPaymentPanel({ order, company }: Props) {
     router.refresh();
   }
 
-  const bankName = company?.settlementBankName;
-  const accountName = company?.settlementAccountName;
-  const accountNumber = company?.settlementAccountNumber;
+  const accounts = company ? getCompanySettlementAccounts(company) : [];
+  const usableAccounts = accounts.filter(
+    (a) => a.bankName.trim() && a.accountNumber.trim(),
+  );
 
   const memoHint = `LM-ORD-${order.id.slice(0, 8).toUpperCase()}`;
   const allDetails =
-    bankName && accountNumber
-      ? [
-          `Supplier: ${company?.name ?? ""}`,
-          `Bank: ${bankName}`,
-          accountName ? `Account name: ${accountName}` : null,
-          `Account number: ${accountNumber}`,
-          `Amount: ${order.totalPrice.toLocaleString()} ETB`,
-          `Memo: ${memoHint}`,
-        ]
-          .filter(Boolean)
-          .join("\n")
+    usableAccounts.length > 0
+      ? (() => {
+          const lines: string[] = [`Supplier: ${company?.name ?? ""}`];
+          usableAccounts.forEach((a, i) => {
+            if (usableAccounts.length > 1) lines.push(`— Account ${i + 1} —`);
+            lines.push(`Bank: ${a.bankName}`);
+            if (a.accountName.trim()) lines.push(`Account name: ${a.accountName}`);
+            lines.push(`Account number: ${a.accountNumber}`);
+          });
+          lines.push(`Amount: ${order.totalPrice.toLocaleString()} ETB`);
+          lines.push(`Memo: ${memoHint}`);
+          return lines.join("\n");
+        })()
       : "";
 
   return (
@@ -105,7 +109,7 @@ export function SupplierPaymentPanel({ order, company }: Props) {
         Transfer {order.totalPrice.toLocaleString()} ETB to the supplier account below, then
         upload proof. The supplier will confirm receipt before accepting the order.
       </p>
-      {bankName && accountNumber ? (
+      {usableAccounts.length > 0 ? (
         <div className="mt-3 space-y-2">
           <div className="rounded-lg border border-dashed border-primary/30 bg-base-100/90 px-2.5 py-1.5 text-sm">
             <span className="text-xs text-base-content/55">Suggested memo: </span>
@@ -123,40 +127,52 @@ export function SupplierPaymentPanel({ order, company }: Props) {
               Copy
             </button>
           </div>
-          <dl className="space-y-1.5 rounded-lg border border-base-300 bg-base-100 p-3 text-sm">
-            <div>
-              <dt className="text-xs text-base-content/50">Supplier</dt>
-              <dd className="font-medium">{company?.name ?? "—"}</dd>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-base-300 bg-base-100 p-3 text-sm">
+              <p className="text-xs text-base-content/50">Supplier</p>
+              <p className="font-medium">{company?.name ?? "—"}</p>
             </div>
-            <div>
-              <dt className="text-xs text-base-content/50">Bank</dt>
-              <dd className="font-medium">{bankName}</dd>
-            </div>
-            {accountName ? (
-              <div>
-                <dt className="text-xs text-base-content/50">Account name</dt>
-                <dd>{accountName}</dd>
-              </div>
-            ) : null}
-            <div>
-              <dt className="text-xs text-base-content/50">Account number</dt>
-              <dd className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[11px] sm:text-sm">{accountNumber}</span>
-                <button
-                  type="button"
-                  onClick={() => copyText(accountNumber, "acct")}
-                  className="inline-flex items-center gap-1 rounded-lg border border-base-300 px-2 py-0.5 text-xs hover:bg-base-200"
-                >
-                  {copied === "acct" ? (
-                    <Check className="h-3 w-3 text-success" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                  Copy #
-                </button>
-              </dd>
-            </div>
-          </dl>
+            {usableAccounts.map((a, i) => (
+              <dl
+                key={a.id}
+                className="space-y-1.5 rounded-lg border border-base-300 bg-base-100 p-3 text-sm"
+              >
+                {usableAccounts.length > 1 ? (
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/45">
+                    Account {i + 1}
+                  </p>
+                ) : null}
+                <div>
+                  <dt className="text-xs text-base-content/50">Bank</dt>
+                  <dd className="font-medium">{a.bankName}</dd>
+                </div>
+                {a.accountName.trim() ? (
+                  <div>
+                    <dt className="text-xs text-base-content/50">Account name</dt>
+                    <dd>{a.accountName}</dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt className="text-xs text-base-content/50">Account number</dt>
+                  <dd className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[11px] sm:text-sm">{a.accountNumber}</span>
+                    <button
+                      type="button"
+                      onClick={() => copyText(a.accountNumber, `acct-${a.id}`)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-base-300 px-2 py-0.5 text-xs hover:bg-base-200"
+                    >
+                      {copied === `acct-${a.id}` ? (
+                        <Check className="h-3 w-3 text-success" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                      Copy #
+                    </button>
+                  </dd>
+                </div>
+              </dl>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"

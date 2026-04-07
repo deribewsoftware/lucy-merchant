@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import {
+  HiOutlineArrowPath,
   HiOutlineBuildingOffice2,
   HiOutlineDocumentText,
   HiOutlineMapPin,
@@ -11,6 +12,7 @@ import {
   HiOutlineDocumentCheck,
   HiOutlineSparkles,
   HiOutlineShieldCheck,
+  HiOutlineSquares2X2,
 } from "react-icons/hi2";
 import { ClearFieldButton, CompanyDocumentUrlField } from "@/components/company-document-url-field";
 import { EthiopianDeliveryLocation } from "@/components/ethiopian-delivery-location";
@@ -25,6 +27,7 @@ import {
 import { isRichTextEmpty } from "@/lib/rich-text";
 import { SupplierHeroBackdrop } from "@/components/supplier/supplier-portal-graphics";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { CompanyRecommendationCategoriesField } from "@/components/company-recommendation-categories-field";
 
 function RegistrationStepsOutline({
   steps,
@@ -32,7 +35,10 @@ function RegistrationStepsOutline({
   steps: { title: string; hint: string }[];
 }) {
   return (
-    <ol aria-label="What you will complete" className="mb-8 grid list-none gap-3 sm:grid-cols-3">
+    <ol
+      aria-label="What you will complete"
+      className="mb-8 grid list-none gap-3 sm:grid-cols-2 lg:grid-cols-4"
+    >
       {steps.map((s, i) => (
         <li
           key={s.title}
@@ -62,6 +68,9 @@ export function SupplierCompanyForm({ embedded = false }: { embedded?: boolean }
   const [tinNumber, setTinNumber] = useState("");
   const [tradeLicenseNumber, setTradeLicenseNumber] = useState("");
   const [tradeLicenseDocument, setTradeLicenseDocument] = useState("");
+  const [recommendationCategoryIds, setRecommendationCategoryIds] = useState<
+    string[]
+  >([]);
   const [businessAddress, setBusinessAddress] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -73,51 +82,71 @@ export function SupplierCompanyForm({ embedded = false }: { embedded?: boolean }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setMsg(null);
+    const nameTrim = name.trim();
+    if (!nameTrim) {
+      setMsg("Legal or brand name is required.");
+      return;
+    }
     if (isRichTextEmpty(description)) {
-      setMsg("Description is required");
+      setMsg("Description is required.");
+      return;
+    }
+    const tin = tinNumber.trim();
+    const tradeNo = tradeLicenseNumber.trim();
+    if (!tin) {
+      setMsg("TIN (Tax Identification Number) is required.");
+      return;
+    }
+    if (!tradeNo) {
+      setMsg("Trade license number is required.");
       return;
     }
     setLoading(true);
-    setMsg(null);
-    const res = await fetch("/api/companies", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        description,
-        licenseDocument: licenseDocument || undefined,
-        businessAddress: businessAddress.trim() || undefined,
-        latitude: latitude ?? undefined,
-        longitude: longitude ?? undefined,
-        tinNumber: tinNumber.trim() || undefined,
-        tradeLicenseNumber: tradeLicenseNumber.trim() || undefined,
-        tradeLicenseDocument: tradeLicenseDocument.trim() || undefined,
-      }),
-    });
-    const data = (await res.json().catch(() => ({}))) as {
-      error?: string;
-      company?: { id: string };
-    };
-    setLoading(false);
-    if (!res.ok) {
-      setMsg(data.error ?? "Failed");
-      return;
-    }
-    if (data.company?.id) {
-      router.push(`/supplier/companies/${data.company.id}`);
+    try {
+      const res = await fetch("/api/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: nameTrim,
+          description,
+          licenseDocument: licenseDocument || undefined,
+          businessAddress: businessAddress.trim() || undefined,
+          latitude: latitude ?? undefined,
+          longitude: longitude ?? undefined,
+          tinNumber: tin,
+          tradeLicenseNumber: tradeNo,
+          tradeLicenseDocument: tradeLicenseDocument.trim() || undefined,
+          recommendationCategoryIds,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        company?: { id: string };
+      };
+      if (!res.ok) {
+        setMsg(data.error ?? "Could not submit. Try again.");
+        return;
+      }
+      if (data.company?.id) {
+        router.push(`/supplier/companies/${data.company.id}`);
+        router.refresh();
+        return;
+      }
+      setName("");
+      setDescription("");
+      setLicenseDocument("");
+      setBusinessAddress("");
+      setLatitude(null);
+      setLongitude(null);
+      setTinNumber("");
+      setTradeLicenseNumber("");
+      setTradeLicenseDocument("");
+      setRecommendationCategoryIds([]);
       router.refresh();
-      return;
+    } finally {
+      setLoading(false);
     }
-    setName("");
-    setDescription("");
-    setLicenseDocument("");
-    setBusinessAddress("");
-    setLatitude(null);
-    setLongitude(null);
-    setTinNumber("");
-    setTradeLicenseNumber("");
-    setTradeLicenseDocument("");
-    router.refresh();
   }
 
   const shell = (
@@ -153,12 +182,14 @@ export function SupplierCompanyForm({ embedded = false }: { embedded?: boolean }
       ) : null}
 
       <form
+        noValidate
         onSubmit={onSubmit}
         className={`${supplierFormCardClass} ${embedded ? "" : "border-0 bg-transparent shadow-none"}`}
       >
           <RegistrationStepsOutline
             steps={[
-              { title: "Company profile", hint: "Name & story buyers see" },
+              { title: "Company profile", hint: "Name, story & trade focus" },
+              { title: "Trade categories", hint: "Up to 5 for search & picks" },
               { title: "Legal verification", hint: "TIN & trade license" },
               { title: "Ethiopia location", hint: "Search, woreda & kebele" },
             ]}
@@ -176,6 +207,7 @@ export function SupplierCompanyForm({ embedded = false }: { embedded?: boolean }
                 Legal or brand name
                 <input
                   required
+                  autoComplete="organization"
                   placeholder="As registered or as shown to buyers"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -200,11 +232,24 @@ export function SupplierCompanyForm({ embedded = false }: { embedded?: boolean }
             </div>
           </section>
 
-          {/* Step 2 — Verification docs */}
+          {/* Trade focus — optional catalog tags */}
+          <section className="mt-6 rounded-2xl border border-accent/30 bg-gradient-to-br from-base-100 via-base-100 to-accent/[0.07] p-5 shadow-sm sm:p-6">
+            <SupplierFormSectionTitle
+              icon={<HiOutlineSquares2X2 className="h-5 w-5" />}
+              title="2 · Trade focus (optional)"
+              subtitle="Pick up to five catalog categories you supply in. They improve search, discovery, and home recommendations when your listings match."
+            />
+            <CompanyRecommendationCategoriesField
+              value={recommendationCategoryIds}
+              onChange={setRecommendationCategoryIds}
+            />
+          </section>
+
+          {/* Step 3 — Verification docs */}
           <section className="mt-6 rounded-2xl border border-secondary/25 bg-gradient-to-br from-base-100 via-base-100 to-secondary/[0.07] p-5 shadow-sm sm:p-6">
             <SupplierFormSectionTitle
               icon={<HiOutlineDocumentCheck className="h-5 w-5" />}
-              title="2 · Business verification"
+              title="3 · Business verification"
               subtitle="These details are reviewed by admins. TIN and trade license number are required to submit."
             />
 
@@ -303,11 +348,11 @@ export function SupplierCompanyForm({ embedded = false }: { embedded?: boolean }
             </div>
           </section>
 
-          {/* Step 3 — Location */}
+          {/* Step 4 — Location */}
           <section className="mt-6 rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm sm:p-6">
             <SupplierFormSectionTitle
               icon={<HiOutlineMapPin className="h-5 w-5" />}
-              title="3 · Business location (Ethiopia)"
+              title="4 · Business location (Ethiopia)"
               subtitle="Search places, then refine region, city, woreda, kebele, and street. Optional but recommended."
             />
             <EthiopianDeliveryLocation
@@ -344,15 +389,27 @@ export function SupplierCompanyForm({ embedded = false }: { embedded?: boolean }
             ) : null}
           </section>
 
-          {msg && (
-            <div className="alert alert-error mt-6 text-sm" role="alert">
-              {msg}
+          {msg ? (
+            <div
+              className="mt-6 rounded-xl border border-error/30 bg-error/[0.08] px-4 py-3 text-sm text-base-content"
+              role="alert"
+            >
+              <p className="font-medium text-error">{msg}</p>
             </div>
-          )}
+          ) : null}
           <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-base-300/80 pt-6">
-            <button type="submit" disabled={loading} className={supplierPrimaryButtonClass}>
-              <HiOutlineBuildingOffice2 className="h-4 w-4" />
-              {loading ? "Saving…" : "Submit for verification"}
+            <button
+              type="submit"
+              disabled={loading}
+              aria-busy={loading}
+              className={`${supplierPrimaryButtonClass} min-w-[12.5rem]`}
+            >
+              {loading ? (
+                <HiOutlineArrowPath className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+              ) : (
+                <HiOutlineBuildingOffice2 className="h-4 w-4 shrink-0" aria-hidden />
+              )}
+              {loading ? "Submitting…" : "Submit for verification"}
             </button>
             <button
               type="button"
@@ -367,6 +424,7 @@ export function SupplierCompanyForm({ embedded = false }: { embedded?: boolean }
                 setTinNumber("");
                 setTradeLicenseNumber("");
                 setTradeLicenseDocument("");
+                setRecommendationCategoryIds([]);
                 setMsg(null);
               }}
             >
@@ -384,8 +442,10 @@ export function SupplierCompanyForm({ embedded = false }: { embedded?: boolean }
 
   if (embedded) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-1 shadow-md ring-1 ring-base-300/25">
-        <div className="rounded-[14px] border border-base-300/50 bg-base-100">{shell}</div>
+      <div className="rounded-2xl border border-base-300 bg-base-100 p-1 shadow-md ring-1 ring-base-300/25">
+        <div className="overflow-visible rounded-[14px] border border-base-300/50 bg-base-100">
+          {shell}
+        </div>
       </div>
     );
   }

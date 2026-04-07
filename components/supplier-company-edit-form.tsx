@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
+  HiOutlineArrowPath,
   HiOutlineBuildingOffice2,
   HiOutlineDocumentText,
   HiOutlineMapPin,
@@ -11,7 +12,12 @@ import {
   HiOutlinePhoto,
   HiOutlineFingerPrint,
   HiOutlineDocumentCheck,
+  HiOutlineSquares2X2,
 } from "react-icons/hi2";
+import {
+  MAX_COMPANY_SETTLEMENT_BANK_ACCOUNTS,
+  getCompanySettlementAccounts,
+} from "@/lib/domain/company-settlement-accounts";
 import { companyApprovedOrVerified, type Company } from "@/lib/domain/types";
 import { CompanyDocumentUrlField } from "@/components/company-document-url-field";
 import { EthiopianDeliveryLocation } from "@/components/ethiopian-delivery-location";
@@ -26,8 +32,52 @@ import {
 } from "@/components/supplier/form-styles";
 import { isRichTextEmpty } from "@/lib/rich-text";
 import { ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER } from "@/lib/data/ethiopian-banks";
+import {
+  CompanyRecommendationCategoriesField,
+  SupplierCompanyRecommendationEditor,
+} from "@/components/company-recommendation-categories-field";
 
 const CUSTOM_BANK_VALUE = "__custom__";
+
+type BankRowState = {
+  id: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  bankCustomMode: boolean;
+};
+
+function newBankRowId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `row-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function bankRowsFromCompany(c: Company): BankRowState[] {
+  const acc = getCompanySettlementAccounts(c);
+  if (acc.length === 0) {
+    return [
+      {
+        id: newBankRowId(),
+        bankName: "",
+        accountName: "",
+        accountNumber: "",
+        bankCustomMode: false,
+      },
+    ];
+  }
+  return acc.map((a) => {
+    const bn = a.bankName.trim();
+    return {
+      id: a.id,
+      bankName: a.bankName,
+      accountName: a.accountName,
+      accountNumber: a.accountNumber,
+      bankCustomMode: Boolean(bn && !ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(bn)),
+    };
+  });
+}
 
 export function SupplierCompanyEditForm({
   company,
@@ -54,14 +104,8 @@ export function SupplierCompanyEditForm({
   const [longitude, setLongitude] = useState<number | null>(
     company.longitude ?? null,
   );
-  const [settlementBankName, setSettlementBankName] = useState(
-    company.settlementBankName ?? "",
-  );
-  const [settlementAccountName, setSettlementAccountName] = useState(
-    company.settlementAccountName ?? "",
-  );
-  const [settlementAccountNumber, setSettlementAccountNumber] = useState(
-    company.settlementAccountNumber ?? "",
+  const [bankRows, setBankRows] = useState<BankRowState[]>(() =>
+    bankRowsFromCompany(company),
   );
   const [tinNumber, setTinNumber] = useState(company.tinNumber ?? "");
   const [tradeLicenseNumber, setTradeLicenseNumber] = useState(
@@ -70,65 +114,106 @@ export function SupplierCompanyEditForm({
   const [tradeLicenseDoc, setTradeLicenseDoc] = useState(
     company.tradeLicenseDocument ?? "",
   );
-  const [bankCustomMode, setBankCustomMode] = useState(() => {
-    const n = (company.settlementBankName ?? "").trim();
-    return Boolean(n && !ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(n));
-  });
+  const [recommendationCategoryIds, setRecommendationCategoryIds] = useState<
+    string[]
+  >(company.recommendationCategoryIds ?? []);
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
   const locationFieldId = useId();
   const locked = companyApprovedOrVerified(company);
 
+  useEffect(() => {
+    setRecommendationCategoryIds(company.recommendationCategoryIds ?? []);
+  }, [company.id, company.recommendationCategoryIds]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(t);
+  }, [toast]);
+
+  function showError(text: string) {
+    setMsg(text);
+    setToast({ kind: "error", text });
+    feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setMsg(null);
+    setToast(null);
+    const nameTrim = name.trim();
+    if (!nameTrim) {
+      showError("Company name is required.");
+      return;
+    }
     if (isRichTextEmpty(description)) {
-      setMsg("Description is required");
+      showError("Description is required.");
       return;
     }
     setLoading(true);
-    setMsg(null);
-    const res = await fetch(`/api/companies/${company.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        description,
-        licenseDocument: licenseDocument.trim() || "",
-        logo: logo.trim() || "",
-        businessAddress: businessAddress.trim(),
-        latitude: latitude ?? null,
-        longitude: longitude ?? null,
-        settlementBankName: settlementBankName.trim(),
-        settlementAccountName: settlementAccountName.trim(),
-        settlementAccountNumber: settlementAccountNumber.trim(),
-        tinNumber: tinNumber.trim(),
-        tradeLicenseNumber: tradeLicenseNumber.trim(),
-        tradeLicenseDocument: tradeLicenseDoc.trim(),
-      }),
-      credentials: "same-origin",
-    });
-    const data = await res.json().catch(() => ({}));
-    setLoading(false);
-    if (!res.ok) {
-      setMsg(data.error ?? "Failed to update");
-      return;
+    try {
+      const res = await fetch(`/api/companies/${company.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: nameTrim,
+          description,
+          licenseDocument: licenseDocument.trim() || "",
+          logo: logo.trim() || "",
+          businessAddress: businessAddress.trim(),
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
+          settlementBankAccounts: bankRows.map((row) => ({
+            id: row.id,
+            bankName: row.bankName.trim(),
+            accountName: row.accountName.trim(),
+            accountNumber: row.accountNumber.trim(),
+          })),
+          tinNumber: tinNumber.trim(),
+          tradeLicenseNumber: tradeLicenseNumber.trim(),
+          tradeLicenseDocument: tradeLicenseDoc.trim(),
+          recommendationCategoryIds,
+        }),
+        credentials: "same-origin",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        company?: Company;
+      };
+      if (!res.ok) {
+        showError(typeof data.error === "string" ? data.error : "Failed to update");
+        return;
+      }
+      if (data.company) {
+        setBankRows(bankRowsFromCompany(data.company));
+      }
+      setMsg(null);
+      setToast({ kind: "success", text: "Company profile saved." });
+      if (mode === "inline") {
+        setOpen(false);
+      }
+      router.refresh();
+    } catch {
+      showError("Network error. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    if (mode === "inline") {
-      setOpen(false);
-    }
-    router.refresh();
   }
 
   if (locked) {
     return (
       <div
         className={
-          mode === "page"
-            ? supplierFormCardClass
-            : "mt-4 border-t border-base-300 pt-4"
+          mode === "page" ? "space-y-6" : "mt-4 space-y-6 border-t border-base-300 pt-4"
         }
       >
-        <p className="mb-4 rounded-lg bg-success/10 px-3 py-2 text-sm leading-relaxed text-base-content/80 ring-1 ring-success/20">
+        <p className="rounded-lg bg-success/10 px-3 py-2 text-sm leading-relaxed text-base-content/80 ring-1 ring-success/20">
           <span className="flex items-start gap-2">
             <HiOutlineBuildingOffice2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
             <span>
@@ -144,12 +229,38 @@ export function SupplierCompanyEditForm({
             </span>
           </span>
         </p>
+        <SupplierCompanyRecommendationEditor
+          companyId={company.id}
+          initialIds={company.recommendationCategoryIds ?? []}
+        />
       </div>
     );
   }
 
   const formBody = (
-        <form onSubmit={onSubmit} className={supplierFormCardClass}>
+        <form
+          noValidate
+          onSubmit={onSubmit}
+          className={`${supplierFormCardClass} relative`}
+        >
+          {toast ? (
+            <div
+              className="toast toast-top toast-center z-[100] max-w-[min(100%,24rem)] px-2 sm:toast-end"
+              role="status"
+              aria-live="polite"
+            >
+              <div
+                className={
+                  toast.kind === "success"
+                    ? "alert alert-success shadow-lg"
+                    : "alert alert-error shadow-lg"
+                }
+              >
+                <span className="text-sm">{toast.text}</span>
+              </div>
+            </div>
+          ) : null}
+          <div ref={feedbackRef} className="sr-only" aria-hidden />
           <p className="mb-4 flex items-center gap-2 rounded-lg bg-base-200/60 px-3 py-2 text-xs text-base-content/70">
             <HiOutlineBuildingOffice2 className="h-4 w-4 shrink-0 text-base-content/50" />
             Verification status is managed by admins only.
@@ -204,6 +315,18 @@ export function SupplierCompanyEditForm({
             </label>
           </div>
 
+          <div className="mt-6 rounded-2xl border border-accent/30 bg-gradient-to-br from-base-100 via-base-100 to-accent/[0.06] p-4 sm:p-5">
+            <SupplierFormSectionTitle
+              icon={<HiOutlineSquares2X2 className="h-5 w-5" />}
+              title="Trade focus (optional)"
+              subtitle="Up to five catalog categories — used for search, discovery, and home recommendations when your listings match."
+            />
+            <CompanyRecommendationCategoriesField
+              value={recommendationCategoryIds}
+              onChange={setRecommendationCategoryIds}
+            />
+          </div>
+
           <div className="mt-6 rounded-2xl border border-secondary/25 bg-gradient-to-br from-base-100 via-base-100 to-secondary/[0.06] p-4 sm:p-5">
             <SupplierFormSectionTitle
               icon={<HiOutlineDocumentCheck className="h-5 w-5" />}
@@ -255,85 +378,155 @@ export function SupplierCompanyEditForm({
             <SupplierFormSectionTitle
               icon={<HiOutlineBuildingOffice2 className="h-5 w-5" />}
               title="Buyer payments (Ethiopian banks)"
-              subtitle="Merchants pay you by bank transfer or COD. Pick your bank and account — same institutions as CBE, Awash, Dashen, Telebirr, etc."
+              subtitle="Merchants pay you by bank transfer or COD. Add one or more accounts (up to ten). Buyers can copy details at checkout."
             />
-            <div className="mt-3 space-y-3">
-              <label className={supplierLabelClass}>
-                Bank
-                <select
-                  className={`${supplierInputClass} cursor-pointer`}
-                  value={(() => {
-                    const t = settlementBankName.trim();
-                    if (bankCustomMode) return CUSTOM_BANK_VALUE;
-                    if (!t) return "";
-                    return ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(t)
+            <div className="mt-4 space-y-5">
+              {bankRows.map((row, idx) => {
+                const t = row.bankName.trim();
+                const selectValue = row.bankCustomMode
+                  ? CUSTOM_BANK_VALUE
+                  : !t
+                    ? ""
+                    : ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(t)
                       ? t
                       : CUSTOM_BANK_VALUE;
-                  })()}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === CUSTOM_BANK_VALUE) {
-                      setBankCustomMode(true);
-                      setSettlementBankName("");
-                    } else if (v === "") {
-                      setBankCustomMode(false);
-                      setSettlementBankName("");
-                    } else {
-                      setBankCustomMode(false);
-                      setSettlementBankName(v);
-                    }
-                  }}
-                >
-                  <option value="">Select bank…</option>
-                  {ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                  <option value={CUSTOM_BANK_VALUE}>Other — type name</option>
-                </select>
-              </label>
-              {(() => {
-                const t = settlementBankName.trim();
                 const showCustom =
-                  bankCustomMode ||
-                  (Boolean(t) &&
-                    !ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(t));
-                return showCustom;
-              })() ? (
-                <label className={supplierLabelClass}>
-                  Bank name
-                  <input
-                    value={settlementBankName}
-                    onChange={(e) => {
-                      setSettlementBankName(e.target.value);
-                      setBankCustomMode(true);
-                    }}
-                    className={supplierInputClass}
-                    placeholder="e.g. Regional or cooperative bank"
-                  />
-                </label>
+                  row.bankCustomMode ||
+                  (Boolean(t) && !ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(t));
+                return (
+                  <div
+                    key={row.id}
+                    className="rounded-xl border border-base-300/80 bg-base-100/80 p-4 shadow-sm"
+                  >
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/45">
+                        Account {idx + 1}
+                      </p>
+                      {bankRows.length > 1 ? (
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-error/90 underline-offset-2 hover:underline"
+                          onClick={() =>
+                            setBankRows((rows) => rows.filter((r) => r.id !== row.id))
+                          }
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="space-y-3">
+                      <label className={supplierLabelClass}>
+                        Bank
+                        <select
+                          className={`${supplierInputClass} cursor-pointer`}
+                          value={selectValue}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setBankRows((rows) =>
+                              rows.map((r) => {
+                                if (r.id !== row.id) return r;
+                                if (v === CUSTOM_BANK_VALUE) {
+                                  return {
+                                    ...r,
+                                    bankCustomMode: true,
+                                    bankName: "",
+                                  };
+                                }
+                                if (v === "") {
+                                  return { ...r, bankCustomMode: false, bankName: "" };
+                                }
+                                return { ...r, bankCustomMode: false, bankName: v };
+                              }),
+                            );
+                          }}
+                        >
+                          <option value="">Select bank…</option>
+                          {ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.map((n) => (
+                            <option key={n} value={n}>
+                              {n}
+                            </option>
+                          ))}
+                          <option value={CUSTOM_BANK_VALUE}>Other — type name</option>
+                        </select>
+                      </label>
+                      {showCustom ? (
+                        <label className={supplierLabelClass}>
+                          Bank name
+                          <input
+                            value={row.bankName}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setBankRows((rows) =>
+                                rows.map((r) =>
+                                  r.id === row.id
+                                    ? { ...r, bankName: v, bankCustomMode: true }
+                                    : r,
+                                ),
+                              );
+                            }}
+                            className={supplierInputClass}
+                            placeholder="e.g. Regional or cooperative bank"
+                          />
+                        </label>
+                      ) : null}
+                      <label className={supplierLabelClass}>
+                        Account name (as on bank book)
+                        <input
+                          value={row.accountName}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setBankRows((rows) =>
+                              rows.map((r) =>
+                                r.id === row.id ? { ...r, accountName: v } : r,
+                              ),
+                            );
+                          }}
+                          className={supplierInputClass}
+                          placeholder="Business or account holder name"
+                        />
+                      </label>
+                      <label className={supplierLabelClass}>
+                        Account number
+                        <input
+                          value={row.accountNumber}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setBankRows((rows) =>
+                              rows.map((r) =>
+                                r.id === row.id ? { ...r, accountNumber: v } : r,
+                              ),
+                            );
+                          }}
+                          className={`${supplierInputClass} font-mono tabular-nums`}
+                          placeholder="Digits for transfer"
+                          inputMode="numeric"
+                          autoComplete="off"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
+              {bankRows.length < MAX_COMPANY_SETTLEMENT_BANK_ACCOUNTS ? (
+                <button
+                  type="button"
+                  className={supplierGhostButtonClass}
+                  onClick={() =>
+                    setBankRows((rows) => [
+                      ...rows,
+                      {
+                        id: newBankRowId(),
+                        bankName: "",
+                        accountName: "",
+                        accountNumber: "",
+                        bankCustomMode: false,
+                      },
+                    ])
+                  }
+                >
+                  Add another bank account
+                </button>
               ) : null}
-              <label className={supplierLabelClass}>
-                Account name (as on bank book)
-                <input
-                  value={settlementAccountName}
-                  onChange={(e) => setSettlementAccountName(e.target.value)}
-                  className={supplierInputClass}
-                  placeholder="Business or account holder name"
-                />
-              </label>
-              <label className={supplierLabelClass}>
-                Account number
-                <input
-                  value={settlementAccountNumber}
-                  onChange={(e) => setSettlementAccountNumber(e.target.value)}
-                  className={`${supplierInputClass} font-mono tabular-nums`}
-                  placeholder="Digits for transfer"
-                  inputMode="numeric"
-                  autoComplete="off"
-                />
-              </label>
             </div>
           </div>
 
@@ -374,17 +567,26 @@ export function SupplierCompanyEditForm({
             ) : null}
           </div>
 
-          {msg && (
-            <p className="alert alert-error mt-4 text-sm">
-              {msg}
-            </p>
-          )}
+          {msg ? (
+            <div
+              className="mt-6 rounded-xl border border-error/30 bg-error/[0.08] px-4 py-3 text-sm text-base-content"
+              role="alert"
+            >
+              <p className="font-medium text-error">{msg}</p>
+            </div>
+          ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="submit"
               disabled={loading}
-              className={supplierPrimaryButtonClass}
+              aria-busy={loading}
+              className={`${supplierPrimaryButtonClass} min-w-[11rem]`}
             >
+              {loading ? (
+                <HiOutlineArrowPath className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+              ) : (
+                <HiOutlineBuildingOffice2 className="h-4 w-4 shrink-0" aria-hidden />
+              )}
               {loading ? "Saving…" : "Save changes"}
             </button>
             <button
@@ -419,17 +621,13 @@ export function SupplierCompanyEditForm({
             setBusinessAddress(company.businessAddress ?? "");
             setLatitude(company.latitude ?? null);
             setLongitude(company.longitude ?? null);
-            const bn = company.settlementBankName ?? "";
-            setSettlementBankName(bn);
-            setBankCustomMode(
-              Boolean(bn.trim() && !ETHIOPIAN_BANK_NAMES_FOR_SUPPLIER.includes(bn.trim())),
-            );
-            setSettlementAccountName(company.settlementAccountName ?? "");
-            setSettlementAccountNumber(company.settlementAccountNumber ?? "");
             setTinNumber(company.tinNumber ?? "");
             setTradeLicenseNumber(company.tradeLicenseNumber ?? "");
             setTradeLicenseDoc(company.tradeLicenseDocument ?? "");
+            setRecommendationCategoryIds(company.recommendationCategoryIds ?? []);
+            setBankRows(bankRowsFromCompany(company));
             setMsg(null);
+            setToast(null);
           }}
           className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-100 dark:border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-950/60"
         >

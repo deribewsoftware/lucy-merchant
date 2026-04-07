@@ -85,6 +85,14 @@ export type Category = {
   parentId: string | null;
 };
 
+/** One settlement row for bank-transfer payouts (buyer → supplier). */
+export type CompanySettlementBankAccount = {
+  id: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+};
+
 export type Company = {
   id: string;
   ownerId: string;
@@ -100,6 +108,8 @@ export type Company = {
   ratingAverage: number;
   totalReviews: number;
   createdAt: string;
+  /** Multiple accounts for bank transfer — buyers may use any listed account. */
+  settlementBankAccounts?: CompanySettlementBankAccount[];
   /** Shown to buyers for bank transfer checkout — pay supplier directly */
   settlementBankName?: string;
   settlementAccountName?: string;
@@ -112,6 +122,11 @@ export type Company = {
   rejectionReason?: string;
   reviewedAt?: string;
   reviewedBy?: string;
+  /**
+   * Up to five catalog category ids the supplier declares as trade focus — used for
+   * search ranking, home “Recommended for you” alignment, and public profile chips.
+   */
+  recommendationCategoryIds?: string[];
 };
 
 /** Admin-approved or legacy verified flag — supplier cannot edit profile fields while true. */

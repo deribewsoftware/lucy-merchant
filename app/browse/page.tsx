@@ -7,6 +7,7 @@ import { ProductUnitPrice } from "@/components/product-unit-price";
 import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar";
 import { effectiveMaxDeliveryPerOrder } from "@/lib/domain/max-delivery";
 import { getCategories, listProducts } from "@/lib/db/catalog";
+import { categoryIdsInSubtree } from "@/lib/search/catalog-search";
 import { merchantHasOutstandingCommission } from "@/lib/server/merchant-commission";
 import { stripHtmlToPlainText } from "@/lib/rich-text";
 import { getSessionUser } from "@/lib/server/session";
@@ -52,8 +53,12 @@ export default async function BrowsePage({ searchParams }: Props) {
     ? categories.find((c) => c.id === categoryId)
     : undefined;
 
-  const regionSource = activeCategory
-    ? listProducts().filter((p) => p.categoryId === activeCategory.id)
+  const allowedCategoryIds = activeCategory
+    ? categoryIdsInSubtree(activeCategory.id, categories)
+    : null;
+
+  const regionSource = allowedCategoryIds
+    ? listProducts().filter((p) => allowedCategoryIds.has(p.categoryId))
     : listProducts();
   const regionOptions = [
     ...new Set(
@@ -64,8 +69,8 @@ export default async function BrowsePage({ searchParams }: Props) {
   ].sort((a, b) => a.localeCompare(b));
 
   let products = [...listProducts()];
-  if (activeCategory) {
-    products = products.filter((p) => p.categoryId === activeCategory.id);
+  if (activeCategory && allowedCategoryIds) {
+    products = products.filter((p) => allowedCategoryIds.has(p.categoryId));
   }
 
   if (regionFilter) {

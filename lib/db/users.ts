@@ -351,7 +351,7 @@ export function updateUserProfile(
   userId: string,
   input: {
     name?: string;
-    preferences?: UserPreferences;
+    preferences?: Partial<UserPreferences>;
   },
 ): UserRecord | undefined {
   const users = load();

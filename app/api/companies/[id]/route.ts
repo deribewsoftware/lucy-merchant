@@ -48,15 +48,17 @@ export async function PATCH(request: Request, context: Params) {
         { status: 400 },
       );
     }
-    if (!body.isVerified && !body.rejectionReason) {
+    const rejectionReasonTrimmed =
+      typeof body?.rejectionReason === "string"
+        ? body.rejectionReason.trim()
+        : "";
+    if (!body.isVerified && !rejectionReasonTrimmed) {
       return NextResponse.json(
         { error: "A rejection reason is required when declining" },
         { status: 400 },
       );
     }
-    const rejectionReason = body.rejectionReason
-      ? String(body.rejectionReason).trim()
-      : undefined;
+    const rejectionReason = rejectionReasonTrimmed || undefined;
     const updated = setCompanyVerified(id, body.isVerified, auth.user.id, rejectionReason);
     if (!updated) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -77,10 +79,35 @@ export async function PATCH(request: Request, context: Params) {
   }
 
   if (companyApprovedOrVerified(company)) {
+    const b = body && typeof body === "object" ? body : {};
+    const keys = Object.keys(b).filter(
+      (k) => (b as Record<string, unknown>)[k] !== undefined,
+    );
+    const onlyRecommendationCategories =
+      keys.length === 1 && keys[0] === "recommendationCategoryIds";
+    if (
+      onlyRecommendationCategories &&
+      Array.isArray(b.recommendationCategoryIds)
+    ) {
+      const rl = checkRateLimit(`courec:${auth.user.id}`, 80, 60 * 60 * 1000);
+      if (!rl.ok) {
+        return NextResponse.json(
+          { error: `Too many updates. Retry in ${rl.retryAfterSec}s` },
+          { status: 429 },
+        );
+      }
+      const updated = updateCompany(id, {
+        recommendationCategoryIds: b.recommendationCategoryIds,
+      });
+      if (!updated) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      return NextResponse.json({ company: updated });
+    }
     return NextResponse.json(
       {
         error:
-          "This company is verified and its profile cannot be changed. Remove all product listings, then you can remove the company if you no longer need it.",
+          "This company is verified and its profile cannot be changed. Remove all product listings, then you can remove the company if you no longer need it. You can still update your trade focus categories (up to five) from the company page.",
       },
       { status: 403 },
     );
@@ -126,14 +153,24 @@ export async function PATCH(request: Request, context: Params) {
       patch.longitude = Number.isFinite(n) ? n : null;
     }
   }
-  if (body?.settlementBankName !== undefined) {
-    patch.settlementBankName = String(body.settlementBankName ?? "");
-  }
-  if (body?.settlementAccountName !== undefined) {
-    patch.settlementAccountName = String(body.settlementAccountName ?? "");
-  }
-  if (body?.settlementAccountNumber !== undefined) {
-    patch.settlementAccountNumber = String(body.settlementAccountNumber ?? "");
+  if (body?.settlementBankAccounts !== undefined) {
+    if (!Array.isArray(body.settlementBankAccounts)) {
+      return NextResponse.json(
+        { error: "settlementBankAccounts must be an array" },
+        { status: 400 },
+      );
+    }
+    patch.settlementBankAccounts = body.settlementBankAccounts;
+  } else {
+    if (body?.settlementBankName !== undefined) {
+      patch.settlementBankName = String(body.settlementBankName ?? "");
+    }
+    if (body?.settlementAccountName !== undefined) {
+      patch.settlementAccountName = String(body.settlementAccountName ?? "");
+    }
+    if (body?.settlementAccountNumber !== undefined) {
+      patch.settlementAccountNumber = String(body.settlementAccountNumber ?? "");
+    }
   }
   if (body?.tinNumber !== undefined) {
     patch.tinNumber = String(body.tinNumber ?? "");
@@ -143,6 +180,15 @@ export async function PATCH(request: Request, context: Params) {
   }
   if (body?.tradeLicenseDocument !== undefined) {
     patch.tradeLicenseDocument = String(body.tradeLicenseDocument ?? "");
+  }
+  if (body?.recommendationCategoryIds !== undefined) {
+    if (!Array.isArray(body.recommendationCategoryIds)) {
+      return NextResponse.json(
+        { error: "recommendationCategoryIds must be an array of category ids" },
+        { status: 400 },
+      );
+    }
+    patch.recommendationCategoryIds = body.recommendationCategoryIds;
   }
 
   if (Object.keys(patch).length === 0) {

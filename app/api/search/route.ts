@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
-import { getCompany } from "@/lib/db/catalog";
+import { getCategories, getCompany } from "@/lib/db/catalog";
 import type { SearchScope } from "@/lib/search/catalog-search";
-import { searchCatalog } from "@/lib/search/catalog-search";
+import {
+  isSearchNoMatchForScope,
+  searchCatalog,
+} from "@/lib/search/catalog-search";
+import { SEARCH_QUERY_SYNTAX } from "@/lib/search/search-query-syntax";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
 
 function parseScope(v: string | null): SearchScope {
@@ -31,30 +35,51 @@ export async function GET(request: Request) {
   const scope = parseScope(searchParams.get("scope"));
   const categoryId = String(searchParams.get("category") ?? "").trim() || undefined;
   const limit = Math.min(
-    80,
-    Math.max(4, Number(searchParams.get("limit") ?? 24)),
+    500,
+    Math.max(4, Number(searchParams.get("limit") ?? 80)),
   );
 
-  if (!q) {
+  const cats = getCategories();
+  const categoryName = (id: string) =>
+    cats.find((c) => c.id === id)?.name ?? "";
+
+  if (!q && !categoryId?.trim()) {
     return NextResponse.json({
       query: "",
       scope,
+      noMatch: false,
       products: [],
       companies: [],
       categories: [],
+      recommendationTags: [],
+      recommendedProducts: [],
+      querySyntax: SEARCH_QUERY_SYNTAX,
     });
   }
 
-  const { products, companies, categories } = searchCatalog(q, scope, limit, {
+  const {
+    products,
+    companies,
+    categories,
+    recommendationTags,
+    recommendedProducts,
+  } = searchCatalog(q, scope, limit, {
     categoryId,
   });
 
-  const productsOut = products.map((p) => {
+  const noMatch = Boolean(
+    q.trim() &&
+      isSearchNoMatchForScope(scope, products, companies, categories),
+  );
+
+  function productJson(p: (typeof products)[number]) {
     const co = getCompany(p.companyId);
     return {
       id: p.id,
       name: p.name,
       price: p.price,
+      tags: p.tags ?? [],
+      categoryName: categoryName(p.categoryId),
       ...(p.compareAtPrice != null && p.compareAtPrice > p.price
         ? { compareAtPrice: p.compareAtPrice }
         : {}),
@@ -77,7 +102,10 @@ export async function GET(request: Request) {
       isFeatured: !!p.isFeatured,
       imageUrl: p.imageUrl,
     };
-  });
+  }
+
+  const productsOut = products.map(productJson);
+  const recommendedProductsOut = recommendedProducts.map(productJson);
 
   const companiesOut = companies.map((c) => ({
     id: c.id,
@@ -98,8 +126,12 @@ export async function GET(request: Request) {
   return NextResponse.json({
     query: q,
     scope,
+    noMatch,
     products: productsOut,
     companies: companiesOut,
     categories: categoriesOut,
+    recommendationTags,
+    recommendedProducts: recommendedProductsOut,
+    querySyntax: SEARCH_QUERY_SYNTAX,
   });
 }

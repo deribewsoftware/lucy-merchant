@@ -5,7 +5,8 @@ import { MdDarkMode, MdLightMode } from "react-icons/md";
 import { setThemeCookieClient } from "@/lib/theme/theme-cookie";
 import { normalizeThemeId, type ThemeId } from "@/lib/theme/theme-id";
 
-const STORAGE_KEY = "lm-theme";
+/** Shared with settings appearance — same browser storage as the header control. */
+export const LM_THEME_STORAGE_KEY = "lm-theme";
 
 export const THEME_OPTIONS = [
   { value: "business", label: "Business (dark)" },
@@ -19,7 +20,7 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const raw =
-      localStorage.getItem(STORAGE_KEY) ??
+      localStorage.getItem(LM_THEME_STORAGE_KEY) ??
       document.documentElement.getAttribute("data-theme") ??
       "business";
     const t = normalizeThemeId(raw);
@@ -27,14 +28,14 @@ export function ThemeToggle() {
     document.documentElement.setAttribute("data-theme", t);
     setThemeCookieClient(t);
     if (raw !== t) {
-      localStorage.setItem(STORAGE_KEY, t);
+      localStorage.setItem(LM_THEME_STORAGE_KEY, t);
     }
   }, []);
 
   function apply(theme: ThemeId) {
     const t = normalizeThemeId(theme);
     setCurrent(t);
-    localStorage.setItem(STORAGE_KEY, t);
+    localStorage.setItem(LM_THEME_STORAGE_KEY, t);
     setThemeCookieClient(t);
     document.documentElement.setAttribute("data-theme", t);
   }

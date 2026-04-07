@@ -2,7 +2,7 @@
  * Seeds or updates the primary system administrator in ./data/users.json.
  *
  * Defaults:
- *   ethio.exams.academy@gmail.com / Super@123 / system_admin
+ *   deribewsoftware@gmail.com / Super@123 / system_admin
  *
  * Override: SEED_SUPER_ADMIN_EMAIL SEED_SUPER_ADMIN_PASSWORD SEED_SUPER_ADMIN_NAME
  *
@@ -19,7 +19,7 @@ const DATA = path.join(ROOT, "data");
 const USERS = path.join(DATA, "users.json");
 
 const email = (
-  process.env.SEED_SUPER_ADMIN_EMAIL ?? "ethio.exams.academy@gmail.com"
+  process.env.SEED_SUPER_ADMIN_EMAIL ?? "deribewsoftware@gmail.com"
 ).trim().toLowerCase();
 const password = process.env.SEED_SUPER_ADMIN_PASSWORD ?? "Super@123";
 const name = (process.env.SEED_SUPER_ADMIN_NAME ?? "Super Admin").trim();

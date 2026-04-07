@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { signToken } from "@/lib/auth/jwt";
+import { isEmailVerified } from "@/lib/auth/email-verification";
 import { findUserById, updateUserProfile } from "@/lib/db/users";
 import type { UserPreferences } from "@/lib/domain/types";
+import { isStaffAdminRole, roleDisplayLabel } from "@/lib/admin-staff";
 import { resolveEmailPreferences } from "@/lib/user/email-preferences";
 import { isNodemailerConfigured } from "@/lib/email/nodemailer";
 import { requireSession } from "@/lib/server/require-session";
+import { effectiveStaffPermissions } from "@/lib/server/admin-permissions";
+
+const MAX_DISPLAY_NAME_LEN = 200;
 
 const SESSION_COOKIE = "lm_token";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
@@ -37,10 +42,29 @@ export async function GET() {
   const row = findUserById(auth.user.id);
   const resolved = resolveEmailPreferences(row);
 
+  const staffPerms =
+    row && isStaffAdminRole(row.role)
+      ? effectiveStaffPermissions(auth.user.id)
+      : null;
+
   return NextResponse.json({
+    userId: auth.user.id,
     name: auth.user.name,
     email: auth.user.email,
     role: auth.user.role,
+    roleDisplay: roleDisplayLabel(auth.user.role),
+    staffPermissions: staffPerms,
+    supplierPoints:
+      row?.role === "supplier" ? (row.points ?? null) : null,
+    createdAt: row?.createdAt ?? null,
+    emailVerified: row ? isEmailVerified(row) : true,
+    mustChangePassword: row?.mustChangePassword === true,
+    nationalIdStatus:
+      row && (row.role === "merchant" || row.role === "supplier")
+        ? row.nationalIdStatus ?? "none"
+        : null,
+    staffAccessPending:
+      row?.role === "admin" ? (staffPerms?.length ?? 0) === 0 : false,
     preferences: resolved,
     emailDeliveryConfigured: isNodemailerConfigured(),
   });
@@ -60,6 +84,12 @@ export async function PATCH(request: Request) {
 
   if (name !== undefined && !name) {
     return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
+  }
+  if (name !== undefined && name.length > MAX_DISPLAY_NAME_LEN) {
+    return NextResponse.json(
+      { error: `Display name must be at most ${MAX_DISPLAY_NAME_LEN} characters` },
+      { status: 400 },
+    );
   }
 
   if (name === undefined && !prefs) {

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Banknote } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { getCompanySettlementAccounts } from "@/lib/domain/company-settlement-accounts";
 import type { Company, Order } from "@/lib/domain/types";
 
 type Props = {
@@ -14,7 +15,12 @@ type Props = {
   /** Your company — settlement account the buyer should pay into (bank transfer). */
   company?: Pick<
     Company,
-    "name" | "settlementBankName" | "settlementAccountName" | "settlementAccountNumber"
+    | "id"
+    | "name"
+    | "settlementBankAccounts"
+    | "settlementBankName"
+    | "settlementAccountName"
+    | "settlementAccountNumber"
   > | null;
 };
 
@@ -73,32 +79,46 @@ export function SupplierPaymentActions({ order, company }: Props) {
             : "Confirm only when you and the buyer have agreed how cash will be collected, and the order total matches what you expect to receive."}
         </p>
         {isBank && company ? (
-          <div className="mt-4 space-y-1 rounded-lg border border-base-300/60 bg-base-200/30 px-3 py-2.5 text-xs text-base-content/80">
+          <div className="mt-4 space-y-2 rounded-lg border border-base-300/60 bg-base-200/30 px-3 py-2.5 text-xs text-base-content/80">
             <p className="font-semibold text-base-content">{company.name}</p>
-            {company.settlementBankName ? (
-              <p>
-                <span className="text-base-content/55">Bank: </span>
-                {company.settlementBankName}
-              </p>
-            ) : null}
-            {company.settlementAccountName ? (
-              <p>
-                <span className="text-base-content/55">Account name: </span>
-                {company.settlementAccountName}
-              </p>
-            ) : null}
-            {company.settlementAccountNumber ? (
-              <p className="font-mono">
-                <span className="text-base-content/55">Account no.: </span>
-                {company.settlementAccountNumber}
-              </p>
-            ) : null}
-            {!company.settlementBankName &&
-            !company.settlementAccountNumber ? (
-              <p className="text-warning">
-                Add settlement bank details on your company profile so buyers know where to pay.
-              </p>
-            ) : null}
+            {(() => {
+              const rows = getCompanySettlementAccounts(company).filter(
+                (a) => a.bankName.trim() && a.accountNumber.trim(),
+              );
+              if (rows.length === 0) {
+                return (
+                  <p className="text-warning">
+                    Add settlement bank details on your company profile so buyers know where to pay.
+                  </p>
+                );
+              }
+              return rows.map((a, i) => (
+                <div
+                  key={a.id}
+                  className="rounded-md border border-base-300/50 bg-base-100/50 px-2 py-1.5"
+                >
+                  {rows.length > 1 ? (
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-base-content/45">
+                      Account {i + 1}
+                    </p>
+                  ) : null}
+                  <p>
+                    <span className="text-base-content/55">Bank: </span>
+                    {a.bankName}
+                  </p>
+                  {a.accountName.trim() ? (
+                    <p>
+                      <span className="text-base-content/55">Account name: </span>
+                      {a.accountName}
+                    </p>
+                  ) : null}
+                  <p className="font-mono">
+                    <span className="text-base-content/55">Account no.: </span>
+                    {a.accountNumber}
+                  </p>
+                </div>
+              ));
+            })()}
           </div>
         ) : null}
       </div>

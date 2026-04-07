@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Star,
   Sparkles,
+  Tags,
   XCircle,
 } from "lucide-react"
 import { ProductOrderSpecs } from "@/components/product-order-specs"
@@ -16,7 +17,11 @@ import { ProductUnitPrice } from "@/components/product-unit-price"
 import { PaginationBar, PaginationSummary } from "@/components/ui/pagination-bar"
 import { getCategories, getCompany } from "@/lib/db/catalog"
 import type { SearchScope } from "@/lib/search/catalog-search"
-import { searchCatalog } from "@/lib/search/catalog-search"
+import {
+  isSearchNoMatchForScope,
+  searchCatalog,
+} from "@/lib/search/catalog-search"
+import { SEARCH_QUERY_SYNTAX } from "@/lib/search/search-query-syntax"
 
 type Props = {
   searchParams: Promise<{
@@ -25,7 +30,6 @@ type Props = {
     category?: string
     page?: string
     cpage?: string
-    catpage?: string
   }>
 }
 
@@ -56,16 +60,28 @@ export default async function SearchPage({ searchParams }: Props) {
   const pageParam = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1
   const cpageRaw = parseInt(sp.cpage ?? "1", 10)
   const cpageParam = Number.isFinite(cpageRaw) && cpageRaw >= 1 ? cpageRaw : 1
-  const catpageRaw = parseInt(sp.catpage ?? "1", 10)
-  const catpageParam = Number.isFinite(catpageRaw) && catpageRaw >= 1 ? catpageRaw : 1
 
   const productPageSize = 12
   const companyPageSize = 10
-  const categoryPageSize = 24
 
-  const { products, companies, categories } = searchCatalog(q, scope, 500, {
+  const searchResultCap = 5000
+  const {
+    products,
+    companies,
+    categories,
+    recommendationTags,
+    recommendedProducts,
+  } = searchCatalog(q, scope, searchResultCap, {
     categoryId: filterCategoryId,
   })
+
+  const showSearchNoMatchBanner = Boolean(
+    q.trim() &&
+      isSearchNoMatchForScope(scope, products, companies, categories),
+  )
+
+  const categoryNameById = (id: string) =>
+    categoriesAll.find((c) => c.id === id)?.name
 
   const useProductPaging = scope === "all" || scope === "products"
   const productTotal = products.length
@@ -82,21 +98,12 @@ export default async function SearchPage({ searchParams }: Props) {
   const cStart = useCompanyPaging ? (companyPageSafe - 1) * companyPageSize : 0
   const companiesPage = useCompanyPaging ? companies.slice(cStart, cStart + companyPageSize) : []
 
-  const useCategoryPaging = scope === "all" || scope === "categories"
-  const categoryTotal = categories.length
-  const categoryPages = Math.max(1, Math.ceil(categoryTotal / categoryPageSize))
-  const categoryPageNum = scope === "all" ? catpageParam : scope === "categories" ? pageParam : 1
-  const categoryPageSafe = useCategoryPaging ? Math.min(categoryPageNum, categoryPages) : 1
-  const catStart = useCategoryPaging ? (categoryPageSafe - 1) * categoryPageSize : 0
-  const categoriesPage = useCategoryPaging ? categories.slice(catStart, catStart + categoryPageSize) : []
-
   function searchProductsHref(p: number) {
     const u = new URLSearchParams()
     u.set("q", q)
     u.set("scope", scope)
     if (filterCategoryId) u.set("category", filterCategoryId)
     if (scope === "all" && companyPageSafe > 1) u.set("cpage", String(companyPageSafe))
-    if (scope === "all" && categoryPageSafe > 1) u.set("catpage", String(categoryPageSafe))
     if (p > 1) u.set("page", String(p))
     const qs = u.toString()
     return qs ? `/search?${qs}` : "/search"
@@ -109,25 +116,8 @@ export default async function SearchPage({ searchParams }: Props) {
     if (filterCategoryId) u.set("category", filterCategoryId)
     if (scope === "all") {
       if (productPageSafe > 1) u.set("page", String(productPageSafe))
-      if (categoryPageSafe > 1) u.set("catpage", String(categoryPageSafe))
       if (p > 1) u.set("cpage", String(p))
     } else if (p > 1) {
-      u.set("page", String(p))
-    }
-    const qs = u.toString()
-    return qs ? `/search?${qs}` : "/search"
-  }
-
-  function searchCategoriesHref(p: number) {
-    const u = new URLSearchParams()
-    u.set("q", q)
-    u.set("scope", scope)
-    if (filterCategoryId) u.set("category", filterCategoryId)
-    if (scope === "all") {
-      if (productPageSafe > 1) u.set("page", String(productPageSafe))
-      if (companyPageSafe > 1) u.set("cpage", String(companyPageSafe))
-      if (p > 1) u.set("catpage", String(p))
-    } else if (scope === "categories" && p > 1) {
       u.set("page", String(p))
     }
     const qs = u.toString()
@@ -138,7 +128,7 @@ export default async function SearchPage({ searchParams }: Props) {
     { id: "all", label: "All", icon: <Layers className="h-4 w-4" /> },
     { id: "products", label: "Products", icon: <Package className="h-4 w-4" /> },
     { id: "companies", label: "Companies", icon: <Building2 className="h-4 w-4" /> },
-    { id: "categories", label: "Categories", icon: <Layers className="h-4 w-4" /> },
+    { id: "categories", label: "Categories", icon: <Tags className="h-4 w-4" /> },
   ]
 
   const catQ = filterCategoryId ? `&category=${encodeURIComponent(filterCategoryId)}` : ""
@@ -163,7 +153,24 @@ export default async function SearchPage({ searchParams }: Props) {
               Search Results
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Search across products, companies, and categories
+              {filterCategory ? (
+                <>
+                  Category:{" "}
+                  <span className="font-medium text-foreground">
+                    {filterCategory.name}
+                  </span>
+                  . Add a keyword to narrow results, or{" "}
+                  <Link
+                    href={`/browse?category=${encodeURIComponent(filterCategory.id)}`}
+                    className="text-primary underline-offset-2 hover:underline"
+                  >
+                    browse this aisle
+                  </Link>{" "}
+                  with filters.
+                </>
+              ) : (
+                <>Search across products, companies, and categories</>
+              )}
             </p>
           </div>
         </div>
@@ -194,6 +201,16 @@ export default async function SearchPage({ searchParams }: Props) {
           <ArrowRight className="h-4 w-4" />
         </button>
       </form>
+      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+        <p>
+          Advanced: use <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-sans text-[0.7rem]">&quot;phrase&quot;</kbd> for exact text,{" "}
+          <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-sans text-[0.7rem]">OR</kbd> or{" "}
+          <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-sans text-[0.7rem]">|</kbd> between alternatives; several unquoted words all must match.
+        </p>
+        <p className="text-[11px] leading-relaxed text-muted-foreground/90">
+          {SEARCH_QUERY_SYNTAX}
+        </p>
+      </div>
 
       {/* Category Filter Notice */}
       {filterCategory && (
@@ -232,21 +249,25 @@ export default async function SearchPage({ searchParams }: Props) {
         })}
       </div>
 
-      {/* No Query State */}
-      {!q && (
+      {/* No Query State (no category aisle either) */}
+      {!q && !filterCategory && (
         <div className="mt-12 flex flex-col items-center justify-center py-16 text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50">
             <Search className="h-10 w-10 text-muted-foreground/50" />
           </div>
           <h3 className="mt-6 text-lg font-semibold text-foreground">Start searching</h3>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            Enter a query above to search the marketplace. Use filters to narrow down results.
+            Enter a keyword above, or pick a category in the search bar filters to see products in that category. You can also{" "}
+            <Link href="/browse" className="text-primary underline-offset-2 hover:underline">
+              browse the full catalog
+            </Link>
+            .
           </p>
         </div>
       )}
 
       {/* Results */}
-      {q && (
+      {(q || filterCategory) && (
         <div className="mt-8 space-y-10">
           {/* Products Section */}
           {(scope === "all" || scope === "products") && products.length > 0 && (
@@ -309,6 +330,15 @@ export default async function SearchPage({ searchParams }: Props) {
                           </div>
                           <span className="mt-1 text-xs text-muted-foreground">
                             {co?.name ?? "Supplier"}
+                            {categoryNameById(p.categoryId) ? (
+                              <>
+                                {" "}
+                                ·{" "}
+                                <span className="text-foreground/80">
+                                  {categoryNameById(p.categoryId)}
+                                </span>
+                              </>
+                            ) : null}
                           </span>
                           <div className="mt-3 space-y-2 text-sm">
                             <ProductUnitPrice
@@ -342,6 +372,92 @@ export default async function SearchPage({ searchParams }: Props) {
                 total={productTotal}
                 buildHref={searchProductsHref}
               />
+            </section>
+          )}
+
+          {q.trim() &&
+            (scope === "all" || scope === "products") &&
+            (recommendationTags.length > 0 || recommendedProducts.length > 0) && (
+            <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] to-transparent p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      Best recommendations
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      From tags shared by your top matches — refine with a tag or explore related SKUs.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {recommendationTags.length > 0 && (
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Popular tags in results
+                  </p>
+                  <ul className="flex flex-wrap gap-2">
+                    {recommendationTags.map(({ tag, count }) => (
+                      <li key={tag}>
+                        <Link
+                          href={`/search?q=${encodeURIComponent(tag)}&scope=products${filterCategoryId ? `&category=${encodeURIComponent(filterCategoryId)}` : ""}`}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-3 py-1.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
+                        >
+                          <Tags className="h-3.5 w-3.5 text-primary" />
+                          {tag}
+                          <span className="text-xs text-muted-foreground">×{count}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {recommendedProducts.length > 0 && (
+                <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {recommendedProducts.map((p) => {
+                    const co = getCompany(p.companyId)
+                    return (
+                      <li key={p.id}>
+                        <Link
+                          href={`/products/${p.id}`}
+                          className="flex gap-3 rounded-xl border border-border/60 bg-card/80 p-3 text-sm shadow-sm transition-all hover:border-primary/30 hover:bg-card"
+                        >
+                          {p.imageUrl ? (
+                            <figure className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
+                              <Image
+                                src={p.imageUrl}
+                                alt=""
+                                width={64}
+                                height={64}
+                                unoptimized
+                                className="h-full w-full object-cover"
+                              />
+                            </figure>
+                          ) : (
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-muted">
+                              <Package className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <span className="line-clamp-2 font-medium text-foreground">{p.name}</span>
+                            {p.tags.length > 0 && (
+                              <span className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                                {p.tags.slice(0, 3).join(" · ")}
+                              </span>
+                            )}
+                            <span className="mt-1 block text-xs text-muted-foreground">
+                              {co?.name ?? "Supplier"}
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
             </section>
           )}
 
@@ -436,19 +552,11 @@ export default async function SearchPage({ searchParams }: Props) {
                   <h2 className="text-lg font-semibold text-foreground">
                     Categories ({categories.length})
                   </h2>
-                  {useCategoryPaging && (
-                    <PaginationSummary
-                      page={categoryPageSafe}
-                      pageSize={categoryPageSize}
-                      total={categoryTotal}
-                      className="text-sm text-muted-foreground"
-                    />
-                  )}
                 </div>
               </div>
               
               <ul className="mt-5 flex flex-wrap gap-2">
-                {categoriesPage.map((c) => (
+                {categories.map((c) => (
                   <li key={c.id}>
                     <Link
                       href={`/browse?category=${c.id}`}
@@ -459,25 +567,38 @@ export default async function SearchPage({ searchParams }: Props) {
                   </li>
                 ))}
               </ul>
-              
-              <PaginationBar
-                page={categoryPageSafe}
-                pageSize={categoryPageSize}
-                total={categoryTotal}
-                buildHref={searchCategoriesHref}
-              />
             </section>
           )}
 
-          {/* No Results */}
-          {q && products.length === 0 && companies.length === 0 && categories.length === 0 && (
+          {/* Zero rows for this query (keyword and/or category filter) */}
+          {q &&
+            products.length === 0 &&
+            companies.length === 0 &&
+            categories.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50">
                 <Search className="h-10 w-10 text-muted-foreground/50" />
               </div>
-              <h3 className="mt-6 text-lg font-semibold text-foreground">No results found</h3>
+              <h3 className="mt-6 text-lg font-semibold text-foreground">No matches</h3>
               <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-                No matches for &quot;{q}&quot; in this scope. Try another keyword or switch the filter tab.
+                {showSearchNoMatchBanner ? (
+                  <>
+                    Nothing matched &quot;{q}&quot; for this tab and filters. Try other
+                    words, switch scope, or{" "}
+                    <Link
+                      href="/browse"
+                      className="text-primary underline-offset-2 hover:underline"
+                    >
+                      browse categories
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  <>
+                    No listings matched your filters. Try another keyword or switch the
+                    filter tab.
+                  </>
+                )}
               </p>
             </div>
           )}

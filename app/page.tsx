@@ -1,5 +1,10 @@
 import { HomeView } from "@/components/home/home-view";
-import { getCategories, listCompanies, listProducts } from "@/lib/db/catalog";
+import {
+  getCategories,
+  getCompany,
+  listCompanies,
+  listProducts,
+} from "@/lib/db/catalog";
 import {
   completedUnitsByCompany,
   sortCompaniesByReputationAndVolume,
@@ -37,9 +42,25 @@ export default async function HomePage() {
     (a, b) => feat(a, b) || (a.createdAt < b.createdAt ? 1 : -1),
   );
 
+  const supplierDeclaredBoost = (p: (typeof products)[0]) => {
+    const co = getCompany(p.companyId);
+    if (!co) return 0;
+    return (co.recommendationCategoryIds ?? []).includes(p.categoryId)
+      ? 1_000_000_000
+      : 0;
+  };
+
+  const recommendedScore = (p: (typeof products)[0]) =>
+    supplierDeclaredBoost(p) +
+    Number(!!p.isFeatured) * 10_000_000 +
+    trendScore(p);
+
   const seenRec = new Set<string>();
+  const recommendedPool = [...trending, ...topRated, ...newest].sort(
+    (a, b) => recommendedScore(b) - recommendedScore(a),
+  );
   const recommended: typeof products = [];
-  for (const p of [...trending, ...topRated, ...newest]) {
+  for (const p of recommendedPool) {
     if (seenRec.has(p.id)) continue;
     seenRec.add(p.id);
     recommended.push(p);

@@ -6,12 +6,14 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type FormEvent,
   type RefObject,
 } from "react";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 import {
   AlertTriangle,
@@ -24,10 +26,12 @@ import {
   Package,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Tags,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SearchScope } from "@/lib/search/catalog-search";
+import { SEARCH_QUERY_SYNTAX } from "@/lib/search/search-query-syntax";
 import type { AuthMeUser } from "@/lib/domain/types";
 import { brandCopy } from "@/lib/brand/copy";
 import {
@@ -40,7 +44,8 @@ import { ProductOrderSpecs } from "@/components/product-order-specs";
 
 const RECENT_KEY = "lm-search-recent";
 const MAX_RECENT = 8;
-const DROPDOWN_LIMIT = 10;
+/** Instant results — keep reasonable for dropdown performance; API allows up to 500. */
+const DROPDOWN_LIMIT = 56;
 
 type HitProduct = {
   id: string;
@@ -56,9 +61,14 @@ type HitProduct = {
   itemsPerDozen?: number;
   companyName: string;
   categoryId: string;
+  /** Resolved catalog category name for display */
+  categoryName?: string;
   isFeatured?: boolean;
   imageUrl?: string;
+  tags?: string[];
 };
+
+type RecommendationTag = { tag: string; count: number };
 
 type HitCompany = {
   id: string;
@@ -495,6 +505,15 @@ export function GlobalSearch({
   const pathname = usePathname();
   const panelId = useId();
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [dropdownMounted, setDropdownMounted] = useState(false);
+  const [dropdownBox, setDropdownBox] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
   const panelBlurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -511,6 +530,14 @@ export function GlobalSearch({
   const [companies, setCompanies] = useState<HitCompany[]>([]);
   const [categories, setCategories] = useState<HitCategory[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
+  /** True when the keyword had zero matches for this scope (empty result lists). */
+  const [searchNoMatch, setSearchNoMatch] = useState(false);
+  const [recommendationTags, setRecommendationTags] = useState<
+    RecommendationTag[]
+  >([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<HitProduct[]>(
+    [],
+  );
   /** After /api/auth/me — overrides SSR props when set */
   const [apiMerchantHold, setApiMerchantHold] = useState<boolean | null>(null);
   const [apiSupplierHold, setApiSupplierHold] = useState<boolean | null>(null);
@@ -519,6 +546,8 @@ export function GlobalSearch({
     src: string;
     alt: string;
   } | null>(null);
+  /** Keyboard highlight in instant results (-1 = none, use Enter for full-page search). */
+  const [activeHitIndex, setActiveHitIndex] = useState(-1);
 
   const fetchAuthMeHolds = useCallback(async () => {
     try {
@@ -595,11 +624,15 @@ export function GlobalSearch({
 
   const run = useCallback(
     async (term: string, sc: SearchScope) => {
-      if (!term.trim()) {
+      const t = term.trim();
+      if (!t && !narrowCategoryId) {
         setProducts([]);
         setCompanies([]);
         setCategories([]);
         setSearchError(null);
+        setSearchNoMatch(false);
+        setRecommendationTags([]);
+        setRecommendedProducts([]);
         return;
       }
       setLoading(true);
@@ -610,7 +643,7 @@ export function GlobalSearch({
             ? `&category=${encodeURIComponent(narrowCategoryId)}`
             : "";
         const res = await fetch(
-          `/api/search?q=${encodeURIComponent(term.trim())}&scope=${sc}&limit=${DROPDOWN_LIMIT}${catQ}`,
+          `/api/search?q=${encodeURIComponent(t)}&scope=${sc}&limit=${DROPDOWN_LIMIT}${catQ}`,
           { credentials: "same-origin" },
         );
         const data = await res.json().catch(() => ({}));
@@ -618,6 +651,9 @@ export function GlobalSearch({
           setProducts([]);
           setCompanies([]);
           setCategories([]);
+          setSearchNoMatch(false);
+          setRecommendationTags([]);
+          setRecommendedProducts([]);
           setSearchError(
             typeof data.error === "string"
               ? data.error
@@ -628,10 +664,24 @@ export function GlobalSearch({
         setProducts(data.products ?? []);
         setCompanies(data.companies ?? []);
         setCategories(data.categories ?? []);
+        setSearchNoMatch(Boolean((data as { noMatch?: boolean }).noMatch));
+        const d = data as {
+          recommendationTags?: RecommendationTag[];
+          recommendedProducts?: HitProduct[];
+        };
+        setRecommendationTags(
+          Array.isArray(d.recommendationTags) ? d.recommendationTags : [],
+        );
+        setRecommendedProducts(
+          Array.isArray(d.recommendedProducts) ? d.recommendedProducts : [],
+        );
       } catch {
         setProducts([]);
         setCompanies([]);
         setCategories([]);
+        setSearchNoMatch(false);
+        setRecommendationTags([]);
+        setRecommendedProducts([]);
         setSearchError("Could not reach search. Check your connection.");
       } finally {
         setLoading(false);
@@ -643,6 +693,68 @@ export function GlobalSearch({
   useEffect(() => {
     setRecent(readRecent());
   }, [panelOpen]);
+
+  useLayoutEffect(() => {
+    setDropdownMounted(true);
+  }, []);
+
+  const updateDropdownBox = useCallback(() => {
+    const el = anchorRef.current;
+    if (!el || typeof window === "undefined") return;
+    const apply = () => {
+      const r = el.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      const margin = 8;
+      const maxW = Math.min(Math.max(r.width, 280), vw - margin * 2);
+      let left = r.left;
+      if (left + maxW > vw - margin) left = Math.max(margin, vw - margin - maxW);
+      if (left < margin) left = margin;
+      const top = r.bottom + 6;
+      const maxH = Math.min(480, Math.max(220, vh - top - margin));
+      setDropdownBox({
+        top,
+        left,
+        width: maxW,
+        maxHeight: maxH,
+      });
+    };
+    apply();
+    requestAnimationFrame(apply);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!panelOpen) {
+      setDropdownBox(null);
+      return;
+    }
+    updateDropdownBox();
+    const ro = new ResizeObserver(() => updateDropdownBox());
+    const el = anchorRef.current;
+    if (el) ro.observe(el);
+    window.addEventListener("scroll", updateDropdownBox, true);
+    window.addEventListener("resize", updateDropdownBox);
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", updateDropdownBox);
+    vv?.addEventListener("scroll", updateDropdownBox);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("scroll", updateDropdownBox, true);
+      window.removeEventListener("resize", updateDropdownBox);
+      vv?.removeEventListener("resize", updateDropdownBox);
+      vv?.removeEventListener("scroll", updateDropdownBox);
+    };
+  }, [
+    panelOpen,
+    updateDropdownBox,
+    q,
+    scope,
+    narrowCategoryId,
+    loading,
+    products.length,
+    companies.length,
+    categories.length,
+  ]);
 
   const clearPanelBlurTimeout = useCallback(() => {
     if (panelBlurTimeoutRef.current !== null) {
@@ -659,7 +771,7 @@ export function GlobalSearch({
   useEffect(() => {
     const t = setTimeout(() => run(q, scope), 220);
     return () => clearTimeout(t);
-  }, [q, scope, run]);
+  }, [q, scope, narrowCategoryId, run]);
 
   const scopeMeta = SCOPE_DEFS.find((s) => s.id === scope) ?? SCOPE_DEFS[0];
   const narrowLabel =
@@ -675,9 +787,13 @@ export function GlobalSearch({
     const cat = narrowCategoryId
       ? `&category=${encodeURIComponent(narrowCategoryId)}`
       : "";
-    router.push(
-      `/search?q=${encodeURIComponent(query)}&scope=${scope}${cat}`,
-    );
+    if (query) {
+      router.push(`/search?q=${encodeURIComponent(query)}&scope=${scope}${cat}`);
+    } else if (narrowCategoryId) {
+      router.push(`/search?scope=${encodeURIComponent(scope)}${cat}`);
+    } else {
+      router.push(`/search?q=&scope=${encodeURIComponent(scope)}`);
+    }
   }
 
   function onSubmit(e: FormEvent) {
@@ -686,9 +802,58 @@ export function GlobalSearch({
   }
 
   const hasQuery = q.trim().length > 0;
+  /** Keyword and/or category aisle — drives instant results panel */
+  const showSearchBody = hasQuery || narrowCategoryId !== "";
   const hasHits =
     products.length > 0 || companies.length > 0 || categories.length > 0;
   const showPanel = panelOpen;
+
+  const navigableHits = useMemo(() => {
+    const out: { href: string }[] = [];
+    if (scope === "all" || scope === "companies") {
+      companies.forEach((c) => out.push({ href: `/companies/${c.id}` }));
+    }
+    if (scope === "all" || scope === "products") {
+      products.forEach((p) => out.push({ href: `/products/${p.id}` }));
+    }
+    if (scope === "all" || scope === "categories") {
+      categories.forEach((c) =>
+        out.push({ href: `/browse?category=${encodeURIComponent(c.id)}` }),
+      );
+    }
+    return out;
+  }, [scope, companies, products, categories]);
+
+  const hrefToHitIndex = useMemo(() => {
+    const m = new Map<string, number>();
+    navigableHits.forEach((h, i) => m.set(h.href, i));
+    return m;
+  }, [navigableHits]);
+
+  const navigableHitsRef = useRef(navigableHits);
+  navigableHitsRef.current = navigableHits;
+  const activeHitIndexRef = useRef(activeHitIndex);
+  activeHitIndexRef.current = activeHitIndex;
+
+  useEffect(() => {
+    setActiveHitIndex(-1);
+  }, [q, scope, narrowCategoryId, companies, products, categories]);
+
+  useEffect(() => {
+    if (activeHitIndex < 0 || !dropdownRef.current) return;
+    const el = dropdownRef.current.querySelector(
+      `[data-lm-search-hit="${activeHitIndex}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeHitIndex]);
+
+  const isHitActive = useCallback(
+    (href: string) => {
+      const ix = hrefToHitIndex.get(href);
+      return ix !== undefined && activeHitIndex === ix;
+    },
+    [hrefToHitIndex, activeHitIndex],
+  );
 
   const popular = brandCopy.search.popularKeywords;
 
@@ -731,6 +896,7 @@ export function GlobalSearch({
       ) : null}
       <form onSubmit={onSubmit} className="relative">
         <div
+          ref={anchorRef}
           className={clsx(
             /* overflow-visible so the filter popover (absolute) is not clipped */
             "card flex overflow-visible border border-base-300/75 bg-base-100/95 p-0 shadow-sm transition-[box-shadow,border-color,ring]",
@@ -790,6 +956,11 @@ export function GlobalSearch({
               aria-expanded={panelOpen}
               aria-controls={`${panelId}-panel`}
               aria-autocomplete="list"
+              aria-activedescendant={
+                activeHitIndex >= 0 && navigableHits[activeHitIndex]
+                  ? `${panelId}-hit-${activeHitIndex}`
+                  : undefined
+              }
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
@@ -800,7 +971,47 @@ export function GlobalSearch({
                   e.preventDefault();
                   clearPanelBlurTimeout();
                   setPanelOpen(false);
+                  setActiveHitIndex(-1);
                   (e.target as HTMLInputElement).blur();
+                  return;
+                }
+                if (
+                  showSearchBody &&
+                  navigableHits.length > 0 &&
+                  (e.key === "ArrowDown" ||
+                    e.key === "ArrowUp" ||
+                    e.key === "Home" ||
+                    e.key === "End")
+                ) {
+                  e.preventDefault();
+                  const n = navigableHits.length;
+                  if (e.key === "ArrowDown") {
+                    setActiveHitIndex((i) => (i + 1) % n);
+                  } else if (e.key === "ArrowUp") {
+                    setActiveHitIndex((i) => (i <= 0 ? n - 1 : i - 1));
+                  } else if (e.key === "Home") {
+                    setActiveHitIndex(0);
+                  } else {
+                    setActiveHitIndex(n - 1);
+                  }
+                  return;
+                }
+                if (
+                  showSearchBody &&
+                  navigableHitsRef.current.length > 0 &&
+                  e.key === "Enter" &&
+                  activeHitIndexRef.current >= 0
+                ) {
+                  e.preventDefault();
+                  const href =
+                    navigableHitsRef.current[activeHitIndexRef.current]?.href;
+                  if (href) {
+                    pushRecent(q);
+                    router.push(href);
+                    setPanelOpen(false);
+                    setActiveHitIndex(-1);
+                  }
+                  return;
                 }
               }}
               onFocus={() => {
@@ -811,7 +1022,8 @@ export function GlobalSearch({
                 const next = e.relatedTarget;
                 if (
                   next instanceof Node &&
-                  filterMenuRef.current?.contains(next)
+                  (filterMenuRef.current?.contains(next) ||
+                    dropdownRef.current?.contains(next))
                 ) {
                   return;
                 }
@@ -839,16 +1051,29 @@ export function GlobalSearch({
           </label>
         </div>
 
-        {showPanel && (
-          <div
-            id={`${panelId}-panel`}
-            role="listbox"
-            className={clsx(
-              "card absolute left-0 right-0 top-full z-[120] mt-1.5 max-h-[min(70vh,480px)] overflow-hidden rounded-xl border border-base-300/85 bg-base-100 p-0 shadow-lg ring-1 ring-base-content/5",
-              isHero && "shadow-2xl ring-base-content/8",
-            )}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-base-200/90 bg-base-200/40 px-2.5 py-2">
+        {showPanel &&
+          dropdownMounted &&
+          dropdownBox != null &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div
+              ref={dropdownRef}
+              id={`${panelId}-panel`}
+              role="listbox"
+              style={{
+                position: "fixed",
+                top: dropdownBox.top,
+                left: dropdownBox.left,
+                width: dropdownBox.width,
+                maxHeight: dropdownBox.maxHeight,
+                zIndex: 10000,
+              }}
+              className={clsx(
+                "card flex min-h-0 max-h-full flex-col overflow-hidden rounded-xl border border-base-300/85 bg-base-100 p-0 shadow-lg ring-1 ring-base-content/5",
+                isHero && "shadow-2xl ring-base-content/8",
+              )}
+            >
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-base-200/90 bg-base-200/40 px-2.5 py-2">
               <p className="text-[11px] font-medium text-base-content/55 sm:text-xs">
                 <span className="font-semibold text-base-content/75">
                   {scopeMeta.label}
@@ -866,7 +1091,10 @@ export function GlobalSearch({
                 <Link
                   href={`/browse?category=${encodeURIComponent(narrowCategoryId)}`}
                   className="link link-primary text-xs font-semibold no-underline hover:underline"
-                  onMouseDown={() => pushRecent(q)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    pushRecent(q);
+                  }}
                 >
                   Browse aisle →
                 </Link>
@@ -874,14 +1102,15 @@ export function GlobalSearch({
                 <Link
                   href="/browse"
                   className="link link-hover text-xs text-base-content/50"
+                  onMouseDown={(e) => e.preventDefault()}
                 >
                   Full catalog
                 </Link>
               )}
             </div>
 
-            <div className="max-h-[min(52vh,380px)] overflow-y-auto overscroll-contain p-1.5 sm:p-2">
-              {!hasQuery && (
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5 sm:p-2">
+              {!hasQuery && !narrowCategoryId && (
                 <div className="space-y-3 px-1.5 py-2 sm:px-2 sm:py-2.5">
                   <div>
                     <p className="text-[0.6rem] font-bold uppercase tracking-wider text-base-content/40">
@@ -936,24 +1165,33 @@ export function GlobalSearch({
                   <p className="text-[11px] leading-relaxed text-base-content/48 sm:text-xs">
                     {brandCopy.search.hint}
                   </p>
+                  <p
+                    className="mt-2 text-[10px] leading-relaxed text-base-content/42 sm:text-[11px]"
+                    id={`${panelId}-syntax`}
+                  >
+                    {SEARCH_QUERY_SYNTAX}
+                  </p>
                 </div>
               )}
 
-              {hasQuery && searchError && !loading && (
+              {showSearchBody && searchError && !loading && (
                 <p className="mx-1.5 mt-1.5 rounded-lg border border-error/30 bg-error/10 px-2.5 py-2 text-center text-xs text-error sm:text-sm">
                   {searchError}
                 </p>
               )}
 
-              {hasQuery && !hasHits && !loading && !searchError && (
-                <p className="px-3 py-6 text-center text-xs text-base-content/55 sm:text-sm">
-                  No instant matches with these filters. Press{" "}
-                  <kbd className="kbd kbd-sm">Enter</kbd> for full results or
-                  widen search scope.
-                </p>
-              )}
+              {showSearchBody &&
+                !hasHits &&
+                !loading &&
+                !searchError && (
+                  <p className="px-3 py-6 text-center text-xs text-base-content/55 sm:text-sm">
+                    {searchNoMatch
+                      ? `No matches for "${q.trim()}". Press Enter for the full search page or try other words.`
+                      : "No instant matches with these filters. Press Enter for full results or widen search scope."}
+                  </p>
+                )}
 
-              {hasQuery &&
+              {showSearchBody &&
                 companies.length > 0 &&
                 (scope === "all" || scope === "companies") && (
                   <div className="mb-3">
@@ -961,13 +1199,34 @@ export function GlobalSearch({
                       <Building2 className="h-4 w-4" strokeWidth={2.25} />
                       Companies
                     </p>
-                    <ul className="space-y-0.5">
-                      {companies.map((c) => (
-                        <li key={c.id}>
+                    <ul className="space-y-0.5" role="presentation">
+                      {companies.map((c) => {
+                        const href = `/companies/${c.id}`;
+                        const hix = hrefToHitIndex.get(href);
+                        return (
+                        <li
+                          key={c.id}
+                          role="option"
+                          id={hix !== undefined ? `${panelId}-hit-${hix}` : undefined}
+                          aria-selected={isHitActive(href)}
+                          {...(hix !== undefined
+                            ? { "data-lm-search-hit": String(hix) }
+                            : {})}
+                        >
                           <Link
-                            href={`/companies/${c.id}`}
-                            className="flex flex-col gap-1 rounded-lg px-2.5 py-2 text-left text-[13px] transition hover:bg-base-200 sm:flex-row sm:items-center sm:justify-between"
-                            onMouseDown={() => pushRecent(q)}
+                            href={href}
+                            className={clsx(
+                              "flex flex-col gap-1 rounded-lg px-2.5 py-2 text-left text-[13px] transition hover:bg-base-200 sm:flex-row sm:items-center sm:justify-between",
+                              isHitActive(href) &&
+                                "bg-primary/10 ring-2 ring-primary/35 ring-inset",
+                            )}
+                            onMouseEnter={() => {
+                              if (hix !== undefined) setActiveHitIndex(hix);
+                            }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              pushRecent(q);
+                            }}
                           >
                             <span className="flex min-w-0 items-center gap-2">
                               {c.logo ? (
@@ -1008,12 +1267,13 @@ export function GlobalSearch({
                             </span>
                           </Link>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
 
-              {hasQuery &&
+              {showSearchBody &&
                 products.length > 0 &&
                 (scope === "all" || scope === "products") && (
                   <div className="mb-3">
@@ -1032,17 +1292,36 @@ export function GlobalSearch({
                         isHero && "space-y-1.5",
                       )}
                     >
-                      {products.map((p) => (
-                        <li key={p.id}>
+                      {products.map((p) => {
+                        const href = `/products/${p.id}`;
+                        const hix = hrefToHitIndex.get(href);
+                        return (
+                        <li
+                          key={p.id}
+                          role="option"
+                          id={hix !== undefined ? `${panelId}-hit-${hix}` : undefined}
+                          aria-selected={isHitActive(href)}
+                          {...(hix !== undefined
+                            ? { "data-lm-search-hit": String(hix) }
+                            : {})}
+                        >
                           <Link
-                            href={`/products/${p.id}`}
+                            href={href}
                             className={clsx(
                               "flex gap-2 text-left text-[13px] transition sm:items-center sm:justify-between",
                               isHero
                                 ? "rounded-xl border border-base-200/80 bg-base-100/50 px-2.5 py-2 shadow-sm hover:border-primary/25 hover:bg-base-200/40 sm:px-3 sm:py-2.5"
                                 : "flex-col gap-0.5 rounded-lg px-2.5 py-2 hover:bg-base-200 sm:flex-row",
+                              isHitActive(href) &&
+                                "border-primary/40 bg-primary/10 ring-2 ring-primary/30 ring-inset",
                             )}
-                            onMouseDown={() => pushRecent(q)}
+                            onMouseEnter={() => {
+                              if (hix !== undefined) setActiveHitIndex(hix);
+                            }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              pushRecent(q);
+                            }}
                           >
                             <span className="flex min-w-0 flex-1 items-start gap-2">
                               {p.imageUrl ? (
@@ -1083,14 +1362,38 @@ export function GlobalSearch({
                                     </span>
                                   ) : null}
                                 </span>
+                                {p.tags && p.tags.length > 0 ? (
+                                  <span className="mt-1 flex max-w-full flex-wrap gap-1">
+                                    {p.tags.slice(0, 3).map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="badge badge-ghost badge-xs max-w-[9rem] truncate font-normal opacity-90"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </span>
+                                ) : null}
                                 <span className="mt-0.5 block truncate text-xs text-base-content/50 sm:hidden">
                                   {p.companyName}
+                                  {p.categoryName ? (
+                                    <>
+                                      {" "}
+                                      · {p.categoryName}
+                                    </>
+                                  ) : null}
                                 </span>
                               </span>
                             </span>
                             <span className="flex shrink-0 flex-col items-stretch gap-1 sm:items-end sm:text-right">
                               <span className="hidden truncate text-xs text-base-content/55 sm:block sm:max-w-[11rem]">
                                 {p.companyName}
+                                {p.categoryName ? (
+                                  <>
+                                    {" "}
+                                    · {p.categoryName}
+                                  </>
+                                ) : null}
                               </span>
                               <ProductUnitPrice
                                 price={p.price}
@@ -1113,12 +1416,93 @@ export function GlobalSearch({
                             </span>
                           </Link>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
 
-              {hasQuery &&
+              {showSearchBody &&
+                hasQuery &&
+                !loading &&
+                !searchError &&
+                (scope === "all" || scope === "products") &&
+                (recommendationTags.length > 0 ||
+                  recommendedProducts.length > 0) && (
+                  <div className="border-t border-base-300/60 bg-base-200/20 px-2 py-2.5 sm:px-2.5">
+                    <p className="flex items-center gap-2 px-1 pb-2 text-[0.65rem] font-bold uppercase tracking-wider text-primary">
+                      <Sparkles className="h-4 w-4" strokeWidth={2.25} />
+                      Best recommendations
+                    </p>
+                    {recommendationTags.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1.5 px-1">
+                        {recommendationTags.slice(0, 10).map(({ tag, count }) => {
+                          const cat =
+                            narrowCategoryId !== ""
+                              ? `&category=${encodeURIComponent(narrowCategoryId)}`
+                              : "";
+                          return (
+                            <Link
+                              key={tag}
+                              href={`/search?q=${encodeURIComponent(tag)}&scope=products${cat}`}
+                              className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary transition hover:bg-primary/18"
+                              onMouseDown={(e) => e.preventDefault()}
+                            >
+                              <Tags className="h-3 w-3 shrink-0 opacity-80" />
+                              <span className="truncate">{tag}</span>
+                              <span className="shrink-0 text-primary/60">×{count}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {recommendedProducts.length > 0 && (
+                      <ul className="space-y-1 px-1">
+                        {recommendedProducts.slice(0, 4).map((p) => {
+                          const href = `/products/${p.id}`;
+                          return (
+                            <li key={p.id}>
+                              <Link
+                                href={href}
+                                className="flex gap-2 rounded-lg border border-base-300/60 bg-base-100/80 px-2 py-1.5 text-left text-[12px] transition hover:border-primary/30 hover:bg-base-200/50"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  pushRecent(q);
+                                }}
+                              >
+                                {p.imageUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={p.imageUrl}
+                                    alt=""
+                                    className="h-10 w-10 shrink-0 rounded-md object-cover"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-base-300/50">
+                                    <Package className="h-4 w-4 opacity-50" />
+                                  </span>
+                                )}
+                                <span className="min-w-0 flex-1">
+                                  <span className="line-clamp-2 font-medium leading-tight">
+                                    {p.name}
+                                  </span>
+                                  {p.tags && p.tags.length > 0 ? (
+                                    <span className="mt-0.5 line-clamp-1 text-[10px] text-base-content/45">
+                                      {p.tags.slice(0, 2).join(" · ")}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+              {showSearchBody &&
                 categories.length > 0 &&
                 (scope === "all" || scope === "categories") && (
                   <div className="mb-2">
@@ -1126,26 +1510,49 @@ export function GlobalSearch({
                       <Tags className="h-4 w-4" strokeWidth={2.25} />
                       Categories
                     </p>
-                    <ul className="flex flex-col gap-1 px-1 pb-2 sm:flex-row sm:flex-wrap">
-                      {categories.map((c) => (
-                        <li key={c.id} className="sm:flex-initial">
+                    <ul className="flex flex-col gap-1 px-1 pb-2 sm:flex-row sm:flex-wrap" role="presentation">
+                      {categories.map((c) => {
+                        const href = `/browse?category=${c.id}`;
+                        const hix = hrefToHitIndex.get(href);
+                        return (
+                        <li
+                          key={c.id}
+                          className="sm:flex-initial"
+                          role="option"
+                          id={hix !== undefined ? `${panelId}-hit-${hix}` : undefined}
+                          aria-selected={isHitActive(href)}
+                          {...(hix !== undefined
+                            ? { "data-lm-search-hit": String(hix) }
+                            : {})}
+                        >
                           <Link
-                            href={`/browse?category=${c.id}`}
-                            className="block w-full rounded-xl border border-accent/25 bg-accent/5 px-3 py-2 text-center text-sm font-medium text-accent transition hover:bg-accent/12 sm:inline-block sm:w-auto"
-                            onMouseDown={() => pushRecent(q)}
+                            href={href}
+                            className={clsx(
+                              "block w-full rounded-xl border border-accent/25 bg-accent/5 px-3 py-2 text-center text-sm font-medium text-accent transition hover:bg-accent/12 sm:inline-block sm:w-auto",
+                              isHitActive(href) &&
+                                "border-primary/40 bg-primary/15 ring-2 ring-primary/35 ring-inset",
+                            )}
+                            onMouseEnter={() => {
+                              if (hix !== undefined) setActiveHitIndex(hix);
+                            }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              pushRecent(q);
+                            }}
                           >
                             {c.name}
                           </Link>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
             </div>
 
-            <div className="flex flex-col gap-1.5 border-t border-base-200/90 bg-base-200/40 px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex shrink-0 flex-col gap-1.5 border-t border-base-200/90 bg-base-200/40 px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="hidden text-[11px] text-base-content/48 lg:inline">
-                Filters · Enter: full search · Esc: close
+                ↑↓ Home/End · Enter opens highlight · Enter (no row) full search · Esc
               </span>
               <button
                 type="button"
@@ -1160,8 +1567,9 @@ export function GlobalSearch({
                 <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.25} />
               </button>
             </div>
-          </div>
-        )}
+          </div>,
+            document.body,
+          )}
       </form>
 
       {imagePreview ? (

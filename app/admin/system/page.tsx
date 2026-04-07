@@ -1,12 +1,16 @@
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
+import { AdminDataClearPanel } from "@/components/admin-data-clear-panel";
 import { AdminSystemForm } from "@/components/admin-system-form";
 import { getSystemConfig } from "@/lib/db/catalog";
 import { requireStaffPagePermission } from "@/lib/server/require-staff-page";
+import { getSessionUser } from "@/lib/server/session";
 
 export default async function AdminSystemPage() {
   await requireStaffPagePermission("system:configure", "/admin/system");
 
   const config = getSystemConfig();
+  const user = await getSessionUser();
+
   return (
     <div>
       <header className="mb-2 flex flex-col gap-4 border-b border-base-300 pb-8 sm:flex-row sm:items-start sm:justify-between">
@@ -26,6 +30,7 @@ export default async function AdminSystemPage() {
         </div>
       </header>
       <AdminSystemForm initial={config} />
+      {user?.role === "system_admin" ? <AdminDataClearPanel /> : null}
     </div>
   );
 }

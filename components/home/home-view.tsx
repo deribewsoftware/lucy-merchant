@@ -24,6 +24,7 @@ import { GlobalSearch } from "@/components/global-search";
 import { ProductOrderSpecs } from "@/components/product-order-specs";
 import { ProductUnitPrice } from "@/components/product-unit-price";
 import { brandCopy } from "@/lib/brand/copy";
+import { HomeCategoriesSection } from "@/components/home/home-categories-section";
 
 export type HomeProduct = {
   id: string;
@@ -280,37 +281,7 @@ export function HomeView({
         </div>
       </section>
 
-      {/* Categories */}
-      {categories.length > 0 && (
-        <section className="lm-container py-14 sm:py-20">
-          <SectionHeader
-            index="01"
-            eyebrow="Categories"
-            title="Shop by category"
-            description="Jump straight into the aisles that matter for your next PO."
-          />
-          <div className="mt-8 -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 pt-1 [scrollbar-width:thin] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-            {categories.map((c, i) => (
-              <motion.div
-                key={c.id}
-                className="shrink-0"
-                initial={{ opacity: 0, x: -8 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.04 }}
-              >
-                <Link
-                  href={`/browse?category=${encodeURIComponent(c.id)}`}
-                  className="group flex h-11 items-center gap-2 rounded-full border border-border/45 bg-card/80 px-5 text-sm font-medium text-foreground shadow-sm backdrop-blur-sm transition-all hover:border-primary/35 hover:bg-primary/10 hover:text-primary hover:shadow-md hover:shadow-primary/5"
-                >
-                  <span className="max-w-[200px] truncate">{c.name}</span>
-                  <ChevronRight className="h-4 w-4 opacity-50 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-      )}
+      <HomeCategoriesSection categories={categories} />
 
       {/* Features — bento */}
       <section className="border-y border-border/35 bg-muted/20">

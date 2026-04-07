@@ -108,7 +108,8 @@ export default async function AdminLayout({
       href: "/admin/settings",
       label: "Settings",
       icon: <HiOutlineAdjustmentsHorizontal className="h-5 w-5" />,
-      visible: locked || perms.includes("admin:dashboard"),
+      /** Every signed-in staff member can open account settings (not gated on admin:dashboard). */
+      visible: true,
     },
   ];
 

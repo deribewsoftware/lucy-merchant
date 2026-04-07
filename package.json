@@ -7,14 +7,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "verify": "npm run lint && npm run build",
+    "verify": "npm run lint && npm run test && npm run build",
+    "test": "vitest run",
     "test:nodemailer": "node scripts/test-nodemailer.mjs",
     "seed:demo": "node scripts/seed-demo-data.mjs",
     "seed:admin": "node scripts/seed-deribew-admin.mjs",
+    "seed:deribew-users": "node scripts/seed-deribew-users.mjs",
+    "seed:deribew-profiles": "node scripts/seed-deribew-profiles.mjs",
     "seed:super-admin": "node scripts/seed-super-admin.mjs",
     "sync:deploy-seed": "node scripts/sync-deploy-seed.mjs",
     "seed:mongodb": "node scripts/seed-mongodb.mjs",
-    "seed:all": "npm run seed:demo && npm run sync:deploy-seed && npm run seed:mongodb"
+    "seed:all": "npm run seed:demo && npm run sync:deploy-seed && npm run seed:mongodb",
+    "data:clean": "node scripts/clear-all-data.mjs"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
@@ -57,6 +61,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

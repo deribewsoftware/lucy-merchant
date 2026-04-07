@@ -44,14 +44,19 @@ export const brandCopy = {
   search: {
     placeholder:
       "Search products, companies, categories — instant, scoped results",
-    hint: "Tip: switch the filter chips to narrow to SKUs, suppliers, or taxonomy. Fuzzy matching forgives minor typos.",
+    hint: "Tip: several words together all must match. Use \"quotes\" for an exact phrase, OR or | for alternatives. Pick a category to browse an aisle without a keyword, or use scope filters for products, suppliers, or categories.",
     popularKeywords: [
       "cement",
-      "bulk",
-      "steel",
-      "construction",
-      "rebar",
-      "delivery",
+      "laptop",
+      "phone",
+      "clothing",
+      "furniture",
+      "Ethiopia",
+      "coffee",
+      "sesame",
+      "honey",
+      "wine",
+      "pharma",
     ],
   },
   features: [

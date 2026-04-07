@@ -68,6 +68,9 @@ export async function POST(request: Request) {
     lngRaw != null && lngRaw !== ""
       ? Number(lngRaw)
       : undefined;
+  const recommendationCategoryIds = Array.isArray(body?.recommendationCategoryIds)
+    ? body.recommendationCategoryIds
+    : undefined;
   if (!name || !description) {
     return NextResponse.json({ error: "Name and description required" }, { status: 400 });
   }
@@ -76,6 +79,7 @@ export async function POST(request: Request) {
     ownerId: auth.user.id,
     name,
     description,
+    recommendationCategoryIds,
     licenseDocument,
     businessAddress: businessAddress || undefined,
     latitude:

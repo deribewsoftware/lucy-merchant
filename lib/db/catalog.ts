@@ -1,7 +1,12 @@
 import { randomUUID } from "crypto";
+import { normalizeRecommendationCategoryIds } from "@/lib/domain/company-recommendation-categories";
+import {
+  MAX_COMPANY_SETTLEMENT_BANK_ACCOUNTS,
+} from "@/lib/domain/company-settlement-accounts";
 import type {
   Category,
   Company,
+  CompanySettlementBankAccount,
   Product,
   SystemConfig,
 } from "@/lib/domain/types";
@@ -120,8 +125,14 @@ export function createCompany(input: {
   tinNumber?: string;
   tradeLicenseNumber?: string;
   tradeLicenseDocument?: string;
+  recommendationCategoryIds?: string[];
 }): Company {
   const all = listCompanies();
+  const validCatIds = new Set(getCategories().map((c) => c.id));
+  const recIds = normalizeRecommendationCategoryIds(
+    input.recommendationCategoryIds,
+    validCatIds,
+  );
   const addr = input.businessAddress?.trim();
   const lat =
     typeof input.latitude === "number" && Number.isFinite(input.latitude)
@@ -148,6 +159,7 @@ export function createCompany(input: {
     tradeLicenseNumber: input.tradeLicenseNumber?.trim() || undefined,
     tradeLicenseDocument: input.tradeLicenseDocument?.trim() || undefined,
     verificationStatus: "pending",
+    ...(recIds.length > 0 ? { recommendationCategoryIds: recIds } : {}),
   };
   all.push(company);
   writeJsonFile(COMPANIES, all);
@@ -185,12 +197,14 @@ export function updateCompany(
       | "licenseDocument"
       | "logo"
       | "businessAddress"
+      | "settlementBankAccounts"
       | "settlementBankName"
       | "settlementAccountName"
       | "settlementAccountNumber"
       | "tinNumber"
       | "tradeLicenseNumber"
       | "tradeLicenseDocument"
+      | "recommendationCategoryIds"
     >
   > & { latitude?: number | null; longitude?: number | null },
 ): Company | undefined {
@@ -242,17 +256,49 @@ export function updateCompany(
       next.longitude = lng;
     }
   }
-  if (patch.settlementBankName !== undefined) {
-    const v = String(patch.settlementBankName ?? "").trim();
-    next.settlementBankName = v || undefined;
-  }
-  if (patch.settlementAccountName !== undefined) {
-    const v = String(patch.settlementAccountName ?? "").trim();
-    next.settlementAccountName = v || undefined;
-  }
-  if (patch.settlementAccountNumber !== undefined) {
-    const v = String(patch.settlementAccountNumber ?? "").trim();
-    next.settlementAccountNumber = v || undefined;
+  if (patch.settlementBankAccounts !== undefined) {
+    const raw = Array.isArray(patch.settlementBankAccounts)
+      ? patch.settlementBankAccounts
+      : [];
+    const normalized: CompanySettlementBankAccount[] = [];
+    for (const a of raw.slice(0, MAX_COMPANY_SETTLEMENT_BANK_ACCOUNTS)) {
+      if (!a || typeof a !== "object") continue;
+      const row = a as Partial<CompanySettlementBankAccount>;
+      const bankName = String(row.bankName ?? "").trim();
+      const accountName = String(row.accountName ?? "").trim();
+      const accountNumber = String(row.accountNumber ?? "").trim();
+      if (!bankName && !accountName && !accountNumber) continue;
+      const id =
+        typeof row.id === "string" && row.id.trim().length > 0
+          ? row.id.trim()
+          : randomUUID();
+      normalized.push({ id, bankName, accountName, accountNumber });
+    }
+    next.settlementBankAccounts =
+      normalized.length > 0 ? normalized : undefined;
+    if (normalized.length > 0) {
+      const first = normalized[0];
+      next.settlementBankName = first.bankName || undefined;
+      next.settlementAccountName = first.accountName || undefined;
+      next.settlementAccountNumber = first.accountNumber || undefined;
+    } else {
+      next.settlementBankName = undefined;
+      next.settlementAccountName = undefined;
+      next.settlementAccountNumber = undefined;
+    }
+  } else {
+    if (patch.settlementBankName !== undefined) {
+      const v = String(patch.settlementBankName ?? "").trim();
+      next.settlementBankName = v || undefined;
+    }
+    if (patch.settlementAccountName !== undefined) {
+      const v = String(patch.settlementAccountName ?? "").trim();
+      next.settlementAccountName = v || undefined;
+    }
+    if (patch.settlementAccountNumber !== undefined) {
+      const v = String(patch.settlementAccountNumber ?? "").trim();
+      next.settlementAccountNumber = v || undefined;
+    }
   }
   if (patch.tinNumber !== undefined) {
     const v = String(patch.tinNumber ?? "").trim();
@@ -265,6 +311,14 @@ export function updateCompany(
   if (patch.tradeLicenseDocument !== undefined) {
     const v = String(patch.tradeLicenseDocument ?? "").trim();
     next.tradeLicenseDocument = v || undefined;
+  }
+  if (patch.recommendationCategoryIds !== undefined) {
+    const validCatIds = new Set(getCategories().map((c) => c.id));
+    const ids = normalizeRecommendationCategoryIds(
+      patch.recommendationCategoryIds,
+      validCatIds,
+    );
+    next.recommendationCategoryIds = ids.length > 0 ? ids : undefined;
   }
 
   all[i] = next;

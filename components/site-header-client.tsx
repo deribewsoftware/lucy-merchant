@@ -213,7 +213,7 @@ export function SiteHeaderClient({
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         className={clsx(
-          "sticky top-0 z-50 transition-all duration-300",
+          "sticky top-0 z-50 overflow-visible transition-all duration-300",
           scrolled
             ? "border-b border-border/30 bg-background/90 shadow-md shadow-background/10 backdrop-blur-xl"
             : "border-b border-border/40 bg-background/40 backdrop-blur-md",

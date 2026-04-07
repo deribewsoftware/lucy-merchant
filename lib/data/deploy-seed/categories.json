@@ -48,5 +48,755 @@
     "id": "20000000-0000-4000-a000-00000000000a",
     "name": "Packaging & sacks",
     "parentId": "20000000-0000-4000-a000-000000000008"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000000b",
+    "name": "Plumbing & water systems",
+    "parentId": "20000000-0000-4000-a000-000000000001"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000000c",
+    "name": "Sand & aggregates",
+    "parentId": "20000000-0000-4000-a000-000000000001"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000000d",
+    "name": "Pumps & fluid equipment",
+    "parentId": "20000000-0000-4000-a000-000000000005"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000000e",
+    "name": "PPE & site safety",
+    "parentId": "20000000-0000-4000-a000-000000000005"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000000f",
+    "name": "Crop protection",
+    "parentId": "20000000-0000-4000-a000-000000000008"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000010",
+    "name": "Seeds & planting stock",
+    "parentId": "20000000-0000-4000-a000-000000000008"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000011",
+    "name": "Irrigation & equipment",
+    "parentId": "20000000-0000-4000-a000-000000000008"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000012",
+    "name": "Roofing & cladding",
+    "parentId": "20000000-0000-4000-a000-000000000001"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000013",
+    "name": "Insulation & waterproofing",
+    "parentId": "20000000-0000-4000-a000-000000000001"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000014",
+    "name": "Power tools & site equipment",
+    "parentId": "20000000-0000-4000-a000-000000000005"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000015",
+    "name": "Lubricants & fluids",
+    "parentId": "20000000-0000-4000-a000-000000000005"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000016",
+    "name": "Animal feed & supplements",
+    "parentId": "20000000-0000-4000-a000-000000000008"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000017",
+    "name": "Farm equipment & parts",
+    "parentId": "20000000-0000-4000-a000-000000000008"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000018",
+    "name": "Paint & coatings",
+    "parentId": "20000000-0000-4000-a000-000000000001"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000019",
+    "name": "Measurement & test instruments",
+    "parentId": "20000000-0000-4000-a000-000000000005"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000001a",
+    "name": "Scaffolding & access",
+    "parentId": "20000000-0000-4000-a000-000000000001"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000001b",
+    "name": "Doors, windows & glazing",
+    "parentId": "20000000-0000-4000-a000-000000000001"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000001c",
+    "name": "HVAC & ventilation",
+    "parentId": "20000000-0000-4000-a000-000000000005"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000001d",
+    "name": "Hydraulics & pneumatics",
+    "parentId": "20000000-0000-4000-a000-000000000005"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000001e",
+    "name": "Waste handling & site services",
+    "parentId": "20000000-0000-4000-a000-000000000005"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000001f",
+    "name": "Dairy & livestock supplies",
+    "parentId": "20000000-0000-4000-a000-000000000008"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000020",
+    "name": "Greenhouse & nursery",
+    "parentId": "20000000-0000-4000-a000-000000000008"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000021",
+    "name": "Storage & racking",
+    "parentId": "20000000-0000-4000-a000-000000000005"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000022",
+    "name": "Food staples & ingredients — wholesale (Ethiopia)",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000023",
+    "name": "Grains & flour — teff, wheat, barley, malt (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000022"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000024",
+    "name": "Edible oils, sugar & salt (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000022"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000097",
+    "name": "Ethiopia — export & specialty sectors",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000098",
+    "name": "Floriculture & cut flowers",
+    "parentId": "20000000-0000-4000-a000-000000000097"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000099",
+    "name": "Honey, beeswax & hive products",
+    "parentId": "20000000-0000-4000-a000-000000000097"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000009a",
+    "name": "Pulses, oilseeds & sesame (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000097"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000009b",
+    "name": "Incense, frankincense & myrrh",
+    "parentId": "20000000-0000-4000-a000-000000000097"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000009c",
+    "name": "Handicrafts, leather goods & gifts",
+    "parentId": "20000000-0000-4000-a000-000000000097"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000008e",
+    "name": "Apparel, clothing & footwear (wholesale)",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000008f",
+    "name": "Men's apparel (bulk)",
+    "parentId": "20000000-0000-4000-a000-00000000008e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000090",
+    "name": "Women's apparel (bulk)",
+    "parentId": "20000000-0000-4000-a000-00000000008e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000091",
+    "name": "Children's & schoolwear (bulk)",
+    "parentId": "20000000-0000-4000-a000-00000000008e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000092",
+    "name": "Footwear & leather shoes (bulk)",
+    "parentId": "20000000-0000-4000-a000-00000000008e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000009d",
+    "name": "Ethiopian traditional & cultural garments (bulk)",
+    "parentId": "20000000-0000-4000-a000-00000000008e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000025",
+    "name": "Coffee, tea & spices — commercial",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000026",
+    "name": "Green coffee & processing",
+    "parentId": "20000000-0000-4000-a000-000000000025"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000027",
+    "name": "Tea & spices (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000025"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000028",
+    "name": "Textiles & leather — industrial",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000029",
+    "name": "Fabrics & yarn (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000028"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000002a",
+    "name": "Leather & hides",
+    "parentId": "20000000-0000-4000-a000-000000000028"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000002b",
+    "name": "Medical & laboratory supply",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000002c",
+    "name": "Medical consumables & disposables",
+    "parentId": "20000000-0000-4000-a000-00000000002b"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000002d",
+    "name": "Laboratory reagents & glassware",
+    "parentId": "20000000-0000-4000-a000-00000000002b"
+  },
+  {
+    "id": "20000000-0000-4000-a000-0000000000a1",
+    "name": "Pharmaceuticals & OTC (licensed wholesale)",
+    "parentId": "20000000-0000-4000-a000-00000000002b"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000002e",
+    "name": "Automotive & transport parts",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000002f",
+    "name": "Spare parts & filters",
+    "parentId": "20000000-0000-4000-a000-00000000002e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000030",
+    "name": "Tyres & batteries",
+    "parentId": "20000000-0000-4000-a000-00000000002e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000031",
+    "name": "Hotel, restaurant & catering supply",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000032",
+    "name": "Commercial kitchen equipment",
+    "parentId": "20000000-0000-4000-a000-000000000031"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000033",
+    "name": "Disposables & tableware (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000031"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000034",
+    "name": "Plastics & polymers",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000035",
+    "name": "PET & resin (industrial)",
+    "parentId": "20000000-0000-4000-a000-000000000034"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000036",
+    "name": "Plasticware — household (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000034"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000037",
+    "name": "Chemicals & cleaning (industrial)",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000038",
+    "name": "Solvents & thinners",
+    "parentId": "20000000-0000-4000-a000-000000000037"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000039",
+    "name": "Cleaning chemicals (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000037"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000003a",
+    "name": "Mining & quarry",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000003b",
+    "name": "Crushing, screening & mobile plant",
+    "parentId": "20000000-0000-4000-a000-00000000003a"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000003c",
+    "name": "Energy & power generation",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000003d",
+    "name": "Solar PV, inverters & storage",
+    "parentId": "20000000-0000-4000-a000-00000000003c"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000003e",
+    "name": "Furniture — commercial, office & household",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000003f",
+    "name": "Office & institutional furniture",
+    "parentId": "20000000-0000-4000-a000-00000000003e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000009e",
+    "name": "Household & living-room furniture",
+    "parentId": "20000000-0000-4000-a000-00000000003e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000009f",
+    "name": "Kitchen & dining furniture (home)",
+    "parentId": "20000000-0000-4000-a000-00000000003e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000040",
+    "name": "Beauty & personal care — wholesale",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000041",
+    "name": "Cosmetics & skincare (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000040"
+  },
+  {
+    "id": "20000000-0000-4000-a000-0000000000a0",
+    "name": "Luxury surfaces & premium materials",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000042",
+    "name": "Electronics — computers, phones, AV & IT",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000043",
+    "name": "Networking, UPS & peripherals",
+    "parentId": "20000000-0000-4000-a000-000000000042"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000093",
+    "name": "Computers, laptops & peripherals",
+    "parentId": "20000000-0000-4000-a000-000000000042"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000094",
+    "name": "Mobile phones & accessories",
+    "parentId": "20000000-0000-4000-a000-000000000042"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000095",
+    "name": "Watches, smartwatches & wearables",
+    "parentId": "20000000-0000-4000-a000-000000000042"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000096",
+    "name": "TVs, audio & home entertainment",
+    "parentId": "20000000-0000-4000-a000-000000000042"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000044",
+    "name": "Printing & signage",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000045",
+    "name": "Wide-format, vinyl & displays",
+    "parentId": "20000000-0000-4000-a000-000000000044"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000046",
+    "name": "Sports & recreation equipment",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000047",
+    "name": "Gym & fitness machines",
+    "parentId": "20000000-0000-4000-a000-000000000046"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000048",
+    "name": "Education & stationery (bulk)",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000049",
+    "name": "School furniture & supplies",
+    "parentId": "20000000-0000-4000-a000-000000000048"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000004a",
+    "name": "Water supply & wastewater",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000004b",
+    "name": "Pumps, treatment & filtration",
+    "parentId": "20000000-0000-4000-a000-00000000004a"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000079",
+    "name": "Packaged drinking water (bulk & HORECA)",
+    "parentId": "20000000-0000-4000-a000-00000000004a"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000007a",
+    "name": "Clean-water filtration, RO & dispensers",
+    "parentId": "20000000-0000-4000-a000-00000000004a"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000007b",
+    "name": "Potable-water treatment chemicals & dosing",
+    "parentId": "20000000-0000-4000-a000-00000000004a"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000004c",
+    "name": "Logistics & material handling",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000004d",
+    "name": "Forklifts, stackers & pallet trucks",
+    "parentId": "20000000-0000-4000-a000-00000000004c"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000004e",
+    "name": "Daily essentials & household",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000004f",
+    "name": "Snacks & biscuits (bulk)",
+    "parentId": "20000000-0000-4000-a000-00000000004e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000050",
+    "name": "Pasta, rice & staples",
+    "parentId": "20000000-0000-4000-a000-00000000004e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000051",
+    "name": "Baby care (wholesale)",
+    "parentId": "20000000-0000-4000-a000-00000000004e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000052",
+    "name": "Laundry & fabric care",
+    "parentId": "20000000-0000-4000-a000-00000000004e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000053",
+    "name": "Air fresheners & home fragrance",
+    "parentId": "20000000-0000-4000-a000-00000000004e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000054",
+    "name": "Beverages — soft, dairy & alcoholic (ambient)",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000055",
+    "name": "Soft drinks & syrups",
+    "parentId": "20000000-0000-4000-a000-000000000054"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000056",
+    "name": "Milk & dairy ambient",
+    "parentId": "20000000-0000-4000-a000-000000000054"
+  },
+  {
+    "id": "20000000-0000-4000-a000-0000000000a2",
+    "name": "Alcoholic beverages — wine, beer & spirits (licensed trade)",
+    "parentId": "20000000-0000-4000-a000-000000000054"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000057",
+    "name": "Paper & hygiene disposables",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000058",
+    "name": "Tissue & toilet paper",
+    "parentId": "20000000-0000-4000-a000-000000000057"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000059",
+    "name": "Wipes & towels",
+    "parentId": "20000000-0000-4000-a000-000000000057"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000005a",
+    "name": "Pet supplies (bulk)",
+    "parentId": "20000000-0000-4000-a000-00000000004e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000005b",
+    "name": "Confectionery & candy",
+    "parentId": "20000000-0000-4000-a000-00000000004e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000005c",
+    "name": "Office & workplace supplies",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000005d",
+    "name": "Printer consumables & labels",
+    "parentId": "20000000-0000-4000-a000-00000000005c"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000005e",
+    "name": "Copy paper & notebooks (bulk)",
+    "parentId": "20000000-0000-4000-a000-00000000005c"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000005f",
+    "name": "Industrial plastics & film",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000060",
+    "name": "Stretch & shrink film",
+    "parentId": "20000000-0000-4000-a000-00000000005f"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000061",
+    "name": "Poly bags & pallet liners",
+    "parentId": "20000000-0000-4000-a000-00000000005f"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000062",
+    "name": "Welding & metal cutting",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000063",
+    "name": "Electrodes & filler wire",
+    "parentId": "20000000-0000-4000-a000-000000000062"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000064",
+    "name": "Industrial & welding gases",
+    "parentId": "20000000-0000-4000-a000-000000000062"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000065",
+    "name": "Cold chain & refrigeration",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000066",
+    "name": "Commercial refrigeration equipment",
+    "parentId": "20000000-0000-4000-a000-000000000065"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000067",
+    "name": "Refrigeration parts & service kits",
+    "parentId": "20000000-0000-4000-a000-000000000065"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000068",
+    "name": "Rubber & industrial belting",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000069",
+    "name": "Conveyor belts & rollers",
+    "parentId": "20000000-0000-4000-a000-000000000068"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000006a",
+    "name": "Facilities & janitorial",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000006b",
+    "name": "Janitorial tools & consumables",
+    "parentId": "20000000-0000-4000-a000-00000000006a"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000006c",
+    "name": "Waste handling & recycling supplies",
+    "parentId": "20000000-0000-4000-a000-00000000006a"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000006d",
+    "name": "Food ingredients & food manufacturing",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000006e",
+    "name": "Bakery & confectionery ingredients",
+    "parentId": "20000000-0000-4000-a000-00000000006d"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000006f",
+    "name": "Flavours, colours & extracts",
+    "parentId": "20000000-0000-4000-a000-00000000006d"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000070",
+    "name": "Fleet & commercial vehicles",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000071",
+    "name": "Engine oils & lubricants (fleet)",
+    "parentId": "20000000-0000-4000-a000-000000000070"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000072",
+    "name": "Filters, batteries & belts",
+    "parentId": "20000000-0000-4000-a000-000000000070"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000073",
+    "name": "Farm machinery & implements",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000074",
+    "name": "Tractor spare parts",
+    "parentId": "20000000-0000-4000-a000-000000000073"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000075",
+    "name": "Implements & attachments",
+    "parentId": "20000000-0000-4000-a000-000000000073"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000076",
+    "name": "Workwear & uniforms",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000077",
+    "name": "Hi-vis & safety apparel",
+    "parentId": "20000000-0000-4000-a000-000000000076"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000078",
+    "name": "Corporate uniforms (bulk)",
+    "parentId": "20000000-0000-4000-a000-000000000076"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000007e",
+    "name": "Tiles & ceramics (commercial)",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000007f",
+    "name": "Floor & wall tiles",
+    "parentId": "20000000-0000-4000-a000-00000000007e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000080",
+    "name": "Sanitary ware & fittings",
+    "parentId": "20000000-0000-4000-a000-00000000007e"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000081",
+    "name": "Aquaculture & fisheries supplies",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000082",
+    "name": "Aquaculture feed (floating & sinking)",
+    "parentId": "20000000-0000-4000-a000-000000000081"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000083",
+    "name": "Pond equipment & aeration",
+    "parentId": "20000000-0000-4000-a000-000000000081"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000084",
+    "name": "Glass & aluminium systems",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000085",
+    "name": "Flat & processed glass",
+    "parentId": "20000000-0000-4000-a000-000000000084"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000086",
+    "name": "Aluminium extrusions & profiles",
+    "parentId": "20000000-0000-4000-a000-000000000084"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000087",
+    "name": "Commercial seeds & seedlings",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000088",
+    "name": "Hybrid vegetable seed",
+    "parentId": "20000000-0000-4000-a000-000000000087"
+  },
+  {
+    "id": "20000000-0000-4000-a000-000000000089",
+    "name": "Forestry & coffee seedlings",
+    "parentId": "20000000-0000-4000-a000-000000000087"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000008a",
+    "name": "Cables & cable management",
+    "parentId": null
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000008b",
+    "name": "Power cable (LV & control)",
+    "parentId": "20000000-0000-4000-a000-00000000008a"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000008c",
+    "name": "Data, fibre & structured cabling",
+    "parentId": "20000000-0000-4000-a000-00000000008a"
+  },
+  {
+    "id": "20000000-0000-4000-a000-00000000008d",
+    "name": "Cable tray, ladder & supports",
+    "parentId": "20000000-0000-4000-a000-00000000008a"
   }
 ]

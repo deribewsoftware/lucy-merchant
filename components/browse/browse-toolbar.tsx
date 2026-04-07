@@ -1,6 +1,15 @@
 import Link from "next/link";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
+import { BrowseCategoryDropdown } from "@/components/browse/browse-category-dropdown";
+import { FilterDropdown } from "@/components/browse/filter-dropdown";
 import type { Category } from "@/lib/domain/types";
+import {
+  buildBrowseHref,
+  mergeFilters,
+  type BrowseFilterState,
+} from "@/lib/browse/browse-href";
+
+export type { BrowseFilterState };
 
 const SORT_OPTIONS: { value: string; label: string; hint: string }[] = [
   { value: "recent", label: "Most recent", hint: "Newest listings first" },
@@ -10,15 +19,6 @@ const SORT_OPTIONS: { value: string; label: string; hint: string }[] = [
   { value: "price_desc", label: "Price: high to low", hint: "Premium SKUs first" },
 ];
 
-export type BrowseFilterState = {
-  minPrice: string;
-  maxPrice: string;
-  minRating: string;
-  stock: string;
-  minShip: string;
-  region: string;
-};
-
 type Props = {
   sort: string;
   categoryId: string;
@@ -27,37 +27,6 @@ type Props = {
   regions: string[];
   filters: BrowseFilterState;
 };
-
-function buildBrowseHref(
-  sort: string,
-  categoryId: string,
-  f: BrowseFilterState,
-) {
-  const u = new URLSearchParams();
-  u.set("sort", sort);
-  if (categoryId) u.set("category", categoryId);
-  if (f.minPrice) u.set("minPrice", f.minPrice);
-  if (f.maxPrice) u.set("maxPrice", f.maxPrice);
-  if (f.minRating) u.set("minRating", f.minRating);
-  if (f.stock) u.set("stock", f.stock);
-  if (f.minShip) u.set("minShip", f.minShip);
-  if (f.region) u.set("region", f.region);
-  return `/browse?${u.toString()}`;
-}
-
-function mergeFilters(
-  base: BrowseFilterState,
-  patch: Partial<BrowseFilterState>,
-): BrowseFilterState {
-  return {
-    minPrice: patch.minPrice !== undefined ? patch.minPrice : base.minPrice,
-    maxPrice: patch.maxPrice !== undefined ? patch.maxPrice : base.maxPrice,
-    minRating: patch.minRating !== undefined ? patch.minRating : base.minRating,
-    stock: patch.stock !== undefined ? patch.stock : base.stock,
-    minShip: patch.minShip !== undefined ? patch.minShip : base.minShip,
-    region: patch.region !== undefined ? patch.region : base.region,
-  };
-}
 
 export function BrowseToolbar({
   sort,
@@ -69,7 +38,6 @@ export function BrowseToolbar({
 }: Props) {
   const sortLabel =
     SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "Most recent";
-  const categoryLabel = activeCategory?.name ?? "All categories";
 
   const href = (patch: Partial<BrowseFilterState>) =>
     buildBrowseHref(
@@ -133,32 +101,14 @@ export function BrowseToolbar({
           ))}
         </FilterDropdown>
 
-        {/* Category Dropdown */}
         {categories.length > 0 && (
-          <FilterDropdown
-            label="Category"
-            value={categoryLabel}
-          >
-            <Link
-              href={buildBrowseHref(sort, "", filters)}
-              className={`block rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-muted ${
-                !activeCategory ? "bg-primary/10 text-primary" : "text-foreground"
-              }`}
-            >
-              All categories
-            </Link>
-            {categories.map((c) => (
-              <Link
-                key={c.id}
-                href={buildBrowseHref(sort, c.id, filters)}
-                className={`block rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-muted ${
-                  categoryId === c.id ? "bg-primary/10 text-primary" : "text-foreground"
-                }`}
-              >
-                {c.name}
-              </Link>
-            ))}
-          </FilterDropdown>
+          <BrowseCategoryDropdown
+            sort={sort}
+            categoryId={categoryId}
+            categories={categories}
+            activeCategory={activeCategory}
+            filters={filters}
+          />
         )}
 
         {/* Price Dropdown */}
@@ -307,28 +257,5 @@ export function BrowseToolbar({
         </FilterDropdown>
       </div>
     </div>
-  );
-}
-
-function FilterDropdown({
-  label,
-  value,
-  children,
-}: {
-  label: string;
-  value: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <details className="group relative">
-      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-border/45 bg-card px-3 py-2 text-sm font-medium transition-all hover:border-primary/25 hover:bg-muted [&::-webkit-details-marker]:hidden">
-        <span className="text-xs text-muted-foreground">{label}:</span>
-        <span className="max-w-[10rem] truncate text-foreground">{value}</span>
-        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
-      </summary>
-      <div className="absolute left-0 top-[calc(100%+4px)] z-30 min-w-[12rem] max-w-[min(100vw-2rem,18rem)] max-h-60 overflow-y-auto rounded-lg border border-border/45 bg-card p-1 shadow-xl">
-        {children}
-      </div>
-    </details>
   );
 }
