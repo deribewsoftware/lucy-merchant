@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { LoginForm } from "@/app/login/login-form";
+import { getGoogleOAuthCredentials } from "@/lib/auth/google-oauth";
 
 export default function LoginPage() {
+  const googleOAuthConfigured = getGoogleOAuthCredentials() !== null;
   return (
     <Suspense
       fallback={
@@ -10,7 +12,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginForm />
+      <LoginForm googleOAuthConfigured={googleOAuthConfigured} />
     </Suspense>
   );
 }

@@ -30,6 +30,7 @@ export async function requireSession(roles?: UserRole[]): Promise<
       email: row.email,
       role: row.role,
       name: row.name,
+      authChannel: p.authChannel ?? "password",
     };
     if (roles && !roles.includes(user.role)) {
       return {

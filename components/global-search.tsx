@@ -517,6 +517,9 @@ export function GlobalSearch({
   const panelBlurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  /** Invalidate in-flight search responses when query/scope/category changes or unmounts. */
+  const searchSeqRef = useRef(0);
+  const searchAbortRef = useRef<AbortController | null>(null);
   const [q, setQ] = useState("");
   const [scope, setScope] = useState<SearchScope>("all");
   const [narrowCategoryId, setNarrowCategoryId] = useState("");
@@ -622,10 +625,24 @@ export function GlobalSearch({
     };
   }, []);
 
+  useEffect(
+    () => () => {
+      searchAbortRef.current?.abort();
+    },
+    [],
+  );
+
   const run = useCallback(
     async (term: string, sc: SearchScope) => {
+      searchAbortRef.current?.abort();
+      const ac = new AbortController();
+      searchAbortRef.current = ac;
+      const seq = ++searchSeqRef.current;
+
       const t = term.trim();
       if (!t && !narrowCategoryId) {
+        searchAbortRef.current?.abort();
+        searchSeqRef.current++;
         setProducts([]);
         setCompanies([]);
         setCategories([]);
@@ -633,6 +650,7 @@ export function GlobalSearch({
         setSearchNoMatch(false);
         setRecommendationTags([]);
         setRecommendedProducts([]);
+        setLoading(false);
         return;
       }
       setLoading(true);
@@ -644,9 +662,15 @@ export function GlobalSearch({
             : "";
         const res = await fetch(
           `/api/search?q=${encodeURIComponent(t)}&scope=${sc}&limit=${DROPDOWN_LIMIT}${catQ}`,
-          { credentials: "same-origin" },
+          {
+            signal: ac.signal,
+            credentials: "same-origin",
+            cache: "no-store",
+          },
         );
+        if (seq !== searchSeqRef.current) return;
         const data = await res.json().catch(() => ({}));
+        if (seq !== searchSeqRef.current) return;
         if (!res.ok) {
           setProducts([]);
           setCompanies([]);
@@ -675,7 +699,9 @@ export function GlobalSearch({
         setRecommendedProducts(
           Array.isArray(d.recommendedProducts) ? d.recommendedProducts : [],
         );
-      } catch {
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        if (seq !== searchSeqRef.current) return;
         setProducts([]);
         setCompanies([]);
         setCategories([]);
@@ -684,7 +710,7 @@ export function GlobalSearch({
         setRecommendedProducts([]);
         setSearchError("Could not reach search. Check your connection.");
       } finally {
-        setLoading(false);
+        if (seq === searchSeqRef.current) setLoading(false);
       }
     },
     [narrowCategoryId],

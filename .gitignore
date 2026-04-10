@@ -30,7 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — secrets stay local; template is committed so the team can see variable names
+# env files — secrets stay local; only `.env.example` (no secrets) should be committed
 .env
 .env.local
 .env.development.local

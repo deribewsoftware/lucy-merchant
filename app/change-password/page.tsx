@@ -29,6 +29,7 @@ function ChangePasswordFormInner() {
   const nextParam = searchParams.get("next");
   const requiredFlow = searchParams.get("required") === "1";
   const securityDefault = searchParams.get("security") === "default";
+  const securityOauth = searchParams.get("security") === "oauth";
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
@@ -39,17 +40,36 @@ function ChangePasswordFormInner() {
   >({});
   const [loading, setLoading] = useState(false);
   const [homeHref, setHomeHref] = useState("/merchant/dashboard");
+  /** OAuth + must-change: server allows new password without current (no random password known). */
+  const [skipCurrentPassword, setSkipCurrentPassword] = useState(false);
 
   useEffect(() => {
     void fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d: { user?: { role?: UserRole; adminAccessPending?: boolean } }) => {
-        const role = d.user?.role;
-        if (!role) return;
-        setHomeHref(
-          defaultHomePath(role, { adminAccessPending: d.user?.adminAccessPending }),
-        );
-      })
+      .then(
+        (d: {
+          user?: {
+            role?: UserRole;
+            adminAccessPending?: boolean;
+            mustChangePassword?: boolean;
+            authChannel?: "password" | "oauth";
+          };
+        }) => {
+          const u = d.user;
+          const role = u?.role;
+          if (role) {
+            setHomeHref(
+              defaultHomePath(role, { adminAccessPending: u?.adminAccessPending }),
+            );
+          }
+          if (
+            u?.mustChangePassword === true &&
+            (u.authChannel ?? "password") === "oauth"
+          ) {
+            setSkipCurrentPassword(true);
+          }
+        },
+      )
       .catch(() => {});
   }, []);
 
@@ -69,7 +89,7 @@ function ChangePasswordFormInner() {
 
     const errs: typeof fieldErrors = {};
 
-    if (!currentPassword) {
+    if (!skipCurrentPassword && !currentPassword) {
       errs.currentPassword = "Required";
     }
 
@@ -86,7 +106,11 @@ function ChangePasswordFormInner() {
     const res = await fetch("/api/auth/change-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentPassword, password, confirmPassword }),
+      body: JSON.stringify({
+        ...(skipCurrentPassword ? {} : { currentPassword }),
+        password,
+        confirmPassword,
+      }),
     });
     const data = await res.json().catch(() => ({}));
     setLoading(false);
@@ -152,30 +176,47 @@ function ChangePasswordFormInner() {
           </motion.div>
         ) : null}
 
+        {requiredFlow && securityOauth ? (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3.5 py-3 text-left text-sm text-sky-950 dark:text-sky-100"
+          >
+            <p className="font-semibold">Set a password</p>
+            <p className="mt-1 leading-relaxed opacity-95">
+              You signed in with Google. Choose a password for this account so you can also sign in with
+              email when needed.
+            </p>
+          </motion.div>
+        ) : null}
+
         {/* Form */}
         <form onSubmit={onSubmit} className="mt-7 space-y-4">
           {/* Current password */}
-          <motion.div variants={childVariants} className="space-y-1.5">
-            <AuthPasswordInput
-              id="current-password"
-              required
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(e) => {
-                setCurrentPassword(e.target.value);
-                clearField("currentPassword");
-              }}
-              aria-invalid={Boolean(fieldErrors.currentPassword)}
-              error={Boolean(fieldErrors.currentPassword)}
-              label="Current password"
-            />
-            {fieldErrors.currentPassword && (
-              <p className="px-0.5 text-sm text-error">{fieldErrors.currentPassword}</p>
-            )}
-          </motion.div>
+          {!skipCurrentPassword ? (
+            <>
+              <motion.div variants={childVariants} className="space-y-1.5">
+                <AuthPasswordInput
+                  id="current-password"
+                  required
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
+                    clearField("currentPassword");
+                  }}
+                  aria-invalid={Boolean(fieldErrors.currentPassword)}
+                  error={Boolean(fieldErrors.currentPassword)}
+                  label="Current password"
+                />
+                {fieldErrors.currentPassword && (
+                  <p className="px-0.5 text-sm text-error">{fieldErrors.currentPassword}</p>
+                )}
+              </motion.div>
 
-          {/* Divider */}
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+            </>
+          ) : null}
 
           {/* New password */}
           <motion.div variants={childVariants} className="space-y-1.5">

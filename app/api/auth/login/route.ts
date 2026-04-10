@@ -11,9 +11,7 @@ import {
 } from "@/lib/server/admin-permissions";
 import { checkRateLimit, clientIp } from "@/lib/server/rate-limit";
 import { logStaffLogin } from "@/lib/server/admin-audit-log";
-
-const COOKIE = "lm_token";
-const MAX_AGE = 60 * 60 * 24 * 7;
+import { setLmSessionCookie } from "@/lib/server/lm-session-cookie";
 
 export async function POST(request: Request) {
   const ip = clientIp(request);
@@ -58,6 +56,7 @@ export async function POST(request: Request) {
     email: user.email,
     role: user.role,
     name: user.name,
+    authChannel: "password",
   });
 
   logStaffLogin(request, { userId: user.id, role: user.role });
@@ -81,12 +80,6 @@ export async function POST(request: Request) {
     },
   };
   const res = NextResponse.json(successPayload);
-  res.cookies.set(COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: MAX_AGE,
-  });
+  setLmSessionCookie(res, token);
   return res;
 }

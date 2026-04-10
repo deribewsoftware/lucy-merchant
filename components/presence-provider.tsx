@@ -42,20 +42,28 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const [tick, setTick] = useState(0);
   /** Only show “online” when this tab is visible — avoids “always on” while another tab/app is focused */
   const [tabVisible, setTabVisible] = useState(true);
+  /** Avoid POST /api/presence (401 noise) until /api/auth/me confirms a session */
+  const [authed, setAuthed] = useState(false);
 
-  const checkAuth = useCallback(async () => {
+  const syncSession = useCallback(async () => {
     try {
       const res = await fetch("/api/auth/me", {
         credentials: "include",
         cache: "no-store",
       });
-      if (res.status === 401) setLastPingAtMs(null);
+      const ok = res.ok;
+      setAuthed(ok);
+      if (!ok) setLastPingAtMs(null);
+      return ok;
     } catch {
-      /* ignore */
+      setAuthed(false);
+      setLastPingAtMs(null);
+      return false;
     }
   }, []);
 
-  const ping = useCallback(async () => {
+  /** POST heartbeat; call only when /api/auth/me has succeeded (avoids stale `authed` closure right after login). */
+  const postHeartbeat = useCallback(async () => {
     if (typeof document !== "undefined" && document.visibilityState === "hidden") {
       return;
     }
@@ -69,6 +77,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
         setLastPingAtMs(Date.now());
       } else if (res.status === 401) {
         setLastPingAtMs(null);
+        setAuthed(false);
       }
       /* 429 etc.: keep last successful ping so we don’t flash “offline” on rate limits */
     } catch {
@@ -76,12 +85,20 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const ping = useCallback(() => {
+    if (!authed) return;
+    void postHeartbeat();
+  }, [authed, postHeartbeat]);
+
   useEffect(() => {
     function onLogout() {
       setLastPingAtMs(null);
+      setAuthed(false);
     }
     function onLogin() {
-      void ping();
+      void syncSession().then((ok) => {
+        if (ok) void postHeartbeat();
+      });
     }
     window.addEventListener(LM_LOGOUT_EVENT, onLogout);
     window.addEventListener(LM_LOGIN_EVENT, onLogin);
@@ -89,7 +106,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       window.removeEventListener(LM_LOGOUT_EVENT, onLogout);
       window.removeEventListener(LM_LOGIN_EVENT, onLogin);
     };
-  }, [ping]);
+  }, [postHeartbeat, syncSession]);
 
   useEffect(() => {
     const syncVis = () => setTabVisible(document.visibilityState === "visible");
@@ -98,21 +115,25 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     const onVis = () => {
       syncVis();
       if (document.visibilityState === "visible") {
-        void checkAuth();
-        void ping();
+        void syncSession().then((ok) => {
+          if (ok) void postHeartbeat();
+        });
       }
     };
     document.addEventListener("visibilitychange", onVis);
 
-    void checkAuth();
-    void ping();
-    const intervalId = window.setInterval(ping, 45_000);
+    void syncSession().then((ok) => {
+      if (ok) void postHeartbeat();
+    });
+    const intervalId = window.setInterval(() => {
+      void ping();
+    }, 45_000);
 
     return () => {
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [ping, checkAuth]);
+  }, [ping, postHeartbeat, syncSession]);
 
   useEffect(() => {
     const id = window.setInterval(() => setTick((t) => t + 1), 15_000);

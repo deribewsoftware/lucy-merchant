@@ -9,10 +9,13 @@ function load(): PresenceMap {
   return readJsonFile<PresenceMap>(FILE, {});
 }
 
-export function touchPresence(userId: string): void {
+/** Writes last activity ISO time for `userId` and returns the stored value. */
+export function touchPresence(userId: string): string {
   const map = load();
-  map[userId] = new Date().toISOString();
+  const at = new Date().toISOString();
+  map[userId] = at;
   writeJsonFile(FILE, map);
+  return at;
 }
 
 export function getPresenceForUsers(userIds: string[]): Record<string, string> {

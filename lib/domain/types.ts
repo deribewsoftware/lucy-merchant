@@ -316,6 +316,8 @@ export type SessionUser = {
   email: string;
   role: UserRole;
   name: string;
+  /** Present on new sessions: password login vs OAuth. */
+  authChannel?: "password" | "oauth";
 };
 
 /**

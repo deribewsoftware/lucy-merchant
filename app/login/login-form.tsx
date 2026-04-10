@@ -98,11 +98,12 @@ function StaffAccessNotice() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ googleOAuthConfigured }: { googleOAuthConfigured: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "";
   const err = searchParams.get("error");
+  const oauthDetail = searchParams.get("detail");
   const verified = searchParams.get("verified");
   const reset = searchParams.get("reset");
   const staffFromVerify = searchParams.get("staff") === "1";
@@ -131,6 +132,25 @@ export function LoginForm() {
     const pre = emailParam?.trim();
     if (pre) setEmail(pre);
   }, [emailParam]);
+
+  useEffect(() => {
+    if (err !== "oauth" || !oauthDetail) return;
+    const copy: Record<string, string> = {
+      cancelled: "Google sign-in was cancelled.",
+      google_not_configured: "Google sign-in is not configured on the server.",
+      unsupported_provider: "That sign-in provider is not available.",
+      missing_code: "Google did not return a sign-in code. Try again.",
+      bad_state: "Sign-in session expired. Please try again.",
+      oauth_redirect_mismatch:
+        "Google rejected the redirect address for this app. The developer must add the exact callback URL in Google Cloud Console.",
+      oauth_invalid_grant:
+        "This Google sign-in link expired or was already used. Close the tab and try Sign in with Google again.",
+      token_exchange_failed: "Could not complete Google sign-in. Try again.",
+      create_failed: "Could not create an account. You may already be registered — try email sign-in.",
+      invalid_role: "Could not determine account type. Use the registration form.",
+    };
+    setMessage(copy[oauthDetail] ?? "Sign-in with Google failed. Try again.");
+  }, [err, oauthDetail]);
 
   function clearField<K extends keyof LoginFieldErrors>(key: K) {
     setFieldErrors((prev) => {
@@ -229,7 +249,7 @@ export function LoginForm() {
 
         {/* Social auth */}
         <div className="mt-7">
-          <SocialAuthButtons mode="login" />
+          <SocialAuthButtons mode="login" googleOAuthConfigured={googleOAuthConfigured} />
         </div>
 
         <StaffAccessNotice />
@@ -322,6 +342,14 @@ export function LoginForm() {
               <HiOutlineExclamationCircle className="mt-0.5 h-4.5 w-4.5 shrink-0" aria-hidden />
               <span className="inline-block space-y-1">
                 {message}
+                {oauthDetail === "oauth_redirect_mismatch" && (
+                  <Link
+                    href="/api/health/oauth"
+                    className="mt-2 block text-xs font-medium text-primary hover:text-primary/80"
+                  >
+                    View the exact redirect URL this site uses →
+                  </Link>
+                )}
                 {verifyLinkEmail && (
                   <Link
                     href={`/verify-email?email=${encodeURIComponent(verifyLinkEmail)}`}

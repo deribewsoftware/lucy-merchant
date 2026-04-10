@@ -32,6 +32,7 @@ export async function GET() {
     email: auth.user.email,
     role: auth.user.role,
     name: auth.user.name,
+    authChannel: auth.user.authChannel ?? "password",
     points: row?.points,
     emailVerified: row ? isEmailVerified(row) : true,
     mustChangePassword: row?.mustChangePassword === true,

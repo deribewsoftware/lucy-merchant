@@ -64,6 +64,7 @@ export default async function RootLayout({
     <html
       lang="en"
       data-theme={theme}
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable}`}
       suppressHydrationWarning
     >

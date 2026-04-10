@@ -55,6 +55,7 @@ export async function POST(request: Request) {
     email: user.email,
     role: user.role,
     name: user.name,
+    authChannel: "password",
   });
 
   const res = NextResponse.json({

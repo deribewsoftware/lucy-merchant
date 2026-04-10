@@ -120,6 +120,7 @@ export async function PATCH(request: Request) {
       email: updated.email,
       role: updated.role,
       name: updated.name,
+      authChannel: auth.user.authChannel ?? "password",
     });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,

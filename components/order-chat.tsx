@@ -98,12 +98,19 @@ export function OrderChat({
   const [presence, setPresence] = useState<Record<string, string>>({});
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadGenRef = useRef(0);
 
   const load = useCallback(async () => {
     if (paymentGate) return;
-    const res = await fetch(`/api/orders/${orderId}/messages`);
+    const id = ++loadGenRef.current;
+    const res = await fetch(`/api/orders/${orderId}/messages`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (id !== loadGenRef.current) return;
     if (!res.ok) return;
     const data = await res.json();
+    if (id !== loadGenRef.current) return;
     setMessages(data.messages ?? []);
     if (data.presence && typeof data.presence === "object") {
       setPresence(data.presence as Record<string, string>);
@@ -196,6 +203,8 @@ export function OrderChat({
       fd.append("file", pendingFile);
       const up = await fetch(`/api/orders/${orderId}/chat-image`, {
         method: "POST",
+        credentials: "include",
+        cache: "no-store",
         body: fd,
       });
       const data = await up.json().catch(() => ({}));
@@ -213,6 +222,8 @@ export function OrderChat({
     }
     const res = await fetch(`/api/orders/${orderId}/messages`, {
       method: "POST",
+      credentials: "include",
+      cache: "no-store",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         content: text,
@@ -242,6 +253,8 @@ export function OrderChat({
     setError(null);
     const res = await fetch(`/api/orders/${orderId}/messages`, {
       method: "POST",
+      credentials: "include",
+      cache: "no-store",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         kind: "price_proposal",

@@ -11,7 +11,13 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     const p = await verifyToken(token);
     const row = findUserById(p.sub);
     if (!row) return null;
-    return { id: row.id, email: row.email, role: row.role, name: row.name };
+    return {
+      id: row.id,
+      email: row.email,
+      role: row.role,
+      name: row.name,
+      authChannel: p.authChannel ?? "password",
+    };
   } catch {
     return null;
   }
